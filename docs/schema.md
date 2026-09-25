@@ -23,7 +23,7 @@ Status: draft for review. The PRD is in [`docs/prd.md`](prd.md).
     - A bell extension adds minutes (FR-4.6). Minutes never go down.
     - Filing sets `node_id` once on an unfiled cycle (FR-9.4).
 
-    A database trigger enforces the rule. The only row that can be removed is a *running* cycle (cancel, or Stop under 1 minute, FR-3). A logged cycle stays forever.
+    A database trigger enforces the rule. No cycle is ever deleted, running or logged. A Stop under 1 minute logs 1 minute (a PRD change to FR-3).
 4. **UTC only.** `started_at` is a `timestamptz`, one column that holds both the date and the time. No time zone and no separate date column are stored. The browser sends its IANA zone (for example `Asia/Kolkata`) with each report request. The server uses that zone for "today", "this week" and day groups. The UI renders every time in the browser zone.
 5. **Planned vs actual.** `planned_minutes` is the length chosen at Start. `minutes` is what was logged, including any extension. The difference lets us analyze estimates per mode, for example "Deep Focus cycles run 20% longer than planned".
 6. **No cycle data on the node.** "Most recently worked" (FR-10.1) comes from `MAX(started_at)` over the user's cycles.
@@ -37,6 +37,7 @@ Status: draft for review. The PRD is in [`docs/prd.md`](prd.md).
 - **I-1 and FR-8.7** say that a cycle may be deleted. Decision 3 removes delete from v1.
 - **FR-8 acceptance criteria:** "every entry offers delete" and "deleting an entry reverses its effect" go away.
 - **FR-11.6** export: add `planned_minutes` to the columns.
+- **FR-3 acceptance criteria:** "Stopping under 1 minute writes no cycle" becomes "Stopping under 1 minute logs 1 minute".
 
 ## ER diagram
 
@@ -175,8 +176,7 @@ Lifecycle of one cycle:
 ```mermaid
 stateDiagram-v2
     [*] --> Running: Start (minutes = NULL)
-    Running --> Logged: Stop (minutes set)
-    Running --> [*]: Cancel or Stop under 1 min (row removed)
+    Running --> Logged: Stop (minutes set, at least 1)
     Logged --> Logged: Extension (minutes grow)
     Logged --> Logged: Filing (node_id set once)
 ```
@@ -209,7 +209,7 @@ An estimate covers only the node's own cycles (I-4). The roll-up adds up estimat
 
 | Invariant | Enforcement |
 |---|---|
-| I-1 The log is append-only | Trigger `cycle_guard` allows only Stop, extension, and filing. Trigger `cycle_reject_delete` rejects a delete of a logged cycle. |
+| I-1 The log is append-only | Trigger `cycle_guard` allows only Stop, extension, and filing. Trigger `cycle_reject_delete` rejects every delete. |
 | I-2 Mode and node are bound before Start | The row is written at Start with `mode` NOT NULL. `cycle_guard` rejects a mode change and a change to a filed `node_id`. |
 | I-3 An entry is an entry | Timer and hand entries write the same columns. |
 | I-4 Roll-up is own plus descendants | The roll-up query. No stored totals. |
@@ -250,7 +250,6 @@ A per-day split groups by `(started_at AT TIME ZONE $4)::date`, where `$4` is th
 1. **A running cycle after a closed tab.** The row stays with `minutes = NULL`. Options:
     - **Resume it** (FR-3.5). On reopen, the countdown continues. If the planned end has passed, the app shows the bell, logged at the planned length. *Recommended.*
     - Close it at the planned length on the next open.
-    - Remove it on the next open, so nothing is logged.
 
     Pause state lives only in the UI, so the first two options cannot see a pause that happened before the tab closed.
 2. **Planned minutes for a hand entry.** The proposal sets it equal to the entered length. Then hand entries show zero difference in the planned-vs-actual analysis.
@@ -274,10 +273,11 @@ I wrote a draft DDL for this design, loaded it into Postgres 15, and ran these c
 | 11 | A `planned_minutes` change | rejected |
 | 12 | Filing an Inbox cycle, then re-filing it | first accepted, second rejected |
 | 13 | A delete of a logged cycle | rejected |
-| 14 | A delete of a running cycle (cancel) | accepted |
-| 15 | A cycle of 0 minutes | rejected |
-| 16 | Day of 02:00 UTC with the zone from the request | 2026-09-24 in `America/Los_Angeles`, 2026-09-25 in `Asia/Kolkata` |
-| 17 | Account delete | removes all rows in all tables |
+| 14 | A delete of a running cycle | rejected |
+| 15 | Stop under 1 minute sets minutes to 1 | accepted |
+| 16 | A cycle of 0 minutes | rejected |
+| 17 | Day of 02:00 UTC with the zone from the request | 2026-09-24 in `America/Los_Angeles`, 2026-09-25 in `Asia/Kolkata` |
+| 18 | Account delete | removes all rows in all tables |
 
 ## Not in this schema
 

@@ -23,87 +23,96 @@ All RPCs are in one gRPC service, `LedgerService`, served by one deployment. Not
 
 Split into more services only when a real trigger appears: a second team, a workload that must scale or fail on its own, or a public API.
 
-## Candidate RPCs
+## RPCs
+
+13 RPCs in `LedgerService`, grouped by section. Each one earns its place. There is no RPC per screen and no RPC per action.
+
+| Section | RPCs |
+|---|---|
+| Account | `SignIn`, `SignOut`, `GetAccount`, `DeleteAccount` |
+| Settings | `GetSettings`, `UpdateSettings` |
+| Nodes | `CreateNode`, `UpdateNode`, `GetNode`, `ListNodes` |
+| Cycles | `CreateCycle`, `UpdateCycle` |
+| Report | `GetReport` |
+
+Every `Update*` request carries a `google.protobuf.FieldMask` that names the fields to change. In proto3, a missing field and a zero value look the same, so the mask is the only way to tell them apart.
 
 ### Account
 
-| RPC | What it does | PRD |
-|---|---|---|
-| `StartSignIn` | Sends a sign-in link or code to an email. | FR-12 |
-| `CompleteSignIn` | Exchanges the code for a session. | FR-12 |
-| `SignOut` | Ends the session. | FR-12 |
-| `GetAccount` | Returns email and created date. | FR-12 |
-| `DeleteAccount` | Deletes the account and all its data. | FR-12 AC |
-
-The shape of `StartSignIn` / `CompleteSignIn` depends on the sign-in method (magic link, OAuth, or password). That is still open.
-
-Later, for guest accounts: `CreateGuestAccount` makes an `app_user` with `email = NULL`, and `CompleteSignIn` attaches an email to it.
+| RPC | Why it is required |
+|---|---|
+| `SignIn(id_token)` | Checks the Google or Apple ID token, creates or finds the user, and starts a session. |
+| `SignOut` | Ends the session. JavaScript cannot clear an HttpOnly session cookie, so the server does it. |
+| `GetAccount` | After a page reload, the app must know who is signed in. |
+| `DeleteAccount` | FR-12 requires it. Apple's App Store rules also require in-app account deletion for the later iOS app. |
 
 ### Settings
 
-| RPC | What it does | PRD |
-|---|---|---|
-| `GetSettings` | Returns the mode lengths, break length, sound, notifications. | FR-12.1 |
-| `UpdateSettings` | Changes one or more settings. | FR-12.2 |
+| RPC | What it does |
+|---|---|
+| `GetSettings` | Returns the mode lengths, break length, sound, and notifications. |
+| `UpdateSettings` | Changes the fields in the mask. |
 
-### Tree
+### Nodes
 
-| RPC | What it does | PRD |
-|---|---|---|
-| `CreateNode` | Creates a node under a parent, or at the root. | FR-1, FR-7.2 |
-| `RenameNode` | Changes the name. | FR-7 |
-| `MoveNode` | Changes the parent. Rejects a move under its own descendant. | FR-7.3, FR-7.8 |
-| `CloseNode` | Closes a node. | FR-7.7 |
-| `ReopenNode` | Reopens a closed node. | FR-7 AC |
-| `ListNodes` | Returns the user's whole tree (about 100 rows). | FR-7 |
-| `GetMoveImpact` | Returns "39 cycles · 28h 10m will move with it". | FR-7.6 |
+A node carries its estimates. There is no estimate RPC.
 
-Candidates to discard or merge:
-- `CloseNode` + `ReopenNode` → one `SetNodeClosed(node_id, closed)`.
-- `RenameNode` → a general `UpdateNode` with a field mask. Specific verbs are clearer while the node has one editable field.
-- `GetMoveImpact` → a field on the response of a node read.
+| RPC | What it does |
+|---|---|
+| `CreateNode` | Creates a node under a parent or at the root, with optional estimates (FR-1, FR-6, FR-7.2). |
+| `UpdateNode` | Changes the fields in the mask: `name`, `parent_id` (move), `closed`, `estimates`. A move under the node's own descendant is rejected (FR-7.8). |
+| `GetNode` | Returns one node. |
+| `ListNodes` | Returns the user's tree for Today and the Tree screen. |
 
-### Estimates
+How the old actions map:
 
-| RPC | What it does | PRD |
-|---|---|---|
-| `SetEstimate` | Replaces a node's three mode rows in one call (Save in the editor). | FR-6 |
-| `GetEstimate` | Returns a node's estimate rows. | FR-6 |
-
-Candidate to merge: `GetEstimate` into the node read, because an estimate always belongs to one node.
+| Action | RPC |
+|---|---|
+| Rename | `UpdateNode`, mask `name` |
+| Move | `UpdateNode`, mask `parent_id` |
+| Close, reopen | `UpdateNode`, mask `closed` |
+| Save an estimate | `UpdateNode`, mask `estimates` (replaces the three mode rows) |
 
 ### Cycles
 
-| RPC | What it does | PRD |
-|---|---|---|
-| `StartCycle` | Writes the row with `minutes = NULL`. Rejects a second running cycle. | FR-2 |
-| `StopCycle` | Sets `minutes` to the elapsed time. | FR-3, FR-4.1 |
-| `CancelCycle` | Removes a running cycle (Stop under 1 minute). | FR-3 |
-| `ExtendCycle` | Adds minutes to a logged cycle ("Keep going for 15"). | FR-4.6 |
-| `GetRunningCycle` | Returns the running cycle, so a reopened tab can resume. | FR-3.5 |
-| `LogCycle` | Writes a hand entry in one step. | FR-8 |
-| `FileCycle` | Sets `node_id` on an Inbox cycle. | FR-9.4 |
-| `ListCycles` | Returns cycles for a day, a node, or the Inbox. | FR-8, FR-9, FR-10 |
+| RPC | What it does |
+|---|---|
+| `CreateCycle` | Without `minutes`: starts a cycle (FR-2). A second running cycle is rejected. With `minutes`: writes a hand entry (FR-8). |
+| `UpdateCycle` | Changes the fields in the mask: `minutes` (Stop, extension) or `node_id` (filing). |
 
-Pause has no RPC. It lives in the UI (decided in the schema).
+How the old actions map:
 
-### Screen reads
+| Action | RPC |
+|---|---|
+| Start | `CreateCycle`, no `minutes` |
+| Hand entry | `CreateCycle`, with `minutes` |
+| Stop | `UpdateCycle`, mask `minutes`. A stop under 1 minute sends 1. |
+| Extend | `UpdateCycle`, mask `minutes` with the larger total |
+| File an Inbox cycle | `UpdateCycle`, mask `node_id` |
+| Pause | none. Pause lives in the UI. |
 
-One call returns everything that one screen needs.
+There is no delete. The server rejects a change that breaks the cycle rules: minutes set once and only grow, filing once, mode and start fixed.
 
-| RPC | What it returns | PRD |
-|---|---|---|
-| `GetToday` | The rail (open nodes, last worked, `done of est`), today's and this week's totals by mode. | FR-10 |
-| `GetTree` | All nodes with rolled-up cycles and estimates. | FR-7 |
-| `GetReport` | The node × mode cross-tab for a period. | FR-11.1–11.3 |
-| `GetEstimateReport` | Estimated vs logged per node. | FR-11.4 |
-| `GetPlannedVsActual` | Planned vs actual minutes per mode (the new analysis). | schema decision 5 |
-| `ExportCycles` | CSV of raw cycles. | FR-11.6 |
+### Report
 
-Every read takes the browser time zone, for "today", "this week", and day groups.
+| RPC | What it does |
+|---|---|
+| `GetReport` | For any period: one row per node, including closed nodes (FR-7.7). Each row has rolled-up minutes, planned minutes and cycle counts per mode, and the estimate. It also returns Inbox time and the grand totals (FR-11). |
+
+`ListNodes` serves the working screens (open nodes, today, this week). `GetReport` serves the Report page (any period, closed nodes, three views).
+
+### Where the old reads went
+
+| Need | Served by |
+|---|---|
+| *Logged today* for a node (FR-10.4) | `GetNode` / `ListNodes` with `include_cycles` |
+| Inbox cycles to file (FR-9.3) | `ListNodesResponse.unfiled` with `include_cycles` |
+| The running cycle after a reload (FR-3.5) | `ListNodesResponse.running_cycle` |
+| Report views (FR-11.1–11.4) | `GetReport` |
 
 ## Open questions
 
-1. The sign-in method: magic link, OAuth (Google, Apple), or password?
-2. The merge candidates: `SetNodeClosed`, `GetEstimate` into the node read, `GetMoveImpact` as a field.
-3. Retry safety. The server makes the IDs, so a retried `LogCycle` could write two rows. `StartCycle` is safe, because a user can have only one running cycle. The proposal: each write request carries a client `request_id`, and the server ignores a repeat.
+1. The sign-in method: Google and Apple ID tokens are assumed above. Add a magic link as a fallback?
+2. Node reads carry server-computed stats: per mode `own` and `rolled_up` minutes, planned minutes, cycle counts, and `last_worked_at`, for the requested period. The browser computes nothing.
+3. CSV export (FR-11.6): its own `ExportCycles`, or part of `GetReport`? A CSV download is a different response type, so a separate RPC is the proposal.
+4. Retry safety. The server makes the IDs, so a retried hand-entry `CreateCycle` could write two rows. A retried Start is safe, because a user can have only one running cycle. The proposal: each write request carries a client `request_id`, and the server ignores a repeat.
