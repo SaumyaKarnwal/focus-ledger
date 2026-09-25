@@ -2,17 +2,36 @@
 
 Status: draft for review. The PRD is in [`docs/prd.md`](prd.md).
 
-## Decisions to confirm
+## Decisions
 
-Each decision below changes columns. The first one changes every table.
+| # | Decision | Status |
+|---|---|---|
+| 1 | The client creates every ID as a UUIDv7. | To confirm |
+| 2 | One `cycle` table. The row is created at Start. There is no separate running-timer table. | Agreed |
+| 3 | A cycle cannot be edited or deleted. It allows three changes: Stop, extension, and filing. | Agreed |
+| 4 | All times are stored in UTC. The browser sends its time zone with each request. | Agreed |
+| 5 | A cycle stores planned minutes and actual minutes. | Agreed |
+| 6 | The node stores no cycle data. | Agreed |
+| 7 | The tree uses an adjacency list (`parent_id`). | Agreed |
 
-1. **The client creates every ID as a UUIDv7.** The PRD needs full function with no account (I-8) and a merge on sign-in (FR-12.6: 12 local + 40 account = 52). Client-made IDs let the browser create rows offline and merge them without collisions. A server-first design would change this.
-2. **A written cycle allows three changes, and only three.** I-1 says that a cycle never changes. But the PRD itself writes to a cycle in two places: filing an Inbox cycle (FR-9.4) and the bell extension (FR-4.6). The proposed rule is: file once (`node_id` NULL → value), add minutes (never remove them), and soft delete. A database trigger enforces this rule.
-3. **A delete is a soft delete (`deleted_at`).** With sync between devices, a hard delete on one device can come back from another device. The roll-up index skips deleted rows, so reads do not slow down.
-4. **Each cycle stores its time zone.** Reports work in the user's local days (FR-8.4, FR-11.3). A UTC timestamp alone cannot tell which day a cycle belongs to after the user travels. The cycle stores `tz` (IANA name), and the database derives `local_date` once, at insert.
-5. **The node stores no cycle data.** "Most recently worked" (FR-10.1) comes from `MAX(started_at)` over the user's cycles. A stored copy on the node would go stale after a delete or a filing.
-6. **The running timer has a server table (`active_cycle`).** The server table lets a signed-in user see a running cycle on a second device. The alternative is to keep timer state only in the browser.
-7. **The tree uses an adjacency list** (`parent_id`). The benchmark showed a full roll-up for one user in about 1 ms with 20M cycles in the table. No closure table in v1.
+1. **Client-made UUIDv7 IDs.** The PRD needs full function with no account (I-8) and a merge on sign-in (FR-12.6: 12 local + 40 account = 52). Client-made IDs let the browser create rows offline and merge them without collisions. A server-first design would change this.
+2. **One `cycle` table, row created at Start.** Start writes the row with `minutes = NULL`. Stop sets `minutes`. The timer itself (countdown, pause) is a UI construct. On reopen, the app finds the running row and resumes from `started_at` and `planned_minutes`. Mode and node are in the database before the clock runs (I-2).
+3. **No edit, no delete.** A cycle allows exactly three changes:
+    - Stop sets `minutes` once (NULL → value).
+    - A bell extension adds minutes (FR-4.6). Minutes never go down.
+    - Filing sets `node_id` once on an unfiled cycle (FR-9.4).
+
+    A database trigger enforces the rule. The only row that can be removed is a *running* cycle (cancel, or Stop under 1 minute, FR-3). A logged cycle stays forever.
+4. **UTC only.** `started_at` is a `timestamptz`, one column that holds both the date and the time. No time zone and no separate date column are stored. The browser sends its IANA zone (for example `Asia/Kolkata`) with each report request. The server uses that zone for "today", "this week" and day groups. The UI renders every time in the browser zone.
+5. **Planned vs actual.** `planned_minutes` is the length chosen at Start. `minutes` is what was logged, including any extension. The difference lets us analyze estimates per mode, for example "Deep Focus cycles run 20% longer than planned".
+6. **No cycle data on the node.** "Most recently worked" (FR-10.1) comes from `MAX(started_at)` over the user's cycles.
+7. **Adjacency list.** The benchmark showed a full roll-up for one user in about 1 ms with 20M cycles in the table. No closure table in v1.
+
+### PRD changes that these decisions need
+
+- **I-1 and FR-8.7** say that a cycle may be deleted. Decision 3 removes delete from v1.
+- **FR-8 acceptance criteria:** "every entry offers delete" and "deleting an entry reverses its effect" go away.
+- **FR-11.6** export: add `planned_minutes` to the columns.
 
 ## ER diagram
 
@@ -21,11 +40,9 @@ erDiagram
     APP_USER ||--o| USER_SETTINGS : "has"
     APP_USER ||--o{ NODE : "owns"
     APP_USER ||--o{ CYCLE : "owns"
-    APP_USER ||--o| ACTIVE_CYCLE : "runs"
     NODE |o--o{ NODE : "parent of"
     NODE |o--o{ CYCLE : "holds"
     NODE ||--o{ ESTIMATE : "estimated by"
-    NODE |o--o{ ACTIVE_CYCLE : "targets"
 
     APP_USER {
         uuid id PK
@@ -56,13 +73,11 @@ erDiagram
         uuid id PK
         uuid node_id FK "null = Inbox"
         focus_mode mode
-        timestamptz started_at
-        int minutes
-        text tz
-        date local_date
+        timestamptz started_at "UTC"
+        int planned_minutes
+        int minutes "null = running"
         timestamptz created_at
         timestamptz updated_at
-        timestamptz deleted_at
     }
     ESTIMATE {
         uuid user_id PK, FK
@@ -71,18 +86,6 @@ erDiagram
         int cycle_minutes
         int cycle_count
         timestamptz updated_at
-    }
-    ACTIVE_CYCLE {
-        uuid user_id PK, FK
-        uuid cycle_id
-        uuid node_id FK
-        focus_mode mode
-        timestamptz started_at
-        int planned_minutes
-        timestamptz paused_at
-        int paused_seconds
-        text tz
-        boolean is_extension
     }
 ```
 
@@ -97,7 +100,6 @@ erDiagram
 | `node` | The tree of things you work on | ~100 |
 | `cycle` | The ledger. The only table that holds time. | ~2,500 per year |
 | `estimate` | Up to three rows per node, one per mode | ≤ 3 per node |
-| `active_cycle` | The running timer. It is not part of the ledger. | 0 or 1 |
 
 Every table except `app_user` has `user_id` as the first key column. Every reference between rows is a composite foreign key that includes `user_id`, for example `(user_id, node_id) → node (user_id, id)`. So a row can never point at another user's data, and every query and index starts with `user_id`.
 
@@ -153,21 +155,33 @@ Index: `(user_id, parent_id, created_at)` lists the children of a node in the or
 | Column | Type | Notes |
 |---|---|---|
 | `user_id` | uuid | Key part 1. |
-| `id` | uuid | Key part 2. The client creates it at Start, so a retried Stop cannot write two rows. |
-| `node_id` | uuid, null | Null means Inbox (I-6). It can be set once (FR-9.4). |
-| `mode` | focus_mode | Never null (I-2). |
-| `started_at` | timestamptz | |
-| `minutes` | int | 1–1440. A cycle under 1 minute is not written (FR-3). It can only grow (FR-4.6). |
-| `tz` | text | IANA zone at the time of the entry. An unknown zone is rejected. |
-| `local_date` | date | Derived at insert from `started_at` in `tz`. Reports group by this column. |
+| `id` | uuid | Key part 2. The client creates it at Start. |
+| `node_id` | uuid, null | Null means Inbox (I-6). Filing sets it once (FR-9.4). |
+| `mode` | focus_mode | Set at Start. Never changes (I-2). |
+| `started_at` | timestamptz | The start moment in UTC. Set at Start. Never changes. |
+| `planned_minutes` | int | Length chosen at Start, 1–1440. Never changes. For a hand entry (FR-8), it equals the entered length. |
+| `minutes` | int, null | NULL while the cycle runs. Stop sets it (1–1440). An extension adds to it. It never goes down. |
 | `created_at`, `updated_at` | timestamptz | `updated_at` gives sync a "changed since" cursor. |
-| `deleted_at` | timestamptz, null | Soft delete. A deleted cycle cannot change again. |
 
-A timer cycle and a hand-typed cycle have the same columns (I-3). No column tells them apart.
+A timer cycle and a hand-typed cycle have the same columns (I-3). A hand entry is written in one step, with `minutes` already set.
+
+Lifecycle of one cycle:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Running: Start (minutes = NULL)
+    Running --> Logged: Stop (minutes set)
+    Running --> [*]: Cancel or Stop under 1 min (row removed)
+    Logged --> Logged: Extension (minutes grow)
+    Logged --> Logged: Filing (node_id set once)
+```
 
 Indexes:
-- `cycle_rollup`: `(user_id, local_date) INCLUDE (node_id, mode, minutes, started_at) WHERE deleted_at IS NULL`. Every roll-up, the Today rail order, and the Inbox list read only this index.
+- `cycle_rollup`: `(user_id, started_at) INCLUDE (node_id, mode, minutes, planned_minutes) WHERE minutes IS NOT NULL`. Every roll-up, the Today rail order, the Inbox list, and the planned-vs-actual analysis read only this index. Running rows are not in it.
+- `cycle_one_running`: unique `(user_id) WHERE minutes IS NULL`. A user has at most one running cycle.
 - `cycle_node`: `(user_id, node_id)`. This index serves the foreign-key checks and "39 cycles will move with it" (FR-7.6).
+
+**Time zones and travel.** A report groups cycles by day in the zone that the browser sends. If a user logs a cycle at 11 PM in India and later views the report in California, that cycle shows on the California day of that moment. Cycles near midnight can move to a different day. We accept this for v1. If travel accuracy matters later, we add a zone column, and cycles logged before that change have no zone.
 
 ### `estimate`
 
@@ -182,52 +196,33 @@ Indexes:
 
 `cycle_minutes` is the length at the time the estimate was saved. The mode default in `user_settings` only fills the stepper for a new estimate. A later change to that default does not change a saved estimate or its pips.
 
-A node is un-estimated when no row has `cycle_count > 0`. To clear an estimate, the app sets the counts to 0. It does not delete the rows, so sync needs no tombstones for estimates.
+A node is un-estimated when no row has `cycle_count > 0`. To clear an estimate, the app sets the counts to 0. It does not delete the rows.
 
 An estimate covers only the node's own cycles (I-4). The roll-up adds up estimates the same way as cycles.
-
-### `active_cycle`
-
-| Column | Type | Notes |
-|---|---|---|
-| `user_id` | uuid | Primary key, so one running cycle per user. |
-| `cycle_id` | uuid | The ID that the cycle row gets at Stop. |
-| `node_id` | uuid, null | Fixed at Start (I-2). |
-| `mode` | focus_mode | Fixed at Start (I-2). |
-| `started_at` | timestamptz | |
-| `planned_minutes` | int | Length chosen at Start. |
-| `paused_at` | timestamptz, null | Set while paused. A pause over 10 minutes stops the cycle (FR-3.6). |
-| `paused_seconds` | int | Total paused time so far. |
-| `tz` | text | Copied into the cycle at Stop. |
-| `is_extension` | boolean | True after "Keep going" on the bell. The cycle row already exists, so Stop adds minutes to it and does not insert a new row (FR-4.6). |
-
-Stop runs in one transaction:
-1. If `is_extension` is false, insert the cycle. If it is true, add the elapsed minutes to the existing cycle.
-2. Delete the `active_cycle` row.
 
 ## How the schema enforces the invariants
 
 | Invariant | Enforcement |
 |---|---|
-| I-1 The log is append-only | Trigger `cycle_guard` allows only filing once, adding minutes, and soft delete. |
-| I-2 Mode and node are bound before Start | `mode` is NOT NULL. `cycle_guard` rejects a mode change and a change to a filed `node_id`. |
+| I-1 The log is append-only | Trigger `cycle_guard` allows only Stop, extension, and filing. Trigger `cycle_reject_delete` rejects a delete of a logged cycle. |
+| I-2 Mode and node are bound before Start | The row is written at Start with `mode` NOT NULL. `cycle_guard` rejects a mode change and a change to a filed `node_id`. |
 | I-3 An entry is an entry | Timer and hand entries write the same columns. |
 | I-4 Roll-up is own plus descendants | The roll-up query. No stored totals. |
 | I-5 An estimate change never touches a cycle | Estimates are a separate table with no reference from `cycle`. |
 | I-6 Unfiled time belongs to no project | `node_id` is null. The roll-up joins on `node_id`, so Inbox cycles enter no node's total. |
-| I-7 Nothing starts itself | No server-side process creates an `active_cycle` row. |
+| I-7 Nothing starts itself | Only an explicit Start from the client writes a cycle row. No server process creates one. |
 | I-8 Works without an account | Client-made UUIDs. The browser store uses the same tables. |
 
 ## The roll-up query
 
-The query sums the cycles per node first, then climbs the tree. The recursion runs over about 100 nodes, never over the cycles.
+The query sums the cycles per node first, then climbs the tree. The recursion runs over about 100 nodes, never over the cycles. `$2` and `$3` are the period bounds in UTC, which the server computes from the browser zone.
 
 ```sql
 WITH RECURSIVE own AS (
   SELECT node_id, mode, SUM(minutes) AS minutes
   FROM cycle
-  WHERE user_id = $1 AND deleted_at IS NULL
-    AND local_date BETWEEN $2 AND $3
+  WHERE user_id = $1 AND minutes IS NOT NULL
+    AND started_at >= $2 AND started_at < $3
   GROUP BY node_id, mode
 ),
 ancestors AS (
@@ -243,7 +238,17 @@ FROM own JOIN ancestors USING (node_id)
 GROUP BY ancestors.ancestor, own.mode;
 ```
 
-The query plan uses an index-only scan on `cycle_rollup`.
+A per-day split groups by `(started_at AT TIME ZONE $4)::date`, where `$4` is the browser zone.
+
+## Open questions
+
+1. **A running cycle after a closed tab.** The row stays with `minutes = NULL`. Options:
+    - **Resume it** (FR-3.5). On reopen, the countdown continues. If the planned end has passed, the app shows the bell, logged at the planned length. *Recommended.*
+    - Close it at the planned length on the next open.
+    - Remove it on the next open, so nothing is logged.
+
+    Pause state lives only in the UI, so the first two options cannot see a pause that happened before the tab closed.
+2. **Planned minutes for a hand entry.** The proposal sets it equal to the entered length. Then hand entries show zero difference in the planned-vs-actual analysis.
 
 ## Verification
 
@@ -254,22 +259,25 @@ I wrote a draft DDL for this design, loaded it into Postgres 15, and ran these c
 | 1 | A node with a parent from another user | rejected by the foreign key |
 | 2 | A move of a node under its own descendant | rejected by the trigger |
 | 3 | A legal move | accepted |
-| 4 | Local date of 02:00 UTC in `America/Los_Angeles` | 2026-09-24 (the previous evening) |
-| 5 | An unknown time zone | rejected |
-| 6 | Filing an Inbox cycle | accepted |
-| 7 | Re-filing a filed cycle | rejected |
-| 8 | A mode change on a cycle | rejected |
-| 9 | A bell extension, 50 → 65 minutes | accepted |
-| 10 | Minutes reduced | rejected |
-| 11 | Any change after a soft delete | rejected |
-| 12 | A cycle of 0 minutes | rejected |
-| 13 | Estimate rows | accepted |
-| 14 | Account delete | removes all rows in all tables |
+| 4 | Start writes a row with `minutes = NULL` | accepted |
+| 5 | A second running cycle for the same user | rejected by `cycle_one_running` |
+| 6 | Stop sets minutes to 50 | accepted |
+| 7 | Extension 50 → 65, `planned_minutes` stays 50 | accepted |
+| 8 | Minutes reduced | rejected |
+| 9 | Minutes set back to NULL | rejected |
+| 10 | A mode change | rejected |
+| 11 | A `planned_minutes` change | rejected |
+| 12 | Filing an Inbox cycle, then re-filing it | first accepted, second rejected |
+| 13 | A delete of a logged cycle | rejected |
+| 14 | A delete of a running cycle (cancel) | accepted |
+| 15 | A cycle of 0 minutes | rejected |
+| 16 | Day of 02:00 UTC with the zone from the request | 2026-09-24 in `America/Los_Angeles`, 2026-09-25 in `Asia/Kolkata` |
+| 17 | Account delete | removes all rows in all tables |
 
 ## Not in this schema
 
 - Sign-in credentials. They depend on the sign-in method.
-- The sync protocol. The `updated_at` and `deleted_at` columns prepare for it, and the RPC design defines it.
+- The sync protocol. The `updated_at` columns prepare for it, and the RPC design defines it.
 - The browser store. It uses the same tables and columns.
 - The week start day. The proposal is Monday, and it is not a setting in FR-12.1.
 - Manual sibling order. To add it later, add a `position` column, fill it from the `created_at` order, and change the sort. No other table changes.
