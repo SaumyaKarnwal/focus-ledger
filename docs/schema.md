@@ -1,6 +1,6 @@
 # Focus Ledger — Schema Design (v1)
 
-Status: draft for review. The DDL is in [`db/schema.sql`](../db/schema.sql). The PRD is in [`docs/prd.md`](prd.md).
+Status: draft for review. The PRD is in [`docs/prd.md`](prd.md).
 
 ## Decisions to confirm
 
@@ -246,7 +246,7 @@ The query plan uses an index-only scan on `cycle_rollup`.
 
 ## Verification
 
-I loaded `db/schema.sql` into Postgres 15 and ran these checks:
+I wrote a draft DDL for this design, loaded it into Postgres 15, and ran these checks. The DDL is not in this PR. It follows after the design is agreed.
 
 | # | Check | Result |
 |---|---|---|
