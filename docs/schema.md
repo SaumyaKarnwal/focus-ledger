@@ -6,7 +6,7 @@ Status: draft for review. The PRD is in [`docs/prd.md`](prd.md).
 
 | # | Decision | Status |
 |---|---|---|
-| 1 | The client creates every ID as a UUIDv7. | To confirm |
+| 1 | The database generates every ID. The server computes all data and roll-ups. | Agreed |
 | 2 | One `cycle` table. The row is created at Start. There is no separate running-timer table. | Agreed |
 | 3 | A cycle cannot be edited or deleted. It allows three changes: Stop, extension, and filing. | Agreed |
 | 4 | All times are stored in UTC. The browser sends its time zone with each request. | Agreed |
@@ -14,7 +14,9 @@ Status: draft for review. The PRD is in [`docs/prd.md`](prd.md).
 | 6 | The node stores no cycle data. | Agreed |
 | 7 | The tree uses an adjacency list (`parent_id`). | Agreed |
 
-1. **Client-made UUIDv7 IDs.** The PRD needs full function with no account (I-8) and a merge on sign-in (FR-12.6: 12 local + 40 account = 52). Client-made IDs let the browser create rows offline and merge them without collisions. A server-first design would change this.
+1. **Database-generated IDs, server holds the truth.** Every `id` has the default `gen_random_uuid()`. The client never makes an ID. All reads, roll-ups, and rules run on the server. The browser only renders.
+
+    Accounts can start as a **guest**: the server creates an `app_user` with `email = NULL` on the first visit, and sign-in attaches an email later. v1 ships with sign-in. The nullable email keeps guest accounts a small change for later.
 2. **One `cycle` table, row created at Start.** Start writes the row with `minutes = NULL`. Stop sets `minutes`. The timer itself (countdown, pause) is a UI construct. On reopen, the app finds the running row and resumes from `started_at` and `planned_minutes`. Mode and node are in the database before the clock runs (I-2).
 3. **No edit, no delete.** A cycle allows exactly three changes:
     - Stop sets `minutes` once (NULL → value).
@@ -29,6 +31,9 @@ Status: draft for review. The PRD is in [`docs/prd.md`](prd.md).
 
 ### PRD changes that these decisions need
 
+- **I-8 and FR-12.3–12.6:** sign-in is required. There is no local-only mode and no local-to-account merge.
+- **FR-1.7:** sign-in is the first step, not an optional header link.
+- **FR-11.6:** export needs an account.
 - **I-1 and FR-8.7** say that a cycle may be deleted. Decision 3 removes delete from v1.
 - **FR-8 acceptance criteria:** "every entry offers delete" and "deleting an entry reverses its effect" go away.
 - **FR-11.6** export: add `planned_minutes` to the columns.
@@ -46,7 +51,7 @@ erDiagram
 
     APP_USER {
         uuid id PK
-        citext email UK
+        citext email UK "null = guest"
         timestamptz created_at
     }
     USER_SETTINGS {
@@ -109,8 +114,8 @@ There is no `break` table. FR-5.5 keeps breaks out of the ledger.
 
 | Column | Type | Notes |
 |---|---|---|
-| `id` | uuid | Primary key. |
-| `email` | citext | Unique. `citext` compares case-insensitively, so `A@x.com` and `a@x.com` are one account. |
+| `id` | uuid | Primary key. Default `gen_random_uuid()`. |
+| `email` | citext, null | Null means a guest account. Unique when present. `citext` compares case-insensitively, so `A@x.com` and `a@x.com` are one account. |
 | `created_at` | timestamptz | |
 
 The sign-in method (magic link, OAuth, password) is not decided. Credentials go in a separate table after that decision.
@@ -135,7 +140,7 @@ These are fixed columns, not a JSON blob. FR-12.1 says "nothing else in v1", so 
 | Column | Type | Notes |
 |---|---|---|
 | `user_id` | uuid | Key part 1. |
-| `id` | uuid | Key part 2. |
+| `id` | uuid | Key part 2. Default `gen_random_uuid()`. |
 | `parent_id` | uuid, null | Null means a root. Composite FK to `node`. |
 | `name` | text | 1–200 characters after trimming. |
 | `closed_at` | timestamptz, null | Null means open. A timestamp keeps the close time. The PRD only needs a boolean. |
@@ -155,7 +160,7 @@ Index: `(user_id, parent_id, created_at)` lists the children of a node in the or
 | Column | Type | Notes |
 |---|---|---|
 | `user_id` | uuid | Key part 1. |
-| `id` | uuid | Key part 2. The client creates it at Start. |
+| `id` | uuid | Key part 2. Default `gen_random_uuid()`. |
 | `node_id` | uuid, null | Null means Inbox (I-6). Filing sets it once (FR-9.4). |
 | `mode` | focus_mode | Set at Start. Never changes (I-2). |
 | `started_at` | timestamptz | The start moment in UTC. Set at Start. Never changes. |
@@ -210,8 +215,8 @@ An estimate covers only the node's own cycles (I-4). The roll-up adds up estimat
 | I-4 Roll-up is own plus descendants | The roll-up query. No stored totals. |
 | I-5 An estimate change never touches a cycle | Estimates are a separate table with no reference from `cycle`. |
 | I-6 Unfiled time belongs to no project | `node_id` is null. The roll-up joins on `node_id`, so Inbox cycles enter no node's total. |
-| I-7 Nothing starts itself | Only an explicit Start from the client writes a cycle row. No server process creates one. |
-| I-8 Works without an account | Client-made UUIDs. The browser store uses the same tables. |
+| I-7 Nothing starts itself | Only an explicit `StartCycle` request writes a cycle row. No server process creates one. |
+| I-8 Works without an account | Changed: sign-in is required in v1. A guest account (`email = NULL`) is the later path. |
 
 ## The roll-up query
 
@@ -278,6 +283,5 @@ I wrote a draft DDL for this design, loaded it into Postgres 15, and ran these c
 
 - Sign-in credentials. They depend on the sign-in method.
 - The sync protocol. The `updated_at` columns prepare for it, and the RPC design defines it.
-- The browser store. It uses the same tables and columns.
 - The week start day. The proposal is Monday, and it is not a setting in FR-12.1.
 - Manual sibling order. To add it later, add a `position` column, fill it from the `created_at` order, and change the sort. No other table changes.
