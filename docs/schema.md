@@ -37,6 +37,7 @@ Status: draft for review. The PRD is in [`docs/prd.md`](prd.md).
 - **I-1 and FR-8.7** say that a cycle may be deleted. Decision 3 removes delete from v1.
 - **FR-8 acceptance criteria:** "every entry offers delete" and "deleting an entry reverses its effect" go away.
 - **FR-11.6** export: add `planned_minutes` to the columns.
+- **FR-12 acceptance criteria:** "Deleting an account deletes its data" moves out of v1. The schema keeps `ON DELETE CASCADE`, so the later RPC is a single delete.
 - **FR-3 acceptance criteria:** "Stopping under 1 minute writes no cycle" becomes "Stopping under 1 minute logs 1 minute".
 
 ## ER diagram

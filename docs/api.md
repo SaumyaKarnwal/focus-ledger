@@ -25,11 +25,11 @@ Split into more services only when a real trigger appears: a second team, a work
 
 ## RPCs
 
-13 RPCs in `LedgerService`, grouped by section. Each one earns its place. There is no RPC per screen and no RPC per action.
+12 RPCs in `LedgerService`, grouped by section. Each one earns its place. There is no RPC per screen and no RPC per action.
 
 | Section | RPCs |
 |---|---|
-| Account | `SignIn`, `SignOut`, `GetAccount`, `DeleteAccount` |
+| Account | `SignIn`, `SignOut`, `GetAccount` |
 | Settings | `GetSettings`, `UpdateSettings` |
 | Nodes | `CreateNode`, `UpdateNode`, `GetNode`, `ListNodes` |
 | Cycles | `CreateCycle`, `UpdateCycle` |
@@ -39,12 +39,13 @@ Every `Update*` request carries a `google.protobuf.FieldMask` that names the fie
 
 ### Account
 
+`DeleteAccount` is not in v1. It returns before an iOS release, because Apple's App Store rules require in-app account deletion.
+
 | RPC | Why it is required |
 |---|---|
 | `SignIn(id_token)` | Checks the Google or Apple ID token, creates or finds the user, and starts a session. |
 | `SignOut` | Ends the session. JavaScript cannot clear an HttpOnly session cookie, so the server does it. |
 | `GetAccount` | After a page reload, the app must know who is signed in. |
-| `DeleteAccount` | FR-12 requires it. Apple's App Store rules also require in-app account deletion for the later iOS app. |
 
 ### Settings
 
