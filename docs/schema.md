@@ -47,7 +47,6 @@ erDiagram
         uuid id PK
         uuid parent_id FK "null = root"
         text name
-        text position "sibling order"
         timestamptz closed_at "null = open"
         timestamptz created_at
         timestamptz updated_at
@@ -137,17 +136,17 @@ These are fixed columns, not a JSON blob. FR-12.1 says "nothing else in v1", so 
 | `id` | uuid | Key part 2. |
 | `parent_id` | uuid, null | Null means a root. Composite FK to `node`. |
 | `name` | text | 1–200 characters after trimming. |
-| `position` | text, `COLLATE "C"` | Fractional-index key for sibling order. An insert between two siblings creates one new key and changes no other row. |
 | `closed_at` | timestamptz, null | Null means open. A timestamp keeps the close time. The PRD only needs a boolean. |
 | `created_at`, `updated_at` | timestamptz | |
 
 Rules:
 - A move changes one row (`parent_id`). The cycles do not change, so they move with the node (FR-7.4, FR-7.5).
 - A trigger rejects a move under the node's own descendant (FR-7.8).
+- Siblings sort by `created_at`, then `id`. The PRD has no manual reorder. When you type a project top-down (FR-7.2), the creation order is the typed order.
 - There is no node delete. The PRD only has close (FR-7.7).
 - The node stores no minutes, counts, or "last worked" time.
 
-Index: `(user_id, parent_id, position)` lists the children of a node in order.
+Index: `(user_id, parent_id, created_at)` lists the children of a node in the order they were created.
 
 ### `cycle`
 
@@ -271,3 +270,4 @@ I wrote a draft DDL for this design, loaded it into Postgres 15, and ran these c
 - The sync protocol. The `updated_at` and `deleted_at` columns prepare for it, and the RPC design defines it.
 - The browser store. It uses the same tables and columns.
 - The week start day. The proposal is Monday, and it is not a setting in FR-12.1.
+- Manual sibling order. To add it later, add a `position` column, fill it from the `created_at` order, and change the sort. No other table changes.
