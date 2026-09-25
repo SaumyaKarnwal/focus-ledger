@@ -111,9 +111,30 @@ There is no delete. The server rejects a change that breaks the cycle rules: min
 | The running cycle after a reload (FR-3.5) | `ListNodesResponse.running_cycle` |
 | Report views (FR-11.1–11.4) | `GetReport` |
 
-## Open questions
+## Decisions
 
-1. The sign-in method: Google and Apple ID tokens are assumed above. Add a magic link as a fallback?
-2. Node reads carry server-computed stats: per mode `own` and `rolled_up` minutes, planned minutes, cycle counts, and `last_worked_at`, for the requested period. The browser computes nothing.
-3. CSV export (FR-11.6): its own `ExportCycles`, or part of `GetReport`? A CSV download is a different response type, so a separate RPC is the proposal.
-4. Retry safety. The server makes the IDs, so a retried hand-entry `CreateCycle` could write two rows. A retried Start is safe, because a user can have only one running cycle. The proposal: each write request carries a client `request_id`, and the server ignores a repeat.
+1. **Sign-in: Google only in v1.** `SignIn` takes a Google ID token. Sign in with Apple needs a paid Apple Developer account, so it comes with the iOS app. No magic link.
+2. **Node reads carry server-computed stats.** Per mode: own and rolled-up minutes, planned minutes, and cycle count, plus `last_worked_at`. The browser computes nothing.
+3. **CSV export (FR-11.6) is not in v1.** When it returns, it is a separate `ExportCycles`.
+4. **Retry safety.** `CreateNode` and `CreateCycle` carry a client `request_id`. A repeat returns the first result and creates nothing.
+5. **The browser sends periods, not a time zone.** It computes "today", "this week" (starting Monday), and report ranges in its own zone, and sends them as UTC `[start, end)` timestamps. The server needs no time-zone logic.
+
+## Request and response messages
+
+The contract is in [`proto/focusledger/v1/`](../proto/focusledger/v1):
+- [`ledger_service.proto`](../proto/focusledger/v1/ledger_service.proto): the service and its `*Request` / `*Response` messages.
+- [`model.proto`](../proto/focusledger/v1/model.proto): the shared messages (`NodePb`, `CyclePb`, `EstimatePb`, `ModeStatsPb`, …) and the `FocusMode` enum.
+
+Nullable values use proto3 `optional`, so the server can tell "not set" from zero:
+- `CyclePb.minutes` unset means running.
+- `CyclePb.node_id` unset means Inbox.
+- `NodePb.parent_id` unset means a root.
+
+## Errors
+
+| gRPC status | When |
+|---|---|
+| `UNAUTHENTICATED` | No valid session. |
+| `INVALID_ARGUMENT` | A field is missing or out of range. Examples: an empty name, minutes outside 1–1440, an unknown path in `update_mask`. |
+| `NOT_FOUND` | The node or cycle does not exist for this user. Another user's ID also gives `NOT_FOUND`, so the response does not reveal that the ID exists. |
+| `FAILED_PRECONDITION` | A rule rejects the change: a second running cycle, minutes that go down, re-filing a filed cycle, a move under the node's own descendant. |

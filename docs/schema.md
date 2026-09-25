@@ -9,7 +9,7 @@ Status: draft for review. The PRD is in [`docs/prd.md`](prd.md).
 | 1 | The database generates every ID. The server computes all data and roll-ups. | Agreed |
 | 2 | One `cycle` table. The row is created at Start. There is no separate running-timer table. | Agreed |
 | 3 | A cycle cannot be edited or deleted. It allows three changes: Stop, extension, and filing. | Agreed |
-| 4 | All times are stored in UTC. The browser sends its time zone with each request. | Agreed |
+| 4 | All times are stored in UTC. The browser sends periods as UTC ranges. | Agreed |
 | 5 | A cycle stores planned minutes and actual minutes. | Agreed |
 | 6 | The node stores no cycle data. | Agreed |
 | 7 | The tree uses an adjacency list (`parent_id`). | Agreed |
@@ -24,7 +24,7 @@ Status: draft for review. The PRD is in [`docs/prd.md`](prd.md).
     - Filing sets `node_id` once on an unfiled cycle (FR-9.4).
 
     A database trigger enforces the rule. No cycle is ever deleted, running or logged. A Stop under 1 minute logs 1 minute (a PRD change to FR-3).
-4. **UTC only.** `started_at` is a `timestamptz`, one column that holds both the date and the time. No time zone and no separate date column are stored. The browser sends its IANA zone (for example `Asia/Kolkata`) with each report request. The server uses that zone for "today", "this week" and day groups. The UI renders every time in the browser zone.
+4. **UTC only.** `started_at` is a `timestamptz`, one column that holds both the date and the time. No time zone and no separate date column are stored. The browser computes "today", "this week", and report ranges in its own zone and sends them as UTC timestamps. The server needs no time-zone logic. The UI renders every time in the browser zone.
 5. **Planned vs actual.** `planned_minutes` is the length chosen at Start. `minutes` is what was logged, including any extension. The difference lets us analyze estimates per mode, for example "Deep Focus cycles run 20% longer than planned".
 6. **No cycle data on the node.** "Most recently worked" (FR-10.1) comes from `MAX(started_at)` over the user's cycles.
 7. **Adjacency list.** The benchmark showed a full roll-up for one user in about 1 ms with 20M cycles in the table. No closure table in v1.
@@ -187,7 +187,7 @@ Indexes:
 - `cycle_one_running`: unique `(user_id) WHERE minutes IS NULL`. A user has at most one running cycle.
 - `cycle_node`: `(user_id, node_id)`. This index serves the foreign-key checks and "39 cycles will move with it" (FR-7.6).
 
-**Time zones and travel.** A report groups cycles by day in the zone that the browser sends. If a user logs a cycle at 11 PM in India and later views the report in California, that cycle shows on the California day of that moment. Cycles near midnight can move to a different day. We accept this for v1. If travel accuracy matters later, we add a zone column, and cycles logged before that change have no zone.
+**Time zones and travel.** The browser computes day and week ranges in its current zone. If a user logs a cycle at 11 PM in India and later views the report in California, that cycle shows on the California day of that moment. Cycles near midnight can move to a different day. We accept this for v1. If travel accuracy matters later, we add a zone column, and cycles logged before that change have no zone.
 
 ### `estimate`
 
@@ -221,7 +221,7 @@ An estimate covers only the node's own cycles (I-4). The roll-up adds up estimat
 
 ## The roll-up query
 
-The query sums the cycles per node first, then climbs the tree. The recursion runs over about 100 nodes, never over the cycles. `$2` and `$3` are the period bounds in UTC, which the server computes from the browser zone.
+The query sums the cycles per node first, then climbs the tree. The recursion runs over about 100 nodes, never over the cycles. `$2` and `$3` are the period bounds in UTC, which the browser sends.
 
 ```sql
 WITH RECURSIVE own AS (
@@ -244,16 +244,11 @@ FROM own JOIN ancestors USING (node_id)
 GROUP BY ancestors.ancestor, own.mode;
 ```
 
-A per-day split groups by `(started_at AT TIME ZONE $4)::date`, where `$4` is the browser zone.
+## Resolved questions
 
-## Open questions
-
-1. **A running cycle after a closed tab.** The row stays with `minutes = NULL`. Options:
-    - **Resume it** (FR-3.5). On reopen, the countdown continues. If the planned end has passed, the app shows the bell, logged at the planned length. *Recommended.*
-    - Close it at the planned length on the next open.
-
-    Pause state lives only in the UI, so the first two options cannot see a pause that happened before the tab closed.
-2. **Planned minutes for a hand entry.** The proposal sets it equal to the entered length. Then hand entries show zero difference in the planned-vs-actual analysis.
+1. **A running cycle after a closed tab: resume it** (FR-3.5). On reopen, the countdown continues. If the planned end has passed, the app shows the bell, logged at the planned length. Pause state lives only in the UI, so a pause before the tab closed is not counted.
+2. **`planned_minutes` for a hand entry equals the entered length.** Hand entries show zero difference in the planned-vs-actual analysis.
+3. **The week starts on Monday.** There is no setting in v1.
 
 ## Verification
 
@@ -284,5 +279,4 @@ I wrote a draft DDL for this design, loaded it into Postgres 15, and ran these c
 
 - Sign-in credentials. They depend on the sign-in method.
 - The sync protocol. The `updated_at` columns prepare for it, and the RPC design defines it.
-- The week start day. The proposal is Monday, and it is not a setting in FR-12.1.
 - Manual sibling order. To add it later, add a `position` column, fill it from the `created_at` order, and change the sort. No other table changes.
