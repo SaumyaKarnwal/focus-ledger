@@ -180,6 +180,8 @@ Indexes:
 
 `Deep Focus 90 × 2` is one row: `cycle_minutes = 90, cycle_count = 2`.
 
+`cycle_minutes` is the length at the time the estimate was saved. The mode default in `user_settings` only fills the stepper for a new estimate. A later change to that default does not change a saved estimate or its pips.
+
 A node is un-estimated when no row has `cycle_count > 0`. To clear an estimate, the app sets the counts to 0. It does not delete the rows, so sync needs no tombstones for estimates.
 
 An estimate covers only the node's own cycles (I-4). The roll-up adds up estimates the same way as cycles.
