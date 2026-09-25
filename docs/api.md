@@ -17,9 +17,15 @@ Stack: Kotlin backend (gRPC), TypeScript web client (gRPC-Web), protobuf contrac
 - Names are verb + noun. Standard verbs: `Get`, `List`, `Create`, `Update`. Domain verbs where the action has its own rules: `Move`, `Close`, `Start`, `Stop`.
 - Every request is for the signed-in user. No request carries a `user_id`. The server takes it from the session.
 
+## One service: `LedgerService`
+
+All RPCs are in one gRPC service, `LedgerService`, served by one deployment. Nothing in the requirements needs more than one service. The proto groups the RPCs in the sections below. The Kotlin code keeps separate packages for account, ledger rules, and reports. Those are code boundaries, not service boundaries.
+
+Split into more services only when a real trigger appears: a second team, a workload that must scale or fail on its own, or a public API.
+
 ## Candidate RPCs
 
-### AccountService
+### Account
 
 | RPC | What it does | PRD |
 |---|---|---|
@@ -33,14 +39,14 @@ The shape of `StartSignIn` / `CompleteSignIn` depends on the sign-in method (mag
 
 Later, for guest accounts: `CreateGuestAccount` makes an `app_user` with `email = NULL`, and `CompleteSignIn` attaches an email to it.
 
-### SettingsService
+### Settings
 
 | RPC | What it does | PRD |
 |---|---|---|
 | `GetSettings` | Returns the mode lengths, break length, sound, notifications. | FR-12.1 |
 | `UpdateSettings` | Changes one or more settings. | FR-12.2 |
 
-### NodeService
+### Tree
 
 | RPC | What it does | PRD |
 |---|---|---|
@@ -57,16 +63,16 @@ Candidates to discard or merge:
 - `RenameNode` → a general `UpdateNode` with a field mask. Specific verbs are clearer while the node has one editable field.
 - `GetMoveImpact` → a field on the response of a node read.
 
-### EstimateService
+### Estimates
 
 | RPC | What it does | PRD |
 |---|---|---|
 | `SetEstimate` | Replaces a node's three mode rows in one call (Save in the editor). | FR-6 |
 | `GetEstimate` | Returns a node's estimate rows. | FR-6 |
 
-Candidate to merge: put both on `NodeService`, because an estimate always belongs to one node.
+Candidate to merge: `GetEstimate` into the node read, because an estimate always belongs to one node.
 
-### CycleService
+### Cycles
 
 | RPC | What it does | PRD |
 |---|---|---|
@@ -81,7 +87,7 @@ Candidate to merge: put both on `NodeService`, because an estimate always belong
 
 Pause has no RPC. It lives in the UI (decided in the schema).
 
-### Screen reads (ViewService)
+### Screen reads
 
 One call returns everything that one screen needs.
 
@@ -99,6 +105,5 @@ Every read takes the browser time zone, for "today", "this week", and day groups
 ## Open questions
 
 1. The sign-in method: magic link, OAuth (Google, Apple), or password?
-2. Service granularity: one service per resource, as above, or one `FocusLedgerService`?
-3. The merge candidates: `SetNodeClosed`, estimates on `NodeService`, `GetMoveImpact` as a field.
-4. Retry safety. The server makes the IDs, so a retried `LogCycle` could write two rows. `StartCycle` is safe, because a user can have only one running cycle. The proposal: each write request carries a client `request_id`, and the server ignores a repeat.
+2. The merge candidates: `SetNodeClosed`, `GetEstimate` into the node read, `GetMoveImpact` as a field.
+3. Retry safety. The server makes the IDs, so a retried `LogCycle` could write two rows. `StartCycle` is safe, because a user can have only one running cycle. The proposal: each write request carries a client `request_id`, and the server ignores a repeat.
