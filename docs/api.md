@@ -121,14 +121,318 @@ There is no delete. The server rejects a change that breaks the cycle rules: min
 
 ## Request and response messages
 
-The contract is in [`proto/focusledger/v1/`](../proto/focusledger/v1):
-- [`ledger_service.proto`](../proto/focusledger/v1/ledger_service.proto): the service and its `*Request` / `*Response` messages.
-- [`model.proto`](../proto/focusledger/v1/model.proto): the shared messages (`NodePb`, `CyclePb`, `EstimatePb`, `ModeStatsPb`, …) and the `FocusMode` enum.
+This section holds the full proto contract, for review here. The `.proto` files follow in a later PR, after the design is agreed. Package: `focusledger.v1`.
 
 Nullable values use proto3 `optional`, so the server can tell "not set" from zero:
 - `CyclePb.minutes` unset means running.
 - `CyclePb.node_id` unset means Inbox.
 - `NodePb.parent_id` unset means a root.
+
+### The service
+
+```protobuf
+// Every RPC acts for the signed-in user from the session. No request carries a user ID.
+service LedgerService {
+  // Account
+  rpc SignIn(SignInRequest) returns (SignInResponse);
+  rpc SignOut(SignOutRequest) returns (SignOutResponse);
+  rpc GetAccount(GetAccountRequest) returns (GetAccountResponse);
+
+  // Settings
+  rpc GetSettings(GetSettingsRequest) returns (GetSettingsResponse);
+  rpc UpdateSettings(UpdateSettingsRequest) returns (UpdateSettingsResponse);
+
+  // Nodes
+  rpc CreateNode(CreateNodeRequest) returns (CreateNodeResponse);
+  rpc UpdateNode(UpdateNodeRequest) returns (UpdateNodeResponse);
+  rpc GetNode(GetNodeRequest) returns (GetNodeResponse);
+  rpc ListNodes(ListNodesRequest) returns (ListNodesResponse);
+
+  // Cycles
+  rpc CreateCycle(CreateCycleRequest) returns (CreateCycleResponse);
+  rpc UpdateCycle(UpdateCycleRequest) returns (UpdateCycleResponse);
+
+  // Report
+  rpc GetReport(GetReportRequest) returns (GetReportResponse);
+}
+```
+
+### Shared messages (`model.proto`)
+
+```protobuf
+enum FocusMode {
+  FOCUS_MODE_UNSPECIFIED = 0;
+  FOCUS_MODE_DEEP_FOCUS = 1;
+  FOCUS_MODE_EXECUTION = 2;
+  FOCUS_MODE_SHALLOW = 3;
+}
+
+// A time range [start, end). The browser computes it in the user's zone and sends it in UTC.
+message PeriodPb {
+  google.protobuf.Timestamp start = 1;
+  google.protobuf.Timestamp end = 2;
+}
+
+message AccountPb {
+  string id = 1;
+  string email = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+message SettingsPb {
+  int32 deep_focus_minutes = 1;
+  int32 execution_minutes = 2;
+  int32 shallow_minutes = 3;
+  int32 break_minutes = 4;
+  bool sound_enabled = 5;
+  bool notifications_enabled = 6;
+}
+
+message EstimatePb {
+  FocusMode mode = 1;
+  int32 cycle_minutes = 2;
+  int32 cycle_count = 3;
+}
+
+message ModeStatsPb {
+  FocusMode mode = 1;
+  int32 minutes = 2;
+  int32 planned_minutes = 3;
+  int32 cycle_count = 4;
+}
+
+message NodeStatsPb {
+  repeated ModeStatsPb own = 1;
+  // Own plus all descendants.
+  repeated ModeStatsPb rolled_up = 2;
+  // Start of the most recent cycle on this node, across all time. Unset if the node has no cycles.
+  google.protobuf.Timestamp last_worked_at = 3;
+}
+
+message CyclePb {
+  string id = 1;
+  // Unset means the cycle is in the Inbox.
+  optional string node_id = 2;
+  FocusMode mode = 3;
+  google.protobuf.Timestamp started_at = 4;
+  int32 planned_minutes = 5;
+  // Unset means the cycle is running.
+  optional int32 minutes = 6;
+}
+
+message NodePb {
+  string id = 1;
+  // Unset means a root node.
+  optional string parent_id = 2;
+  string name = 3;
+  bool closed = 4;
+  repeated EstimatePb estimates = 5;
+  NodeStatsPb stats = 6;
+  // Filled only when the request asks for cycles.
+  repeated CyclePb cycles = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
+message UnfiledPb {
+  // Stats for Inbox cycles, over the same range as the node stats.
+  repeated ModeStatsPb stats = 1;
+  int32 cycle_count = 2;
+  // Filled only when the request asks for unfiled cycles.
+  repeated CyclePb cycles = 3;
+}
+```
+
+### Account messages
+
+#### `SignIn`
+
+```protobuf
+message SignInRequest {
+  string google_id_token = 1;
+}
+
+// The session is set as an HttpOnly cookie, not returned in the body.
+message SignInResponse {
+  AccountPb account = 1;
+}
+```
+
+#### `SignOut`
+
+```protobuf
+message SignOutRequest {}
+
+message SignOutResponse {}
+```
+
+#### `GetAccount`
+
+```protobuf
+message GetAccountRequest {}
+
+message GetAccountResponse {
+  AccountPb account = 1;
+}
+```
+
+### Settings messages
+
+#### `GetSettings`
+
+```protobuf
+message GetSettingsRequest {}
+
+message GetSettingsResponse {
+  SettingsPb settings = 1;
+}
+```
+
+#### `UpdateSettings`
+
+```protobuf
+message UpdateSettingsRequest {
+  SettingsPb settings = 1;
+  google.protobuf.FieldMask update_mask = 2;
+}
+
+message UpdateSettingsResponse {
+  SettingsPb settings = 1;
+}
+```
+
+### Nodes messages
+
+#### `CreateNode`
+
+```protobuf
+message CreateNodeRequest {
+  // A repeat of the same request_id returns the first result and creates nothing.
+  string request_id = 1;
+  optional string parent_id = 2;
+  string name = 3;
+  repeated EstimatePb estimates = 4;
+}
+
+message CreateNodeResponse {
+  NodePb node = 1;
+}
+```
+
+#### `UpdateNode`
+
+```protobuf
+// Paths in update_mask: "name", "parent_id", "closed", "estimates".
+// "parent_id" in the mask with parent_id unset moves the node to the root.
+// "estimates" replaces all of the node's estimate rows.
+message UpdateNodeRequest {
+  string node_id = 1;
+  optional string parent_id = 2;
+  string name = 3;
+  bool closed = 4;
+  repeated EstimatePb estimates = 5;
+  google.protobuf.FieldMask update_mask = 6;
+}
+
+message UpdateNodeResponse {
+  NodePb node = 1;
+}
+```
+
+#### `GetNode`
+
+```protobuf
+message GetNodeRequest {
+  string node_id = 1;
+  // When set, the node carries its cycles that started at or after this time.
+  google.protobuf.Timestamp cycles_since = 2;
+}
+
+message GetNodeResponse {
+  NodePb node = 1;
+}
+```
+
+#### `ListNodes`
+
+```protobuf
+// Returns the whole tree in one response, with no pagination: roll-ups need every node.
+// Node stats cover all time.
+message ListNodesRequest {
+  bool include_closed = 1;
+  // When set, every node carries its cycles that started at or after this time.
+  google.protobuf.Timestamp cycles_since = 2;
+  bool include_unfiled_cycles = 3;
+  PeriodPb today = 4;
+  PeriodPb week = 5;
+}
+
+message ListNodesResponse {
+  repeated NodePb nodes = 1;
+  UnfiledPb unfiled = 2;
+  // Unset when no cycle is running.
+  CyclePb running_cycle = 3;
+  // Totals per mode over all cycles, filed and unfiled.
+  repeated ModeStatsPb today_totals = 4;
+  repeated ModeStatsPb week_totals = 5;
+}
+```
+
+### Cycles messages
+
+#### `CreateCycle`
+
+```protobuf
+// Without minutes: starts a cycle now. The server rejects a second running cycle.
+// With minutes and started_at: writes a hand entry.
+message CreateCycleRequest {
+  // A repeat of the same request_id returns the first result and creates nothing.
+  string request_id = 1;
+  optional string node_id = 2;
+  FocusMode mode = 3;
+  int32 planned_minutes = 4;
+  google.protobuf.Timestamp started_at = 5;
+  optional int32 minutes = 6;
+}
+
+message CreateCycleResponse {
+  CyclePb cycle = 1;
+}
+```
+
+#### `UpdateCycle`
+
+```protobuf
+// Paths in update_mask: "minutes" (Stop or extension; minutes can only grow)
+// and "node_id" (filing an Inbox cycle, once).
+message UpdateCycleRequest {
+  string cycle_id = 1;
+  optional int32 minutes = 2;
+  optional string node_id = 3;
+  google.protobuf.FieldMask update_mask = 4;
+}
+
+message UpdateCycleResponse {
+  CyclePb cycle = 1;
+}
+```
+
+### Report messages
+
+#### `GetReport`
+
+```protobuf
+message GetReportRequest {
+  PeriodPb period = 1;
+}
+
+// Includes closed nodes. Node stats cover the request period.
+message GetReportResponse {
+  repeated NodePb nodes = 1;
+  UnfiledPb unfiled = 2;
+  // Grand totals per mode, filed and unfiled.
+  repeated ModeStatsPb totals = 3;
+}
+```
 
 ## Errors
 
