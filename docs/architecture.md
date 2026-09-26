@@ -145,5 +145,5 @@ The whole system is one container plus Postgres. A self-hoster runs `docker comp
 ## Open items
 
 1. **Retry storage:** where the server remembers `request_id`s. The proposal is a unique `(user_id, request_id)` column on `node` and `cycle`.
-2. **MCP design:** the 8 tools, agent sign-in with OAuth 2.1, and whether MCP is in v1.
+2. **MCP design:** in [`mcp.md`](mcp.md). Open: built-in OAuth, and whether MCP is in v1.
 3. **The spike:** prove a browser gRPC-Web call, an MCP call through the `/mcp` forward (including a streamed response), and the cold-start time on Cloud Run.
