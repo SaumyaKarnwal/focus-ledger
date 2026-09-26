@@ -26,6 +26,7 @@ Phase 0 unblocks everything else. It runs in one session, in this order:
     1. A browser gRPC-Web call reaches Armeria.
     2. An MCP tool call works through the Armeria `/mcp` forward to Ktor, including a streamed response.
     3. The cold-start time on Cloud Run, as a normal JVM and as a GraalVM native image.
+    4. jOOQ code generation, Flyway, and Testcontainers all work with Postgres 18.
 
 Phase 0 ends when all five are merged and CI is green. If the spike fails on item 2, the design session decides the fallback before Phase 1 starts.
 
@@ -131,6 +132,5 @@ A fresh git worktree has no `node_modules` and no generated code. Each worker st
 
 ## Open items
 
-1. Approve the remaining Phase 0 decision in `setup.md`: Postgres 17. (jOOQ and the `request_id` column are agreed.)
-2. Agree the directory structure (`setup.md`, "Module layout"). It is a first proposal and has not been discussed.
-3. Approve this plan.
+1. Agree the directory structure (`setup.md`, "Module layout"). It is a first proposal and has not been discussed.
+2. Approve this plan.

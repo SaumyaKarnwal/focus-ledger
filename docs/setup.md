@@ -10,7 +10,7 @@ These must be settled before the first build step.
 |---|---|---|
 | 1 | Database access library | **Agreed: jOOQ.** Type-safe SQL, generated from the migrated schema. It builds the dynamic `SET` clause that the update mask needs. The runner-up was SQLDelight. |
 | 2 | Where the server remembers `request_id`s | **Agreed:** a required `request_id uuid NOT NULL` column on `ledger.node` and `ledger.cycle`, with `UNIQUE (user_id, request_id)`. A repeat finds the existing row. See `schema.md`, "Idempotency". |
-| 3 | Postgres version | **Postgres 17** everywhere: local Docker and Neon. The schema needs Postgres 15 or later, because Postgres 14 lacks `NULLS NOT DISTINCT`. |
+| 3 | Postgres version | **Agreed: Postgres 18** everywhere: local Docker, Testcontainers, and Neon. It is supported until November 2030, and it has a built-in `uuidv7()`. The schema itself works on any supported version. The Phase 0 spike confirms that jOOQ, Flyway, and the Testcontainers image support 18. If one does not, the fallback is Postgres 17, with no design change. |
 
 ## Environments
 

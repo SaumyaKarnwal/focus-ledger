@@ -19,7 +19,7 @@ If code and a doc disagree, stop and ask on the issue with the `needs-design` la
 ## Stack
 
 - Backend: Kotlin, one program. Armeria serves gRPC, gRPC-Web, and static files. Ktor hosts the MCP server. No Spring, no BFF.
-- Data: Postgres 17, jOOQ, Flyway, HikariCP. Neon in production.
+- Data: Postgres 18, jOOQ, Flyway, HikariCP. Neon in production.
 - Web: React + TypeScript, the generated TypeScript client for `LedgerService`.
 - Hosting: Cloud Run, Neon, Cloudflare. CI: GitHub Actions.
 
