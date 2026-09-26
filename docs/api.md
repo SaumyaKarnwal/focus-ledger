@@ -12,6 +12,16 @@ Stack: Kotlin backend (gRPC), TypeScript web client (gRPC-Web), protobuf contrac
 - **The database generates every ID.** The client never makes one.
 - **No BFF.** The browser calls the Kotlin backend directly over gRPC-Web. The backend holds every secret and gives the browser only an HttpOnly session cookie. That meets the goal of RFC 10017 (a browser app never holds a token) without a second server.
 
+## Server stack
+
+One Kotlin program, one port, no Spring:
+
+- **Armeria** is the server on the public port. It serves gRPC and gRPC-Web for the browser, and the static files.
+- **Ktor** runs inside the same program on an internal port. It hosts the MCP server with the official MCP Kotlin SDK. Armeria forwards `/mcp` to it.
+- Both call the same core ledger service. The gRPC handlers and the MCP tools are thin adapters and hold no rules.
+
+The first build step is a spike that proves three things: a browser gRPC-Web call to Armeria, an MCP tool call through the `/mcp` forward to Ktor, and the startup time on Cloud Run.
+
 ## User isolation
 
 Every request acts only on the data of the user in the session. The implementation must keep these rules:
