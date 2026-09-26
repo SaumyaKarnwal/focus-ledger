@@ -58,6 +58,7 @@ To be filled in by Phase 0. Every worker runs the setup commands first, because 
 
 - One issue per task, one branch and one PR per task. Branch names: `skarnwal_<short-description>`.
 - Every PR deploys on its own.
+- Every PR that changes behavior includes tests: unit tests for rules, integration tests against a real Postgres, and a user-isolation test for every RPC and MCP tool. The orchestrator does not merge a behavior change without them.
 - Push after each commit.
 - Run the module checks and the formatter before every push.
 - Do not merge a test that fails even once in repeated runs.
@@ -74,4 +75,4 @@ To be filled in by Phase 0. Every worker runs the setup commands first, because 
 
 ## Sessions
 
-See "Orchestration" in `docs/execution-plan.md`. In short: the design session owns `docs/`, the orchestrator starts workers and merges, and workers build one workstream each.
+See "Orchestration" in `docs/execution-plan.md`. In short: the `design` session owns `docs/`, the `orchestrator` merges PRs once CI is green and tests are present, and each worker (`ws-a` … `ws-e`) builds one workstream in its own worktree. A worker with a design question messages `design` and labels its issue `needs-design`.

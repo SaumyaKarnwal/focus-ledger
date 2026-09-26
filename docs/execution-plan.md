@@ -58,51 +58,71 @@ flowchart LR
 
 ## Orchestration
 
-Three kinds of Claude Code sessions work together:
+Three kinds of Claude Code sessions work together. Every session runs in a normal permission mode, on this Mac.
 
 ```mermaid
 flowchart TD
-    DS["Design session<br/>owns the design docs,<br/>answers questions"]
-    OS["Orchestrator session<br/>plans tasks, starts workers,<br/>tracks and merges"]
-    W1["Worker A"]
-    W2["Worker B"]
-    W3["Worker C"]
-    W4["Worker D"]
-    DS -- "approved design" --> OS
-    OS -- "one issue + worktree each" --> W1
-    OS --> W2
-    OS --> W3
-    OS --> W4
-    W1 -- "PR" --> OS
-    W2 -- "PR" --> OS
-    OS -- "needs-design question" --> DS
-    W3 -. "needs-design question" .-> DS
+    DS["design<br/>(the session that wrote these docs)"]
+    OR["orchestrator<br/>works from main"]
+    A["ws-a: backend"]
+    B["ws-b: web app"]
+    C["ws-c: infra"]
+    D["ws-d: MCP"]
+    GH[("GitHub: issues, Project board, PRs")]
+    DS -- "message after each merged design change" --> OR
+    OR -- "prints the start command,<br/>the owner opens the session" --> A
+    OR --> B
+    OR --> C
+    OR --> D
+    A & B & C & D -- "one PR per task" --> GH
+    OR -- "board, merges" --> GH
+    A -. "needs-design question" .-> DS
 ```
 
-| Role | Does | Does not |
-|---|---|---|
-| **Design session** (the session that wrote these docs) | Owns `docs/`. Answers `needs-design` questions. Approves every contract change. | Write feature code |
-| **Orchestrator session** | Turns this plan into GitHub issues. Creates one git worktree and branch per workstream. Starts a worker session for each. Tracks progress, reviews PRs, decides merge order, runs integration checks. | Change the design on its own |
-| **Worker session** | Builds one workstream in its own worktree. Opens one PR per task. Follows `CLAUDE.md`. | Change `proto/`, the schema, or the core interfaces. Merge its own PR. Deploy. |
+| Session | Name | Does | Does not |
+|---|---|---|---|
+| Design | `design` | Owns `docs/`. Answers `needs-design` questions. Approves every contract change. Messages the orchestrator after each merged design change. | Write feature code |
+| Orchestrator | `orchestrator` | Turns this plan into GitHub issues. Keeps the Project board and the tracker issue current. Prints the start command for each worker. Reviews PRs and merges them. | Change the design, or build from anything that is not on `main` |
+| Worker | `ws-a` … `ws-e` | Builds one workstream in its own git worktree. Opens one PR per task, with tests. | Change a contract, merge its own PR, or deploy |
+
+### The rules of the flow
+
+1. **`main` holds the approved design and the merged code.** The orchestrator builds only from what is on `main`. A doc on an open branch is still under discussion.
+2. **Every change goes through a PR.** Branch protection on `main` requires a PR and a green CI run, and blocks direct pushes, including the owner's. It does not require a review approval, so no PR waits on the owner.
+3. **The orchestrator merges.** It merges a PR when CI is green, the tests required below are in the PR, and the issue's acceptance criteria are met. It does not merge a PR with the `hold` label. The owner adds `hold` to look at a PR before it merges, and reviews any other PR from the history whenever convenient.
+4. **Every PR includes tests.** A PR that adds or changes behavior adds tests for it:
+    - Unit tests for the rules in `backend/core`, for example each allowed and each rejected cycle change.
+    - Integration tests against a real Postgres (Testcontainers) for repositories and RPCs.
+    - A user-isolation test for every RPC and MCP tool: user B uses user A's ID and gets `NOT_FOUND`, and A's data does not change.
+    - Tests for the roll-up code in the web app, and for the summaries in the MCP layer, from the same shared example data.
+
+    The orchestrator does not merge a behavior change without tests. A PR that only changes docs or configuration needs none.
+5. **A design change reaches the build through a docs PR.** The design session updates the doc in a small PR. After it merges, the design session messages the orchestrator: a two-line summary, the affected workstreams, and the PR link. The orchestrator then updates the affected issues and tells the affected workers.
+6. **Workers are live sessions that the owner can see.** The orchestrator prints the exact start command, for example `cd ~/projects/focus-ledger && claude -w ws-a --name ws-a`, and the first prompt. The owner opens it in a new terminal tab. After the dry run, the orchestrator can open workers in panes with `--tmux` instead, if that works on the owner's terminal.
+7. **Questions go to the design session two ways.** The worker messages `design`, and adds the `needs-design` label with the question on its issue. The message is the fast path. The issue is the permanent record.
+8. **The first orchestrator task is a dry run** with one small worker: open an issue, start the worker, message it, get a PR, merge it.
 
 ### GitHub is the shared record
 
-Sessions can end at any time, so every piece of state lives on GitHub, not in a session's memory.
+Sessions can end at any time, so every piece of state lives on GitHub, not in a session's memory. Messages between sessions are only nudges.
 
 - **One issue per task**, labeled with its workstream (`ws:A` … `ws:E`). The issue holds the scope, the acceptance criteria, and links to the design sections.
-- **One PR per task.** The PR description says what was verified and how (tests run, commands, results).
-- **A `needs-design` label** routes a question to the design session. The worker writes the question on the issue, labels it, and moves on to other work. The design session answers on the issue, and updates the docs if the answer changes the design.
-- **A `blocked` label** marks a task that waits on another. The orchestrator checks these first.
+- **One PR per task.** The PR description says what was verified and how.
+- **The GitHub Project board** shows every issue and PR in one of these columns: Ready, In progress, Needs design, In review, Blocked, Done.
+- **A pinned tracker issue** holds the checklist of Phase 0 and the workstreams. The orchestrator ticks items off as PRs merge.
+- **Labels:** `needs-design` (a question for the design session), `blocked` (waits on another task), `hold` (the owner wants to look before the merge).
 
 ### Rules for every session
 
-1. A worker never changes a contract (`proto/`, the schema, the core interfaces). It opens a `needs-design` question instead.
-2. Every PR must deploy on its own. No PR depends on a later PR to work.
-3. Push after each commit.
-4. Run the module checks and the formatter before every push.
-5. A test that fails even once in repeated local runs is not merged.
-6. No secrets in files, commits, or logs. Use environment variables and Secret Manager.
-7. Nobody deploys without asking the owner first.
+1. A worker never changes a contract (`proto/`, the schema, the core interfaces). It asks a `needs-design` question instead.
+2. Every PR deploys on its own. No PR depends on a later PR to work.
+3. Every PR that changes behavior includes tests.
+4. Push after each commit.
+5. Run the module checks and the formatter before every push.
+6. A test that fails even once in repeated local runs is not merged.
+7. No secrets in files, commits, or logs.
+8. Nobody deploys without asking the owner first.
+9. Every session uses tokens on its own. Five sessions use about five times as much as one.
 
 ### Starting a worker
 
@@ -111,5 +131,4 @@ A fresh git worktree has no `node_modules` and no generated code. Each worker st
 ## Open items
 
 1. Approve the three Phase 0 decisions in `setup.md`: jOOQ, the `request_id` column, Postgres 17.
-2. Approve this plan and the orchestration model.
-3. Decide how the orchestrator starts workers: separate Claude Code sessions in separate terminals, or subagents inside the orchestrator session.
+2. Approve this plan.
