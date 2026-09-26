@@ -7,7 +7,7 @@ Stack: Kotlin backend (gRPC), TypeScript web client (gRPC-Web), protobuf contrac
 ## Architecture
 
 - **The server holds the truth.** Every read, roll-up, and rule runs in the Kotlin backend. The browser renders what the API returns.
-- **Sign-in is required in v1.** The schema allows a guest account (`email = NULL`), so a no-wall first run can come later with little change.
+- **Sign-in is required in v1.** Guest accounts can come later: the account columns then drop `NOT NULL`.
 - **The database generates every ID.** The client never makes one.
 
 ## Conventions
@@ -43,7 +43,7 @@ Every `Update*` request carries a `google.protobuf.FieldMask` that names the fie
 
 | RPC | Why it is required |
 |---|---|
-| `SignIn(id_token)` | Checks the Google or Apple ID token, creates or finds the user, and starts a session. |
+| `SignIn` | Checks the Google ID token, finds or creates the user by provider and subject, and starts a session. |
 | `SignOut` | Ends the session. JavaScript cannot clear an HttpOnly session cookie, so the server does it. |
 | `GetAccount` | After a page reload, the app must know who is signed in. |
 
@@ -113,7 +113,7 @@ There is no delete. The server rejects a change that breaks the cycle rules: min
 
 ## Decisions
 
-1. **Sign-in: Google only in v1.** `SignIn` takes a Google ID token. Sign in with Apple needs a paid Apple Developer account, so it comes with the iOS app. No magic link.
+1. **Sign-in: Google only in v1.** `SignInRequest` holds a `oneof credential` with one field, `google_id_token`. A new provider is a new field in the `oneof`, so adding it is not a breaking change. Sign in with Apple needs a paid Apple Developer account, so it comes with the iOS app. No magic link.
 2. **Node reads carry server-computed stats.** Per mode: own and rolled-up minutes, planned minutes, and cycle count, plus `last_worked_at`. The browser computes nothing.
 3. **CSV export (FR-11.6) is not in v1.** When it returns, it is a separate `ExportCycles`.
 4. **Retry safety.** `CreateNode` and `CreateCycle` carry a client `request_id`. A repeat returns the first result and creates nothing.
@@ -248,7 +248,9 @@ message UnfiledPb {
 
 ```protobuf
 message SignInRequest {
-  string google_id_token = 1;
+  oneof credential {
+    string google_id_token = 1;
+  }
 }
 
 // The session is set as an HttpOnly cookie, not returned in the body.

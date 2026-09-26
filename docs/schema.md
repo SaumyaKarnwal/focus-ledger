@@ -16,7 +16,7 @@ Status: draft for review. The PRD is in [`docs/prd.md`](prd.md).
 
 1. **Database-generated IDs, server holds the truth.** Every `id` has the default `gen_random_uuid()`. The client never makes an ID. All reads, roll-ups, and rules run on the server. The browser only renders.
 
-    Accounts can start as a **guest**: the server creates an `app_user` with `email = NULL` on the first visit, and sign-in attaches an email later. v1 ships with sign-in. The nullable email keeps guest accounts a small change for later.
+    A user is identified by the sign-in provider's stable user ID (`auth_provider` + `auth_subject`), not by email. v1 has only Google, and every user has signed in. Guest accounts come later: `email`, `auth_provider`, and `auth_subject` then drop `NOT NULL`, and NULL means a guest.
 2. **One `cycle` table, row created at Start.** Start writes the row with `minutes = NULL`. Stop sets `minutes`. The timer itself (countdown, pause) is a UI construct. On reopen, the app finds the running row and resumes from `started_at` and `planned_minutes`. Mode and node are in the database before the clock runs (I-2).
 3. **No edit, no delete.** A cycle allows exactly three changes:
     - Stop sets `minutes` once (NULL → value).
@@ -53,7 +53,9 @@ erDiagram
 
     APP_USER {
         uuid id PK
-        citext email UK "null = guest"
+        citext email UK
+        auth_provider auth_provider "google"
+        text auth_subject "provider user ID"
         timestamptz created_at
     }
     USER_SETTINGS {
@@ -117,10 +119,16 @@ There is no `break` table. FR-5.5 keeps breaks out of the ledger.
 | Column | Type | Notes |
 |---|---|---|
 | `id` | uuid | Primary key. Default `gen_random_uuid()`. |
-| `email` | citext, null | Null means a guest account. Unique when present. `citext` compares case-insensitively, so `A@x.com` and `a@x.com` are one account. |
+| `email` | citext | The email from the ID token, for display. Unique. `citext` compares case-insensitively. |
+| `auth_provider` | enum `auth_provider` | The provider that verified the user. v1 has one value: `google`. |
+| `auth_subject` | text | The provider's permanent user ID: the `sub` claim of the Google ID token. |
 | `created_at` | timestamptz | |
 
-The sign-in method (magic link, OAuth, password) is not decided. Credentials go in a separate table after that decision.
+Constraints: all columns are `NOT NULL`. `UNIQUE (auth_provider, auth_subject)` gives one account per Google account.
+
+Sign-in finds the user by `auth_provider` and `auth_subject`, never by email. Google says to use `sub` as the identifier, because an account's email can change and an address can be given to a new person ([Google docs](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token)).
+
+One account has one sign-in method. If one person later needs Google and Apple on the same account, these two columns move to a separate identity table.
 
 ### `user_settings`
 
@@ -217,7 +225,7 @@ An estimate covers only the node's own cycles (I-4). The roll-up adds up estimat
 | I-5 An estimate change never touches a cycle | Estimates are a separate table with no reference from `cycle`. |
 | I-6 Unfiled time belongs to no project | `node_id` is null. The roll-up joins on `node_id`, so Inbox cycles enter no node's total. |
 | I-7 Nothing starts itself | Only an explicit `StartCycle` request writes a cycle row. No server process creates one. |
-| I-8 Works without an account | Changed: sign-in is required in v1. A guest account (`email = NULL`) is the later path. |
+| I-8 Works without an account | Changed: sign-in is required in v1. Guest accounts are the later path. |
 
 ## The roll-up query
 
@@ -274,6 +282,8 @@ I wrote a draft DDL for this design, loaded it into Postgres 15, and ran these c
 | 16 | A cycle of 0 minutes | rejected |
 | 17 | Day of 02:00 UTC with the zone from the request | 2026-09-24 in `America/Los_Angeles`, 2026-09-25 in `Asia/Kolkata` |
 | 18 | Account delete | removes all rows in all tables |
+| 19 | A second account with the same Google subject | rejected by `UNIQUE (auth_provider, auth_subject)` |
+| 20 | An account without `auth_subject` | rejected by `NOT NULL` |
 
 ## Not in this schema
 
