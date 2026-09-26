@@ -101,13 +101,13 @@ sequenceDiagram
 3. The browser computes *Logged today*, today's and the week's totals, the running cycle, and estimate progress.
 
 **Start and Stop**
-1. `CreateCycle` without `minutes` writes the running row. The database rejects a second running cycle for the same user.
+1. The browser makes a `request_id` for the press of Start. `CreateCycle` without `minutes` writes the running row. A retry with the same `request_id` returns that row. The database rejects a second running cycle for the same user.
 2. The browser runs the countdown and pause.
 3. `UpdateCycle` with mask `minutes` stops the cycle. A stop under 1 minute sends 1. The database trigger rejects any other change.
 
 **An agent logs work**
 1. The agent calls the MCP tool `log_cycle` with a node path, a mode, a start time, and minutes.
-2. Ktor turns the OAuth token into a `user_id`. The tool resolves the path to a node ID and calls the same core function as `CreateCycle`.
+2. Ktor turns the OAuth token into a `user_id`. The tool resolves the path to a node ID and calls the same core function as `CreateCycle`, with a `request_id` (the agent's, or one the tool makes for the call).
 3. The tool returns one short confirmation line.
 
 ## Cross-cutting rules
@@ -117,7 +117,7 @@ sequenceDiagram
 | Sessions | Signed, HttpOnly, `SameSite=Strict` cookie, 30 days, renewed on use. No session table. | `api.md` → Sessions |
 | User isolation | The user comes from the session or token. Every query filters by it. Composite foreign keys block cross-user references. | `api.md` → User isolation |
 | Time | UTC everywhere. The browser sends UTC ranges. MCP tools take a `time_zone`. | `schema.md` → decision 4 |
-| Retries | Create requests carry a `request_id`. A repeat returns the first result. | `api.md` → Decisions |
+| Idempotency | `CreateNode` and `CreateCycle` require a client-made `request_id`. `UNIQUE (user_id, request_id)` on `ledger.node` and `ledger.cycle` makes a retry insert nothing, and the server returns the existing row. | `api.md` → Idempotency, `schema.md` → Idempotency |
 | CSRF and CORS | One origin, so no CORS. `SameSite=Strict` cookies block cross-site requests. | this doc |
 | Rate limits | Per session and per MCP token. Stricter on `SignIn`. | to build |
 
@@ -145,6 +145,5 @@ The whole system is one container plus Postgres. A self-hoster runs `docker comp
 
 ## Open items
 
-1. **Retry storage:** where the server remembers `request_id`s. The proposal is a unique `(user_id, request_id)` column on `node` and `cycle`.
-2. **MCP design:** in [`mcp.md`](mcp.md). Open: built-in OAuth, and whether MCP is in v1.
-3. **The spike:** prove a browser gRPC-Web call, an MCP call through the `/mcp` forward (including a streamed response), and the cold-start time on Cloud Run.
+1. **MCP design:** in [`mcp.md`](mcp.md). Open: built-in OAuth, and whether MCP is in v1.
+2. **The spike:** prove a browser gRPC-Web call, an MCP call through the `/mcp` forward (including a streamed response), and the cold-start time on Cloud Run.

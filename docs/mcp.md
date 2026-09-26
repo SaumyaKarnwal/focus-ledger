@@ -119,7 +119,7 @@ Other options that were considered:
 | Design | Few tools, named after what a user wants to do. Short descriptions, because the agent's model reads them on every turn. |
 | Inputs | Accept node paths. If a path matches more than one node, return the matches and ask. |
 | Outputs | Finished numbers in compact text. UTC unless `time_zone` is given. |
-| Safety | Writes carry a `request_id`, so a retry creates nothing twice. There are no delete tools. |
+| Safety | `create_node`, `start_cycle`, and `log_cycle` accept an optional `request_id`. When the agent sends one, a retry of the same call creates nothing twice. When it does not, the tool makes a new one for the call. There are no delete tools. |
 | Errors | Return a message the agent can act on, for example "No node named 'Backnd'. Did you mean 'Backend'?" |
 | Prompt injection | Node names are user text. The tools return them as data, never as instructions. |
 | Limits | Rate-limit per token, so a looping agent cannot flood the server. |

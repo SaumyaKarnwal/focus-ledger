@@ -131,6 +131,6 @@ A fresh git worktree has no `node_modules` and no generated code. Each worker st
 
 ## Open items
 
-1. Approve the remaining Phase 0 decisions in `setup.md`: the `request_id` column and Postgres 17. (jOOQ is agreed.)
+1. Approve the remaining Phase 0 decision in `setup.md`: Postgres 17. (jOOQ and the `request_id` column are agreed.)
 2. Agree the directory structure (`setup.md`, "Module layout"). It is a first proposal and has not been discussed.
 3. Approve this plan.

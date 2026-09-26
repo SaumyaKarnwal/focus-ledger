@@ -23,7 +23,7 @@ Status: draft for review. The PRD is in [`docs/prd.md`](prd.md).
     - A bell extension adds minutes (FR-4.6). Minutes never go down.
     - Filing sets `node_id` once on an unfiled cycle (FR-9.4).
 
-    A database trigger enforces the rule. No cycle is ever deleted, running or logged. A Stop under 1 minute logs 1 minute (a PRD change to FR-3).
+    A database trigger enforces the rule, and it also keeps `request_id` fixed. No cycle is ever deleted, running or logged. A Stop under 1 minute logs 1 minute (a PRD change to FR-3).
 4. **UTC only.** `started_at` is a `timestamptz`, one column that holds both the date and the time. No time zone and no separate date column are stored. The browser computes "today", "this week", and report ranges in its own zone and sends them as UTC timestamps. The server needs no time-zone logic. The UI renders every time in the browser zone.
 5. **Planned vs actual.** `planned_minutes` is the length chosen at Start. `minutes` is what was logged, including any extension. The difference lets us analyze estimates per mode, for example "Deep Focus cycles run 20% longer than planned".
 6. **No cycle data on the node.** "Most recently worked" (FR-10.1) comes from `MAX(started_at)` over the user's cycles.
@@ -69,6 +69,7 @@ erDiagram
     NODE {
         uuid user_id PK, FK
         uuid id PK
+        uuid request_id UK "idempotency key"
         uuid parent_id FK "null = root"
         text name
         timestamptz closed_at "null = open"
@@ -78,6 +79,7 @@ erDiagram
     CYCLE {
         uuid user_id PK, FK
         uuid id PK
+        uuid request_id UK "idempotency key"
         uuid node_id FK "null = Inbox"
         focus_mode mode
         timestamptz started_at "UTC"
@@ -156,6 +158,7 @@ These are fixed columns, not a JSON blob. FR-12.1 says "nothing else in v1", so 
 |---|---|---|
 | `user_id` | uuid | Key part 1. |
 | `id` | uuid | Key part 2. Default `gen_random_uuid()`. |
+| `request_id` | uuid | The idempotency key from `CreateNode`. Required. `UNIQUE (user_id, request_id)`. See "Idempotency" below. |
 | `parent_id` | uuid, null | Null means a root. Composite FK to `node`. |
 | `name` | text | 1–200 characters after trimming. |
 | `closed_at` | timestamptz, null | Null means open. A timestamp keeps the close time. The PRD only needs a boolean. |
@@ -176,6 +179,7 @@ Index: `(user_id, parent_id, created_at)` lists the children of a node in the or
 |---|---|---|
 | `user_id` | uuid | Key part 1. |
 | `id` | uuid | Key part 2. Default `gen_random_uuid()`. |
+| `request_id` | uuid | The idempotency key from `CreateCycle`. Required. Never changes. `UNIQUE (user_id, request_id)`. See "Idempotency" below. |
 | `node_id` | uuid, null | Null means Inbox (I-6). Filing sets it once (FR-9.4). |
 | `mode` | focus_mode | Set at Start. Never changes (I-2). |
 | `started_at` | timestamptz | The start moment in UTC. Set at Start. Never changes. |
@@ -199,6 +203,21 @@ Indexes:
 - `cycle_rollup`: `(user_id, started_at) INCLUDE (node_id, mode, minutes, planned_minutes) WHERE minutes IS NOT NULL`. Every roll-up, the Today rail order, the Inbox list, and the planned-vs-actual analysis read only this index. Running rows are not in it.
 - `cycle_one_running`: unique `(user_id) WHERE minutes IS NULL`. A user has at most one running cycle.
 - `cycle_node`: `(user_id, node_id)`. This index serves the foreign-key checks and "39 cycles will move with it" (FR-7.6).
+- `UNIQUE (user_id, request_id)` on `cycle`, and the same on `node`. It makes a retried create insert nothing.
+
+### Idempotency
+
+A retried create must not log a cycle, or create a node, twice. `node` and `cycle` each carry a `request_id` that the client makes.
+
+- The client makes a random UUID when the user acts (presses Start, saves a hand entry, creates a node). It sends the same UUID on every retry of that action. A new action gets a new UUID.
+- The server inserts with `INSERT ... ON CONFLICT (user_id, request_id) DO NOTHING RETURNING *`. When no row comes back, the request is a repeat: the server reads the existing row by `(user_id, request_id)` and returns it.
+- If the repeat's content differs from the stored row (for example another mode), the server returns `INVALID_ARGUMENT`. A key belongs to one action.
+- The unique constraint decides between two retries that arrive at the same time. Exactly one insert wins.
+- Keys stay on their rows for good (16 bytes per row). There is no cleanup job.
+- The key is scoped to the user, so two users can never collide.
+- Updates need no key. They send absolute values (Stop sends the minutes, an extension sends the new total, filing sends the node), so a repeat gives the same result.
+
+This follows Google's [AIP-155](https://google.aip.dev/155): a repeat returns the existing resource. A separate idempotency table that stores responses, as [Stripe](https://docs.stripe.com/api/idempotent_requests) uses, suits requests with several steps and outside side effects. Our creates are one row with no outside side effects, so the key lives on the row.
 
 **Time zones and travel.** The browser computes day and week ranges in its current zone. If a user logs a cycle at 11 PM in India and later views the report in California, that cycle shows on the California day of that moment. Cycles near midnight can move to a different day. We accept this for v1. If travel accuracy matters later, we add a zone column, and cycles logged before that change have no zone.
 
@@ -283,6 +302,11 @@ I wrote a draft DDL for this design, loaded it into Postgres 15, and ran these c
 | 18 | Account delete | removes all rows in all tables |
 | 19 | A second account with the same email in a different case (`A@Example.com`) | rejected by `UNIQUE (email)` (`citext`) |
 | 20 | An account without an email | rejected by `NOT NULL` |
+| 21 | A second `CreateCycle` with the same key | inserts nothing; one row exists for the key |
+| 22 | The same key used by another user | accepted (keys are per user) |
+| 23 | A create without a key | rejected by `NOT NULL` |
+| 24 | A second `CreateNode` with the same key | inserts nothing; one row exists for the key |
+| 25 | A change to a cycle's `request_id` | rejected by the trigger |
 
 ## Not in this schema
 
