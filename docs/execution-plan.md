@@ -88,19 +88,20 @@ flowchart TD
 ### The rules of the flow
 
 1. **`main` holds the approved design and the merged code.** The orchestrator builds only from what is on `main`. A doc on an open branch is still under discussion.
-2. **Every change goes through a PR.** Branch protection on `main` requires a PR and a green CI run, and blocks direct pushes, including the owner's. It does not require a review approval, so no PR waits on the owner.
-3. **The orchestrator merges.** It merges a PR when CI is green, the tests required below are in the PR, and the issue's acceptance criteria are met. It does not merge a PR with the `hold` label. The owner adds `hold` to look at a PR before it merges, and reviews any other PR from the history whenever convenient.
-4. **Every PR includes tests.** A PR that adds or changes behavior adds tests for it:
+2. **Nothing starts on its own.** A merged doc does not start any work. The orchestrator starts a part of the build (for example "Phase 0, items 1–3") only after a `START` message from the design session, or a direct instruction from the owner. The message names the part, the doc sections, and what is out of scope.
+3. **Every change goes through a PR.** Branch protection on `main` requires a PR and a green CI run, and blocks direct pushes, including the owner's. It does not require a review approval, so no PR waits on the owner.
+4. **Merging is automatic.** The orchestrator merges a PR without waiting for the owner, after four checks: CI compiles everything and all tests pass; the PR includes the tests required below; an intense code review of the diff (`/code-review max`) finds no unresolved issue; and the issue's acceptance criteria are met. It does not merge a PR with the `hold` label. The owner adds `hold` to look at a PR first, and reviews any other PR from the history whenever convenient.
+5. **Every PR includes tests.** A PR that adds or changes behavior adds tests for it:
     - Unit tests for the rules in `backend/core`, for example each allowed and each rejected cycle change.
     - Integration tests against a real Postgres (Testcontainers) for repositories and RPCs.
     - A user-isolation test for every RPC and MCP tool: user B uses user A's ID and gets `NOT_FOUND`, and A's data does not change.
     - Tests for the roll-up code in the web app, and for the summaries in the MCP layer, from the same shared example data.
 
     The orchestrator does not merge a behavior change without tests. A PR that only changes docs or configuration needs none.
-5. **A design change reaches the build through a docs PR.** The design session updates the doc in a small PR. After it merges, the design session messages the orchestrator: a two-line summary, the affected workstreams, and the PR link. The orchestrator then updates the affected issues and tells the affected workers.
-6. **Workers are live sessions that the owner can see.** The orchestrator prints the exact start command, for example `cd ~/projects/focus-ledger && claude -w ws-a --name ws-a`, and the first prompt. The owner opens it in a new terminal tab. After the dry run, the orchestrator can open workers in panes with `--tmux` instead, if that works on the owner's terminal.
-7. **Questions go to the design session two ways.** The worker messages `design`, and adds the `needs-design` label with the question on its issue. The message is the fast path. The issue is the permanent record.
-8. **The first orchestrator task is a dry run** with one small worker: open an issue, start the worker, message it, get a PR, merge it.
+6. **A design change reaches the build through a docs PR.** The design session updates the doc in a small PR. After it merges, the design session messages the orchestrator: a two-line summary, the affected workstreams, and the PR link. The orchestrator then updates the affected issues and tells the affected workers.
+7. **Workers are live sessions that the owner can see.** The orchestrator prints the exact start command, for example `cd ~/projects/focus-ledger && claude -w ws-a --name ws-a`, and the first prompt. The owner opens it in a new terminal tab. After the dry run, the orchestrator can open workers in panes with `--tmux` instead, if that works on the owner's terminal.
+8. **Questions go to the design session two ways.** The worker messages `design`, and adds the `needs-design` label with the question on its issue. The message is the fast path. The issue is the permanent record.
+9. **The first orchestrator task is a dry run** with one small worker: open an issue, start the worker, message it, get a PR, merge it.
 
 ### GitHub is the shared record
 
@@ -131,4 +132,5 @@ A fresh git worktree has no `node_modules` and no generated code. Each worker st
 ## Open items
 
 1. Approve the three Phase 0 decisions in `setup.md`: jOOQ, the `request_id` column, Postgres 17.
-2. Approve this plan.
+2. Agree the directory structure (`setup.md`, "Module layout"). It is a first proposal and has not been discussed.
+3. Approve this plan.

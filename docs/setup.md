@@ -84,6 +84,8 @@ The free tier covers 6 active secret versions and 10,000 access operations a mon
 
 ### Module layout
 
+**Not yet agreed.** This layout is a first proposal for discussion. No work builds on it until the owner approves it.
+
 ```
 proto/                      the .proto contract
 backend/

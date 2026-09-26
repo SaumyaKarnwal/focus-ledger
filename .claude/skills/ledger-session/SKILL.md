@@ -1,5 +1,6 @@
 ---
 name: ledger-session
+argument-hint: "[design | orchestrator | ws-a … ws-e]"
 description: Load the Focus Ledger session role (design, orchestrator, or a ws-* worker) and its playbook, including how to message the other sessions. Use at the start of every Claude Code session in this repository, and whenever the session is unsure of its role or how to reach another session.
 ---
 
@@ -9,7 +10,7 @@ Focus Ledger is built by several Claude Code sessions that work together. This s
 
 ## Step 1: find your role
 
-1. If the skill was invoked with an argument (`design`, `orchestrator`, or `ws-a` … `ws-e`), that is your role.
+1. The argument is: `$ARGUMENTS`. If it is not empty, it is your role (`design`, `orchestrator`, or `ws-a` … `ws-e`).
 2. Otherwise, call `ListAgents`. The first line of the result is this session's own name. Use it as your role.
 3. If the name is none of the above, ask the owner which role this session has. Tell the owner to set the name with `/rename <role>`, because other sessions address messages by name.
 

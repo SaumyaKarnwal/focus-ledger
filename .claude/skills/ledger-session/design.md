@@ -20,6 +20,16 @@ You own the design: every file in `docs/`, and the contracts (`proto/`, the migr
 2. The PR merges. No owner review is required, unless the owner adds `hold`.
 3. After the merge, message the orchestrator: `DESIGN CHANGE — PR #<n> merged. <doc>: <one line>. Affects: <workstreams>.`
 
+## Starting a part of the build
+
+The orchestrator builds nothing until you tell it to. When the owner decides that a part is ready (for example "start Phase 0"), and its design is merged:
+
+1. Check that every decision the part needs is agreed in the docs. List any open item to the owner first.
+2. Message the orchestrator: `START — <part>. Docs: <sections>. Out of scope: <what not to touch>.`
+3. Tell the owner what you started.
+
+If the owner wants to start a part directly with the orchestrator, that also counts.
+
 ## A question from a worker
 
 1. Read the issue and the question.

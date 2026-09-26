@@ -20,6 +20,7 @@ Start every message with its type in capitals:
 
 | Type | From → to | Format |
 |---|---|---|
+| `START` | design → orchestrator | `START — <part to build, e.g. Phase 0 items 1–3>. Docs: <sections>. Out of scope: <what not to touch>.` |
 | `DESIGN CHANGE` | design → orchestrator | `DESIGN CHANGE — PR #<n> merged. <doc>: <what changed, one line>. Affects: <ws-x, ws-y>.` |
 | `TASK` | orchestrator → worker | `TASK — issue #<n>: <title>. Start when ready. Acceptance criteria are on the issue.` |
 | `NEEDS DESIGN` | worker or orchestrator → design | `NEEDS DESIGN — issue #<n>: <question>. Options: <a>, <b>. Blocking: <yes/no>.` |
@@ -51,8 +52,9 @@ git -c credential.helper= \
 ## Rules no session breaks
 
 1. Build only from what is merged on `main`. A doc on an open branch is still under discussion.
-2. Every change goes through a PR. Never push to `main`.
-3. Workers never change a contract: `proto/`, the migrations, or the interfaces in `backend/core`. Ask `design` instead.
-4. Every PR that changes behavior includes tests (see `CLAUDE.md`).
-5. Nobody deploys without asking the owner.
-6. No secrets in files, commits, or logs.
+2. The orchestrator starts a part of the build only after a `START` message from `design`, or a direct instruction from the owner. A merged doc alone never starts work.
+3. Every change goes through a PR. Never push to `main`.
+4. Workers never change a contract: `proto/`, the migrations, or the interfaces in `backend/core`. Ask `design` instead.
+5. Every PR that changes behavior includes tests (see `CLAUDE.md`).
+6. Nobody deploys without asking the owner.
+7. No secrets in files, commits, or logs.

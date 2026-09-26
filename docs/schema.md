@@ -224,7 +224,7 @@ An estimate covers only the node's own cycles (I-4). The roll-up adds up estimat
 | I-4 Roll-up is own plus descendants | The browser computes it from the cycles. No stored totals. |
 | I-5 An estimate change never touches a cycle | Estimates are a separate table with no reference from `cycle`. |
 | I-6 Unfiled time belongs to no project | `node_id` is null. The roll-up joins on `node_id`, so Inbox cycles enter no node's total. |
-| I-7 Nothing starts itself | Only an explicit `StartCycle` request writes a cycle row. No server process creates one. |
+| I-7 Nothing starts itself | Only an explicit `CreateCycle` request writes a cycle row. No server process creates one. |
 | I-8 Works without an account | Changed: sign-in is required in v1. Guest accounts are the later path. |
 
 ## Roll-ups
