@@ -22,6 +22,15 @@ One Kotlin program, one port, no Spring:
 
 The first build step is a spike that proves three things: a browser gRPC-Web call to Armeria, an MCP tool call through the `/mcp` forward to Ktor, and the startup time on Cloud Run.
 
+## Sessions
+
+After `SignIn`, the server sets a signed, HttpOnly, `SameSite=Strict` cookie that holds `{user_id, expires_at}`. There is no session table.
+
+- The server checks the cookie's signature on every request. The signing key lives in the platform's secret store, never in the repository.
+- The cookie expires after 30 days. When it is more than one day old, the next request gets a fresh 30-day cookie. A user who opens the app at least once every 30 days stays signed in.
+- `SignOut` clears the cookie in that browser.
+- Known limit: a copied cookie stays valid until it expires. "Sign out everywhere" can come later with a `session_version` column on `app_user`.
+
 ## User isolation
 
 Every request acts only on the data of the user in the session. The implementation must keep these rules:
