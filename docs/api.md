@@ -9,6 +9,17 @@ Stack: Kotlin backend (gRPC), TypeScript web client (gRPC-Web), protobuf contrac
 - **The server holds the truth.** Every read, roll-up, and rule runs in the Kotlin backend. The browser renders what the API returns.
 - **Sign-in is required in v1.** Guest accounts can come later: the account columns then drop `NOT NULL`.
 - **The database generates every ID.** The client never makes one.
+- **No BFF.** The browser calls the Kotlin backend directly over gRPC-Web. The backend holds every secret and gives the browser only an HttpOnly session cookie. That meets the goal of RFC 10017 (a browser app never holds a token) without a second server.
+
+## User isolation
+
+Every request acts only on the data of the user in the session. The implementation must keep these rules:
+
+1. **The user comes from the session, never from the request.** One interceptor turns the session cookie into a `user_id` before any handler runs. No request message has a `user_id` field.
+2. **Every query filters by that `user_id`.** A handler never reads or writes a row by its `id` alone. Example: `WHERE user_id = $session_user AND id = $node_id`.
+3. **References stay inside one user.** The composite foreign keys (`(user_id, node_id) → node (user_id, id)`) make a cross-user reference fail in the database, even if a handler has a bug.
+4. **Another user's ID gives `NOT_FOUND`.** The response is the same as for an ID that does not exist, so it reveals nothing.
+5. **Tests prove it.** For every RPC, a test signs in as user B and uses an ID that belongs to user A. It expects `NOT_FOUND`, and it checks that A's data did not change.
 
 ## Conventions
 
