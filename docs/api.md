@@ -140,8 +140,51 @@ There is no delete. The server rejects a change that breaks the cycle rules: min
 1. **Sign-in: Google only in v1.** `SignInRequest` holds a `oneof credential` with one field, `google_id_token`. A new provider is a new field in the `oneof`, so adding it is not a breaking change. Sign in with Apple needs a paid Apple Developer account, so it comes with the iOS app. No magic link.
 2. **Roll-ups happen in the browser.** `ListNodes` returns nodes with their raw cycles. The browser computes the per-mode sums, the tree roll-up, today's and the week's totals, estimate progress, and planned vs actual. The backend has no stats messages and no roll-up query. When mobile apps arrive, their roll-up code must match the web's, or the logic moves to a shared library.
 3. **CSV export (FR-11.6) is not in v1.** When it returns, it is a separate `ExportCycles`.
-4. **Retry safety.** `CreateNode` and `CreateCycle` carry a client `request_id`. A repeat returns the first result and creates nothing.
+4. **Idempotency.** `CreateNode` and `CreateCycle` require a client `request_id`. A repeat returns the existing row and creates nothing. See "Idempotency" below.
 5. **The browser sends periods, not a time zone.** It computes "today", "this week" (starting Monday), and report ranges in its own zone, and sends them as UTC `[start, end)` timestamps. The server needs no time-zone logic.
+
+## Idempotency
+
+A network retry must never log a cycle or create a node twice. The design follows Google's [AIP-155](https://google.aip.dev/155). The storage is in `schema.md`, "Idempotency".
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant S as Backend
+    participant DB as Postgres
+    Note over B: user presses Start → B makes request_id K
+    B->>S: CreateCycle(request_id = K, ...)
+    S->>DB: INSERT ... ON CONFLICT (user_id, request_id) DO NOTHING
+    DB-->>S: new row
+    S--xB: response lost
+    B->>S: retry: CreateCycle(request_id = K, ...)
+    S->>DB: INSERT ... ON CONFLICT DO NOTHING
+    DB-->>S: no row (conflict)
+    S->>DB: SELECT ... WHERE user_id = $user AND request_id = K
+    S-->>B: the same cycle
+```
+
+**The client:**
+1. Makes a random UUID (version 4) when the user acts: presses Start, saves a hand entry, or creates a node.
+2. Sends that UUID as `request_id`, and keeps it until a response arrives.
+3. On a network error or a timeout, retries with the **same** `request_id`.
+4. Makes a new UUID for the next action.
+
+**The server, for `CreateNode` and `CreateCycle`:**
+1. Rejects a missing or malformed `request_id` with `INVALID_ARGUMENT`.
+2. Runs `INSERT ... ON CONFLICT (user_id, request_id) DO NOTHING RETURNING *`, with `user_id` from the session.
+3. If a row comes back, returns it.
+4. If no row comes back, reads the row by `(user_id, request_id)`. If its content matches the request, returns it. If not, returns `INVALID_ARGUMENT` ("request_id was already used for a different request").
+5. Treats a Start (`CreateCycle` without `minutes`) the same way: a retried Start returns the running cycle, and a new Start with a new key while one runs still fails with `FAILED_PRECONDITION`.
+
+**Updates** need no key. Each sends an absolute value, so a repeat gives the same result: Stop sends the minutes, an extension sends the new total (for example 65, never "+15"), and filing sends the node.
+
+**Tests** (in the backend PR that builds the creates):
+- A repeat with the same key returns the same row, and the table holds one row.
+- Two concurrent requests with the same key create one row.
+- The same key with different content returns `INVALID_ARGUMENT`.
+- The same key from two users creates two rows.
+- A missing key returns `INVALID_ARGUMENT`.
 
 ## Request and response messages
 
@@ -306,7 +349,7 @@ message UpdateSettingsResponse {
 
 ```protobuf
 message CreateNodeRequest {
-  // A repeat of the same request_id returns the first result and creates nothing.
+  // Required UUID, made by the client per action. A repeat returns the existing node.
   string request_id = 1;
   optional string parent_id = 2;
   string name = 3;
@@ -362,7 +405,7 @@ message ListNodesResponse {
 // Without minutes: starts a cycle now. The server rejects a second running cycle.
 // With minutes and started_at: writes a hand entry.
 message CreateCycleRequest {
-  // A repeat of the same request_id returns the first result and creates nothing.
+  // Required UUID, made by the client per action. A repeat returns the existing cycle.
   string request_id = 1;
   optional string node_id = 2;
   FocusMode mode = 3;
@@ -398,6 +441,6 @@ message UpdateCycleResponse {
 | gRPC status | When |
 |---|---|
 | `UNAUTHENTICATED` | No valid session, or a `SignIn` token that fails the checks or has an unverified email. |
-| `INVALID_ARGUMENT` | A field is missing or out of range. Examples: an empty name, minutes outside 1–1440, an unknown path in `update_mask`, a missing or empty `update_mask`. |
+| `INVALID_ARGUMENT` | A field is missing or out of range. Examples: an empty name, minutes outside 1–1440, an unknown path in `update_mask`, a missing or empty `update_mask`, a missing `request_id`, a `request_id` reused for a different request. |
 | `NOT_FOUND` | The node or cycle does not exist for this user. Another user's ID also gives `NOT_FOUND`, so the response does not reveal that the ID exists. |
 | `FAILED_PRECONDITION` | A rule rejects the change: a second running cycle, minutes that go down, re-filing a filed cycle, a move under the node's own descendant. |

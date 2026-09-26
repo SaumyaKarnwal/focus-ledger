@@ -50,7 +50,8 @@ To be filled in by Phase 0. Every worker runs the setup commands first, because 
 6. **All times are UTC.** The server has no time-zone logic. The browser sends UTC ranges, and MCP tools take a `time_zone`.
 7. **Every `Update*` request needs an `update_mask`.** A missing or empty mask returns `INVALID_ARGUMENT`.
 8. **The browser computes roll-ups.** The gRPC API returns rows. Only the MCP layer computes summaries on the server.
-9. **No secrets in files, commits, or logs.**
+9. **Every create is idempotent.** `CreateNode` and `CreateCycle` require a `request_id`. Insert with `ON CONFLICT (user_id, request_id) DO NOTHING`, and return the existing row on a repeat.
+10. **No secrets in files, commits, or logs.**
 
 ## Contracts
 
