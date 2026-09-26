@@ -231,6 +231,21 @@ An estimate covers only the node's own cycles (I-4). The roll-up adds up estimat
 
 The browser computes every roll-up from the cycles that `ListNodes` returns. The backend returns rows and runs no roll-up query. The benchmark earlier in this design measured a server-side roll-up at about 1 ms, so moving the roll-up back to the server later is a small change if mobile clients need it.
 
+Latency, measured with one heavy user (2,500 cycles a year) among 5,000 users and 12.5M cycles:
+
+| Step | This week | All time, 1 year | All time, 3 years |
+|---|---|---|---|
+| Server query (nodes + cycles) | 0.16 ms | 0.39 ms | 1.06 ms |
+| Data sent, gzip | 2–3 KB | 81 KB | 236 KB |
+| Browser parse + roll-up | < 0.2 ms | 0.65 ms | 1.9 ms |
+
+Server and browser work stay under 2 ms. The one cost that grows is the all-time download: about 81 KB compressed per year of history. A server-side roll-up would send about 29 KB for any period. The browser numbers were measured in Node.js with JSON, not in a browser with protobuf, so they are an estimate.
+
+If the all-time download becomes noticeable:
+1. Drop `node_id` from cycles nested in a node. It repeats the parent's ID and is about 40% of each cycle's bytes.
+2. Cache all-time cycles in the browser and fetch only newer ones. Cycles are append-only, so the cache stays correct.
+3. Move the roll-up to the server.
+
 ## Resolved questions
 
 1. **A running cycle after a closed tab: resume it** (FR-3.5). On reopen, the countdown continues. If the planned end has passed, the app shows the bell, logged at the planned length. Pause state lives only in the UI, so a pause before the tab closed is not counted.

@@ -46,7 +46,9 @@ Split into more services only when a real trigger appears: a second team, a work
 | Nodes | `CreateNode`, `UpdateNode`, `ListNodes` |
 | Cycles | `CreateCycle`, `UpdateCycle` |
 
-Every `Update*` request carries a `google.protobuf.FieldMask` that names the fields to change. In proto3, a missing field and a zero value look the same, so the mask is the only way to tell them apart.
+Every `Update*` request carries a `google.protobuf.FieldMask` that names the fields to change. One request can change several fields: list each path in the mask, for example `["name", "estimates"]`. In proto3, a missing field and a zero value look the same, so the mask is the only way to tell them apart.
+
+The mask is required. A missing or empty mask returns `INVALID_ARGUMENT`. This deviates from AIP-134, which treats a missing mask as "all populated fields". With explicit fields, that rule could silently reopen a node (`closed = false`) or clear its estimates.
 
 ### Account
 
@@ -377,6 +379,6 @@ message UpdateCycleResponse {
 | gRPC status | When |
 |---|---|
 | `UNAUTHENTICATED` | No valid session. |
-| `INVALID_ARGUMENT` | A field is missing or out of range. Examples: an empty name, minutes outside 1–1440, an unknown path in `update_mask`. |
+| `INVALID_ARGUMENT` | A field is missing or out of range. Examples: an empty name, minutes outside 1–1440, an unknown path in `update_mask`, a missing or empty `update_mask`. |
 | `NOT_FOUND` | The node or cycle does not exist for this user. Another user's ID also gives `NOT_FOUND`, so the response does not reveal that the ID exists. |
 | `FAILED_PRECONDITION` | A rule rejects the change: a second running cycle, minutes that go down, re-filing a filed cycle, a move under the node's own descendant. |
