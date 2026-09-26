@@ -126,7 +126,7 @@ There is no `break` table. FR-5.5 keeps breaks out of the ledger.
 
 Constraints: all columns are `NOT NULL`. `UNIQUE (auth_provider, auth_subject)` gives one account per Google account.
 
-Sign-in finds the user by `auth_provider` and `auth_subject`, never by email. Google says to use `sub` as the identifier, because an account's email can change and an address can be given to a new person ([Google docs](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token)).
+Sign-in finds the user by `auth_provider` and `auth_subject`, never by email. One email belongs to one account. If a sign-in brings an email that another account already holds, `SignIn` rejects it with `ALREADY_EXISTS` and does not create or merge anything. Google says to use `sub` as the identifier, because an account's email can change and an address can be given to a new person ([Google docs](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token)).
 
 One account has one sign-in method. If one person later needs Google and Apple on the same account, these two columns move to a separate identity table.
 

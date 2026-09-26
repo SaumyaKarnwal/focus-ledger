@@ -381,4 +381,5 @@ message UpdateCycleResponse {
 | `UNAUTHENTICATED` | No valid session. |
 | `INVALID_ARGUMENT` | A field is missing or out of range. Examples: an empty name, minutes outside 1–1440, an unknown path in `update_mask`, a missing or empty `update_mask`. |
 | `NOT_FOUND` | The node or cycle does not exist for this user. Another user's ID also gives `NOT_FOUND`, so the response does not reveal that the ID exists. |
+| `ALREADY_EXISTS` | `SignIn` brings an email that another account already holds. The message says: "This email is already linked to another account." |
 | `FAILED_PRECONDITION` | A rule rejects the change: a second running cycle, minutes that go down, re-filing a filed cycle, a move under the node's own descendant. |
