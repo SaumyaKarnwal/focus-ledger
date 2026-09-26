@@ -24,25 +24,82 @@ A staging environment is not in v1. A Neon branch (a copy-on-write copy of the d
 
 The local database creates the same roles as production, with an init script. Code that works locally then has the same permissions in production.
 
-## Postgres roles
+## Schemas and Postgres roles
 
 No human and no service uses a more powerful role than its job needs.
 
-| Role | Used by | Can do | Cannot do |
-|---|---|---|---|
-| `neondb_owner` (Neon default) | The project owner, for initial setup only | Everything, including creating roles | — |
-| `focusledger_migrate` | The CI deploy job, to run Flyway migrations | Owns the schema. DDL: `CREATE`, `ALTER`, `DROP`. | — |
-| `focusledger_app` | The Cloud Run service at runtime | `SELECT`, `INSERT`, `UPDATE` on the tables. `USAGE` on the sequences. | `DELETE`, `TRUNCATE`, and any DDL |
+### Two schemas
 
-- `focusledger_app` has **no `DELETE`**. The design never deletes a node, a cycle, an estimate row, or (in v1) an account. The database permission enforces that rule a second time, below the triggers.
-- The migrate role runs `ALTER DEFAULT PRIVILEGES` so that every table created later automatically grants `focusledger_app` the same three permissions.
-- Create both roles **with SQL**, not in the Neon console. Neon gives console-created roles membership in `neon_superuser`. A role created with SQL starts with only the basic privileges and gets exactly the grants we add ([Neon: Manage roles](https://neon.com/docs/manage/roles)).
+| Schema | Tables | Holds |
+|---|---|---|
+| `account` | `app_user`, `user_settings` | Personal data: email, Google subject, preferences |
+| `ledger` | `node`, `cycle`, `estimate` | Work data. No names or emails. |
+
+- A schema is a namespace. It adds no cost at run time: one database, one connection pool, and cross-schema foreign keys (`ledger.node.user_id → account.app_user.id`) work as usual.
+- The split lets a reader get the work data without the personal data. Example: a debug login or a future read-only service gets `ledger_reader` only and cannot read any email.
+- A future service that only reads gets a rights role, not a new schema. A service that writes its own tables gets its own schema, so that its write rights stay inside that schema.
+- Moving a table to another schema later is one statement (`ALTER TABLE ... SET SCHEMA`), plus regenerated jOOQ classes and updated grants.
+
+### Rights roles and login roles
+
+Rights are granted to **rights roles** that cannot log in. **Login roles** receive rights roles. A new table gets its rights automatically from default privileges on its schema, so no migration adds grants table by table.
+
+| Role | Kind | Rights |
+|---|---|---|
+| `ledger_reader` | rights, no login | `USAGE` on `ledger`. `SELECT` on its tables. |
+| `ledger_writer` | rights, no login | `ledger_reader`, plus `INSERT`, `UPDATE` on `ledger` tables and `USAGE` on its sequences |
+| `account_reader` | rights, no login | `USAGE` on `account`. `SELECT` on its tables. |
+| `account_writer` | rights, no login | `account_reader`, plus `INSERT`, `UPDATE` on `account` tables and `USAGE` on its sequences |
+| `neondb_owner` (Neon default) | login | Everything. The project owner uses it for the initial setup only. |
+| `focusledger_migrate` | login | Owns both schemas, so it can create and change tables. Used only by the CI deploy job. |
+| `focusledger_app` | login | `ledger_writer` + `account_writer`. Used by the Cloud Run service. |
+
+- No rights role has `DELETE`, `TRUNCATE`, or DDL. The design never deletes a node, a cycle, an estimate row, or (in v1) an account, and the database enforces that rule a second time, below the triggers.
+- Create every role **with SQL**, not in the Neon console. Neon gives console-created roles membership in `neon_superuser`. A role created with SQL starts with only the basic privileges and gets exactly the grants we add ([Neon: Manage roles](https://neon.com/docs/manage/roles)).
 - When account deletion arrives, it gets its own narrow permission, not a general `DELETE` grant.
+
+### How the roles are created
+
+The owner runs this once, as `neondb_owner`. The generated passwords go straight into Secret Manager and nowhere else.
+
+```sql
+CREATE ROLE focusledger_migrate LOGIN PASSWORD '<generated>';
+CREATE ROLE focusledger_app     LOGIN PASSWORD '<generated>';
+
+CREATE ROLE ledger_reader  NOLOGIN;
+CREATE ROLE ledger_writer  NOLOGIN;
+CREATE ROLE account_reader NOLOGIN;
+CREATE ROLE account_writer NOLOGIN;
+GRANT ledger_reader  TO ledger_writer;
+GRANT account_reader TO account_writer;
+
+CREATE SCHEMA ledger  AUTHORIZATION focusledger_migrate;
+CREATE SCHEMA account AUTHORIZATION focusledger_migrate;
+
+GRANT CONNECT ON DATABASE neondb TO ledger_reader, account_reader;
+GRANT ledger_writer, account_writer TO focusledger_app;
+```
+
+The first migration, `V1__init.sql`, runs as `focusledger_migrate` and sets the default privileges before it creates any table:
+
+```sql
+GRANT USAGE ON SCHEMA ledger  TO ledger_reader;
+GRANT USAGE ON SCHEMA account TO account_reader;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA ledger  GRANT SELECT ON TABLES TO ledger_reader;
+ALTER DEFAULT PRIVILEGES IN SCHEMA ledger  GRANT INSERT, UPDATE ON TABLES TO ledger_writer;
+ALTER DEFAULT PRIVILEGES IN SCHEMA ledger  GRANT USAGE ON SEQUENCES TO ledger_writer;
+ALTER DEFAULT PRIVILEGES IN SCHEMA account GRANT SELECT ON TABLES TO account_reader;
+ALTER DEFAULT PRIVILEGES IN SCHEMA account GRANT INSERT, UPDATE ON TABLES TO account_writer;
+ALTER DEFAULT PRIVILEGES IN SCHEMA account GRANT USAGE ON SEQUENCES TO account_writer;
+```
+
+The local Postgres in `docker compose` runs the same role script at first start, so local code meets the same permissions as production.
 
 ### Humans and production data
 
 - No human has standing access to production data. Humans never use the service credentials.
-- To investigate a problem, the owner creates a temporary read-only login with an expiry (`CREATE ROLE ... LOGIN VALID UNTIL '<time>'`, granted `SELECT` only), and writes down why in the investigation notes. The login stops working at the expiry time.
+- To investigate a problem, the owner creates a temporary login with an expiry and grants it `ledger_reader` only (`CREATE ROLE debug_<date> LOGIN PASSWORD '<generated>' VALID UNTIL '<time>'; GRANT ledger_reader TO debug_<date>;`). It sees the work data and no personal data. The owner writes down why in the investigation notes. The login stops working at the expiry time. Grant `account_reader` too only when the problem is in the account data.
 - Schema changes reach production only through the CI migration job, never by hand.
 
 ### Connection strings

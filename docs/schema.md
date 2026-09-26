@@ -110,6 +110,8 @@ erDiagram
 | `cycle` | The ledger. The only table that holds time. | ~2,500 per year |
 | `estimate` | Up to three rows per node, one per mode | ≤ 3 per node |
 
+`app_user` and `user_settings` live in the Postgres schema `account` (personal data). `node`, `cycle`, and `estimate` live in the schema `ledger` (work data). See `setup.md` for the roles.
+
 Every table except `app_user` has `user_id` as the first key column. Every reference between rows is a composite foreign key that includes `user_id`, for example `(user_id, node_id) → node (user_id, id)`. So a row can never point at another user's data, and every query and index starts with `user_id`.
 
 There is no `break` table. FR-5.5 keeps breaks out of the ledger.
