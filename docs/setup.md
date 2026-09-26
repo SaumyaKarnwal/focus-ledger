@@ -12,6 +12,18 @@ These must be settled before the first build step.
 | 2 | Where the server remembers `request_id`s | **Agreed:** a required `request_id uuid NOT NULL` column on `ledger.node` and `ledger.cycle`, with `UNIQUE (user_id, request_id)`. A repeat finds the existing row. See `schema.md`, "Idempotency". |
 | 3 | Postgres version | **Agreed: Postgres 18** everywhere: local Docker, Testcontainers, and Neon. It is supported until November 2030, and it has a built-in `uuidv7()`. The schema itself works on any supported version. The Phase 0 spike confirms that jOOQ, Flyway, and the Testcontainers image support 18. If one does not, the fallback is Postgres 17, with no design change. |
 
+## Toolchain (agreed)
+
+| Choice | Decision |
+|---|---|
+| Java | JDK 21 (long-term support) |
+| Build | Gradle with Kotlin scripts and a version catalog (`gradle/libs.versions.toml`) |
+| Proto code generation | `buf generate` for both sides: Kotlin (protobuf + grpc-kotlin) and TypeScript (`protoc-gen-es` + Connect's gRPC-Web transport) |
+| Web | React + Vite + TypeScript, pnpm, Vitest |
+| Backend tests | JUnit 5 + Testcontainers (Postgres 18) |
+| Format and lint | Spotless with ktfmt (Kotlin), ESLint + Prettier (web) |
+| License | Apache-2.0 |
+
 ## Environments
 
 | Environment | Database | Backend | Purpose |
@@ -139,9 +151,7 @@ The free tier covers 6 active secret versions and 10,000 access operations a mon
 
 ## Backend service
 
-### Module layout
-
-**Not yet agreed.** This layout is a first proposal for discussion. No work builds on it until the owner approves it.
+### Module layout (agreed)
 
 ```
 proto/                      the .proto contract
@@ -152,8 +162,10 @@ backend/
   api-mcp/                  Ktor MCP server and tools
   app/                      main(): wiring, config, starts Armeria and Ktor
 web/                        React + TypeScript web app
-site/                       pre-rendered public pages
-docker-compose.yml          local Postgres
+site/                       pre-rendered public pages (added later, not in Phase 0)
+infra/                      deploy setup (added by ws-c; its tool is decided then)
+docs/                       design docs
+docker-compose.yml          local Postgres 18 with the role script
 ```
 
 - `core` depends on nothing but Kotlin and the interfaces it declares for data access. `api-grpc` and `api-mcp` depend on `core`, never on each other.

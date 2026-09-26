@@ -25,15 +25,14 @@ If code and a doc disagree, stop and ask on the issue with the `needs-design` la
 
 ## Layout
 
-**Not yet agreed.** The directory structure is still under discussion (see `docs/setup.md`, "Module layout"). This is the current proposal:
-
 ```
 proto/          the .proto contract
 backend/core    rules and services, no framework imports
 backend/data    jOOQ repositories, Flyway migrations
 backend/api-grpc, backend/api-mcp, backend/app
 web/            the web app
-site/           public pages
+site/           public pages (later)
+infra/          deploy setup (later, ws-c)
 ```
 
 ## Commands

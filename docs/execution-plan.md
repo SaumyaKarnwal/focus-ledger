@@ -130,7 +130,14 @@ Sessions can end at any time, so every piece of state lives on GitHub, not in a 
 
 A fresh git worktree has no `node_modules` and no generated code. Each worker starts with the setup commands in `CLAUDE.md`: install the web dependencies, run the code generation, and start local Postgres.
 
+## Inputs from the owner, and what waits for them
+
+| Input | Needed by | Until it arrives |
+|---|---|---|
+| Screen designs | ws-b | ws-b builds the API client, roll-ups, timer, and state with plain, unstyled screens. Styling follows the designs. |
+| Google OAuth client ID | ws-a (real sign-in) | ws-a builds and tests `SignIn` with tokens signed by a test key. The real client ID is set later as `GOOGLE_CLIENT_ID`. |
+| Google Cloud project, Neon account, domain | ws-c | ws-c does not start. Phase 0, ws-a, ws-b, and ws-d run locally. |
+
 ## Open items
 
-1. Agree the directory structure (`setup.md`, "Module layout"). It is a first proposal and has not been discussed.
-2. Approve this plan.
+None block Phase 0. The owner provides the inputs above when ready.
