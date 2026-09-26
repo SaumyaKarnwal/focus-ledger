@@ -90,7 +90,8 @@ sequenceDiagram
     G-->>B: ID token
     B->>S: SignIn(google_id_token)
     S->>S: verify signature, aud, iss, exp
-    S->>S: find or create user by provider + subject
+    S->>S: reject if email not verified
+    S->>S: find or create user by email
     S-->>B: signed session cookie (30 days)
 ```
 

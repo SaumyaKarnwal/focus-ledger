@@ -75,7 +75,7 @@ The mask is required. A missing or empty mask returns `INVALID_ARGUMENT`. This d
 
 | RPC | Why it is required |
 |---|---|
-| `SignIn` | Checks the Google ID token, finds or creates the user by provider and subject, and starts a session. |
+| `SignIn` | Checks the Google ID token, rejects an unverified email, finds or creates the user by email, and starts a session. |
 | `SignOut` | Ends the session. JavaScript cannot clear an HttpOnly session cookie, so the server does it. |
 | `GetAccount` | After a page reload, the app must know who is signed in. |
 
@@ -397,8 +397,7 @@ message UpdateCycleResponse {
 
 | gRPC status | When |
 |---|---|
-| `UNAUTHENTICATED` | No valid session. |
+| `UNAUTHENTICATED` | No valid session, or a `SignIn` token that fails the checks or has an unverified email. |
 | `INVALID_ARGUMENT` | A field is missing or out of range. Examples: an empty name, minutes outside 1–1440, an unknown path in `update_mask`, a missing or empty `update_mask`. |
 | `NOT_FOUND` | The node or cycle does not exist for this user. Another user's ID also gives `NOT_FOUND`, so the response does not reveal that the ID exists. |
-| `ALREADY_EXISTS` | `SignIn` brings an email that another account already holds. The message says: "This email is already linked to another account." |
 | `FAILED_PRECONDITION` | A rule rejects the change: a second running cycle, minutes that go down, re-filing a filed cycle, a move under the node's own descendant. |

@@ -16,7 +16,7 @@ Status: draft for review. The PRD is in [`docs/prd.md`](prd.md).
 
 1. **Database-generated IDs, server holds the truth.** Every `id` has the default `gen_random_uuid()`. The client never makes an ID. The server stores the data and enforces the rules. The browser computes totals and roll-ups from the cycles.
 
-    A user is identified by the sign-in provider's stable user ID (`auth_provider` + `auth_subject`), not by email. v1 has only Google, and every user has signed in. Guest accounts come later: `email`, `auth_provider`, and `auth_subject` then drop `NOT NULL`, and NULL means a guest.
+    A user is identified by their verified email. One email is one account, whichever provider the user signs in with. v1 has only Google, and every user has signed in. Guest accounts come later: `email` then drops `NOT NULL`, and NULL means a guest.
 2. **One `cycle` table, row created at Start.** Start writes the row with `minutes = NULL`. Stop sets `minutes`. The timer itself (countdown, pause) is a UI construct. On reopen, the app finds the running row and resumes from `started_at` and `planned_minutes`. Mode and node are in the database before the clock runs (I-2).
 3. **No edit, no delete.** A cycle allows exactly three changes:
     - Stop sets `minutes` once (NULL → value).
@@ -53,9 +53,7 @@ erDiagram
 
     APP_USER {
         uuid id PK
-        citext email UK
-        auth_provider auth_provider "google"
-        text auth_subject "provider user ID"
+        citext email UK "the identity"
         timestamptz created_at
     }
     USER_SETTINGS {
@@ -121,16 +119,21 @@ There is no `break` table. FR-5.5 keeps breaks out of the ledger.
 | Column | Type | Notes |
 |---|---|---|
 | `id` | uuid | Primary key. Default `gen_random_uuid()`. |
-| `email` | citext | The email from the ID token, for display. Unique. `citext` compares case-insensitively. |
-| `auth_provider` | enum `auth_provider` | The provider that verified the user. v1 has one value: `google`. |
-| `auth_subject` | text | The provider's permanent user ID: the `sub` claim of the Google ID token. |
+| `email` | citext | The identity. The verified email from the provider's ID token. Unique. `citext` compares case-insensitively, so `A@x.com` and `a@x.com` are one account. |
 | `created_at` | timestamptz | |
 
-Constraints: all columns are `NOT NULL`. `UNIQUE (auth_provider, auth_subject)` gives one account per Google account.
+Constraints: all columns are `NOT NULL`. `UNIQUE (email)` gives one account per email.
 
-Sign-in finds the user by `auth_provider` and `auth_subject`, never by email. One email belongs to one account. If a sign-in brings an email that another account already holds, `SignIn` rejects it with `ALREADY_EXISTS` and does not create or merge anything. Google says to use `sub` as the identifier, because an account's email can change and an address can be given to a new person ([Google docs](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token)).
+Sign-in rules:
+- The server checks the provider's ID token (signature, audience, issuer, expiry), then reads the email.
+- If the token says the email is not verified (`email_verified` is false), the sign-in is rejected. Only a verified email can reach an account.
+- The server finds `app_user` by email. If it exists, the user signs into it. If not, the server creates it. The provider does not matter: the same email from Google now and from Apple later reaches the same account.
+- The server stores no provider name, no provider user ID, and no provider token.
 
-One account has one sign-in method. If one person later needs Google and Apple on the same account, these two columns move to a separate identity table.
+Accepted limits:
+- If a provider hides the real email (Apple's "Hide My Email" gives a relay address), that relay address is a different email, so it is a different account.
+- If a user's email changes at the provider, the new email is a new account.
+- If an email address is ever given to a different person (mainly company addresses), that person reaches the old account. Google recommends its `sub` ID over the email for this reason ([Google docs](https://developers.google.com/identity/gsi/web/guides/verify-google-id-token)). For a personal app with open sign-up, one account per email was chosen instead.
 
 ### `user_settings`
 
@@ -278,8 +281,8 @@ I wrote a draft DDL for this design, loaded it into Postgres 15, and ran these c
 | 16 | A cycle of 0 minutes | rejected |
 | 17 | Day of 02:00 UTC with the zone from the request | 2026-09-24 in `America/Los_Angeles`, 2026-09-25 in `Asia/Kolkata` |
 | 18 | Account delete | removes all rows in all tables |
-| 19 | A second account with the same Google subject | rejected by `UNIQUE (auth_provider, auth_subject)` |
-| 20 | An account without `auth_subject` | rejected by `NOT NULL` |
+| 19 | A second account with the same email in a different case (`A@Example.com`) | rejected by `UNIQUE (email)` (`citext`) |
+| 20 | An account without an email | rejected by `NOT NULL` |
 
 ## Not in this schema
 
