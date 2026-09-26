@@ -8,7 +8,7 @@ These must be settled before the first build step.
 
 | # | Decision | Proposal |
 |---|---|---|
-| 1 | Database access library | **jOOQ**: type-safe SQL that stays close to the queries in this design. The alternative is Exposed, a Kotlin DSL by JetBrains. |
+| 1 | Database access library | **Agreed: jOOQ.** Type-safe SQL, generated from the migrated schema. It builds the dynamic `SET` clause that the update mask needs. The runner-up was SQLDelight. |
 | 2 | Where the server remembers `request_id`s | A nullable `request_id uuid` column on `node` and `cycle`, with `UNIQUE (user_id, request_id)`. A repeat of the same request finds the existing row. This changes `V1__init.sql`. |
 | 3 | Postgres version | **Postgres 17** everywhere: local Docker and Neon. The schema needs Postgres 15 or later, because Postgres 14 lacks `NULLS NOT DISTINCT`. |
 
