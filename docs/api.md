@@ -36,13 +36,13 @@ Split into more services only when a real trigger appears: a second team, a work
 
 ## RPCs
 
-12 RPCs in `LedgerService`, grouped by section. Each one earns its place. There is no RPC per screen and no RPC per action.
+11 RPCs in `LedgerService`, grouped by section. Each one earns its place. There is no RPC per screen and no RPC per action.
 
 | Section | RPCs |
 |---|---|
 | Account | `SignIn`, `SignOut`, `GetAccount` |
 | Settings | `GetSettings`, `UpdateSettings` |
-| Nodes | `CreateNode`, `UpdateNode`, `GetNode`, `ListNodes` |
+| Nodes | `CreateNode`, `UpdateNode`, `ListNodes` |
 | Cycles | `CreateCycle`, `UpdateCycle` |
 | Report | `GetReport` |
 
@@ -67,13 +67,12 @@ Every `Update*` request carries a `google.protobuf.FieldMask` that names the fie
 
 ### Nodes
 
-A node carries its estimates. There is no estimate RPC.
+A node carries its estimates. There is no estimate RPC. There is no `GetNode`: every screen needs the whole tree for breadcrumbs and roll-ups, so `ListNodes` serves them all.
 
 | RPC | What it does |
 |---|---|
 | `CreateNode` | Creates a node under a parent or at the root, with optional estimates (FR-1, FR-6, FR-7.2). |
 | `UpdateNode` | Changes the fields in the mask: `name`, `parent_id` (move), `closed`, `estimates`. A move under the node's own descendant is rejected (FR-7.8). |
-| `GetNode` | Returns one node. |
 | `ListNodes` | Returns the user's tree for Today and the Tree screen. |
 
 How the old actions map:
@@ -117,7 +116,7 @@ There is no delete. The server rejects a change that breaks the cycle rules: min
 
 | Need | Served by |
 |---|---|
-| *Logged today* for a node (FR-10.4) | `GetNode` / `ListNodes` with `include_cycles` |
+| *Logged today* for a node (FR-10.4) | `ListNodes` with `include_cycles` |
 | Inbox cycles to file (FR-9.3) | `ListNodesResponse.unfiled` with `include_cycles` |
 | The running cycle after a reload (FR-3.5) | `ListNodesResponse.running_cycle` |
 | Report views (FR-11.1–11.4) | `GetReport` |
@@ -156,7 +155,6 @@ service LedgerService {
   // Nodes
   rpc CreateNode(CreateNodeRequest) returns (CreateNodeResponse);
   rpc UpdateNode(UpdateNodeRequest) returns (UpdateNodeResponse);
-  rpc GetNode(GetNodeRequest) returns (GetNodeResponse);
   rpc ListNodes(ListNodesRequest) returns (ListNodesResponse);
 
   // Cycles
@@ -347,20 +345,6 @@ message UpdateNodeRequest {
 }
 
 message UpdateNodeResponse {
-  NodePb node = 1;
-}
-```
-
-#### `GetNode`
-
-```protobuf
-message GetNodeRequest {
-  string node_id = 1;
-  // When set, the node carries its cycles that started at or after this time.
-  google.protobuf.Timestamp cycles_since = 2;
-}
-
-message GetNodeResponse {
   NodePb node = 1;
 }
 ```
