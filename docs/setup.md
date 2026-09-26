@@ -32,7 +32,7 @@ No human and no service uses a more powerful role than its job needs.
 
 | Schema | Tables | Holds |
 |---|---|---|
-| `account` | `app_user`, `user_settings` | Personal data: email, Google subject, preferences |
+| `account` | `app_user`, `user_settings` | Personal data: email, preferences |
 | `ledger` | `node`, `cycle`, `estimate` | Work data. No names or emails. |
 
 - A schema is a namespace. It adds no cost at run time: one database, one connection pool, and cross-schema foreign keys (`ledger.node.user_id → account.app_user.id`) work as usual.
