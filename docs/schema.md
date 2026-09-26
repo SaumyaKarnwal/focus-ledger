@@ -14,7 +14,7 @@ Status: draft for review. The PRD is in [`docs/prd.md`](prd.md).
 | 6 | The node stores no cycle data. | Agreed |
 | 7 | The tree uses an adjacency list (`parent_id`). | Agreed |
 
-1. **Database-generated IDs, server holds the truth.** Every `id` has the default `gen_random_uuid()`. The client never makes an ID. All reads, roll-ups, and rules run on the server. The browser only renders.
+1. **Database-generated IDs, server holds the truth.** Every `id` has the default `gen_random_uuid()`. The client never makes an ID. The server stores the data and enforces the rules. The browser computes totals and roll-ups from the cycles.
 
     A user is identified by the sign-in provider's stable user ID (`auth_provider` + `auth_subject`), not by email. v1 has only Google, and every user has signed in. Guest accounts come later: `email`, `auth_provider`, and `auth_subject` then drop `NOT NULL`, and NULL means a guest.
 2. **One `cycle` table, row created at Start.** Start writes the row with `minutes = NULL`. Stop sets `minutes`. The timer itself (countdown, pause) is a UI construct. On reopen, the app finds the running row and resumes from `started_at` and `planned_minutes`. Mode and node are in the database before the clock runs (I-2).
@@ -221,36 +221,15 @@ An estimate covers only the node's own cycles (I-4). The roll-up adds up estimat
 | I-1 The log is append-only | Trigger `cycle_guard` allows only Stop, extension, and filing. Trigger `cycle_reject_delete` rejects every delete. |
 | I-2 Mode and node are bound before Start | The row is written at Start with `mode` NOT NULL. `cycle_guard` rejects a mode change and a change to a filed `node_id`. |
 | I-3 An entry is an entry | Timer and hand entries write the same columns. |
-| I-4 Roll-up is own plus descendants | The roll-up query. No stored totals. |
+| I-4 Roll-up is own plus descendants | The browser computes it from the cycles. No stored totals. |
 | I-5 An estimate change never touches a cycle | Estimates are a separate table with no reference from `cycle`. |
 | I-6 Unfiled time belongs to no project | `node_id` is null. The roll-up joins on `node_id`, so Inbox cycles enter no node's total. |
 | I-7 Nothing starts itself | Only an explicit `StartCycle` request writes a cycle row. No server process creates one. |
 | I-8 Works without an account | Changed: sign-in is required in v1. Guest accounts are the later path. |
 
-## The roll-up query
+## Roll-ups
 
-The query sums the cycles per node first, then climbs the tree. The recursion runs over about 100 nodes, never over the cycles. `$2` and `$3` are the period bounds in UTC, which the browser sends.
-
-```sql
-WITH RECURSIVE own AS (
-  SELECT node_id, mode, SUM(minutes) AS minutes
-  FROM cycle
-  WHERE user_id = $1 AND minutes IS NOT NULL
-    AND started_at >= $2 AND started_at < $3
-  GROUP BY node_id, mode
-),
-ancestors AS (
-  SELECT id AS node_id, id AS ancestor FROM node WHERE user_id = $1
-  UNION ALL
-  SELECT a.node_id, n.parent_id
-  FROM ancestors a
-  JOIN node n ON n.user_id = $1 AND n.id = a.ancestor
-  WHERE n.parent_id IS NOT NULL
-)
-SELECT ancestors.ancestor AS node_id, own.mode, SUM(own.minutes) AS minutes
-FROM own JOIN ancestors USING (node_id)
-GROUP BY ancestors.ancestor, own.mode;
-```
+The browser computes every roll-up from the cycles that `ListNodes` returns. The backend returns rows and runs no roll-up query. The benchmark earlier in this design measured a server-side roll-up at about 1 ms, so moving the roll-up back to the server later is a small change if mobile clients need it.
 
 ## Resolved questions
 

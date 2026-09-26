@@ -6,7 +6,8 @@ Stack: Kotlin backend (gRPC), TypeScript web client (gRPC-Web), protobuf contrac
 
 ## Architecture
 
-- **The server holds the truth.** Every read, roll-up, and rule runs in the Kotlin backend. The browser renders what the API returns.
+- **The server holds the data and the rules.** It stores every row and enforces every rule (cycle changes, moves, user isolation).
+- **The browser computes the numbers.** It adds up cycles into totals, roll-ups, estimate progress, and reports. New report views then need no API change.
 - **Sign-in is required in v1.** Guest accounts can come later: the account columns then drop `NOT NULL`.
 - **The database generates every ID.** The client never makes one.
 - **No BFF.** The browser calls the Kotlin backend directly over gRPC-Web. The backend holds every secret and gives the browser only an HttpOnly session cookie. That meets the goal of RFC 10017 (a browser app never holds a token) without a second server.
@@ -36,7 +37,7 @@ Split into more services only when a real trigger appears: a second team, a work
 
 ## RPCs
 
-11 RPCs in `LedgerService`, grouped by section. Each one earns its place. There is no RPC per screen and no RPC per action.
+10 RPCs in `LedgerService`, grouped by section. Each one earns its place. There is no RPC per screen and no RPC per action.
 
 | Section | RPCs |
 |---|---|
@@ -44,7 +45,6 @@ Split into more services only when a real trigger appears: a second team, a work
 | Settings | `GetSettings`, `UpdateSettings` |
 | Nodes | `CreateNode`, `UpdateNode`, `ListNodes` |
 | Cycles | `CreateCycle`, `UpdateCycle` |
-| Report | `GetReport` |
 
 Every `Update*` request carries a `google.protobuf.FieldMask` that names the fields to change. In proto3, a missing field and a zero value look the same, so the mask is the only way to tell them apart.
 
@@ -67,7 +67,7 @@ Every `Update*` request carries a `google.protobuf.FieldMask` that names the fie
 
 ### Nodes
 
-A node carries its estimates. There is no estimate RPC. There is no `GetNode`: every screen needs the whole tree for breadcrumbs and roll-ups, so `ListNodes` serves them all.
+A node carries its estimates and its cycles. There is no estimate RPC. There is no `GetNode` and no report RPC: every screen needs the whole tree for breadcrumbs and roll-ups, so `ListNodes` serves them all.
 
 | RPC | What it does |
 |---|---|
@@ -104,27 +104,20 @@ How the old actions map:
 
 There is no delete. The server rejects a change that breaks the cycle rules: minutes set once and only grow, filing once, mode and start fixed.
 
-### Report
+### How the screens use `ListNodes`
 
-| RPC | What it does |
-|---|---|
-| `GetReport` | For any period: one row per node, including closed nodes (FR-7.7). Each row has rolled-up minutes, planned minutes and cycle counts per mode, and the estimate. It also returns Inbox time and the grand totals (FR-11). |
-
-`ListNodes` serves the working screens (open nodes, today, this week). `GetReport` serves the Report page (any period, closed nodes, three views).
-
-### Where the old reads went
-
-| Need | Served by |
-|---|---|
-| *Logged today* for a node (FR-10.4) | `ListNodes` with `include_cycles` |
-| Inbox cycles to file (FR-9.3) | `ListNodesResponse.unfiled` with `include_cycles` |
-| The running cycle after a reload (FR-3.5) | `ListNodesResponse.running_cycle` |
-| Report views (FR-11.1–11.4) | `GetReport` |
+| Screen | Call | The browser then computes |
+|---|---|---|
+| Today | `ListNodes(period = this week)` | *Logged today* and today's totals (from today's cycles), the week's totals, the running cycle (the cycle with no `minutes`) |
+| Today, estimate progress | `ListNodes()` (all time) | "3 of 8" per node, from its own cycles against its estimate |
+| Tree | `ListNodes()` (all time) | the rolled-up `done / est` and time per row |
+| Inbox | `ListNodes()` (all time) | the cycles of the node with no id |
+| Report | `ListNodes(period = range, include_closed = true)` | the node × mode cross-tab, estimate vs actual, planned vs actual |
 
 ## Decisions
 
 1. **Sign-in: Google only in v1.** `SignInRequest` holds a `oneof credential` with one field, `google_id_token`. A new provider is a new field in the `oneof`, so adding it is not a breaking change. Sign in with Apple needs a paid Apple Developer account, so it comes with the iOS app. No magic link.
-2. **Node reads carry server-computed stats.** Per mode: own and rolled-up minutes, planned minutes, and cycle count, plus `last_worked_at`. The browser computes nothing.
+2. **Roll-ups happen in the browser.** `ListNodes` returns nodes with their raw cycles. The browser computes the per-mode sums, the tree roll-up, today's and the week's totals, estimate progress, and planned vs actual. The backend has no stats messages and no roll-up query. When mobile apps arrive, their roll-up code must match the web's, or the logic moves to a shared library.
 3. **CSV export (FR-11.6) is not in v1.** When it returns, it is a separate `ExportCycles`.
 4. **Retry safety.** `CreateNode` and `CreateCycle` carry a client `request_id`. A repeat returns the first result and creates nothing.
 5. **The browser sends periods, not a time zone.** It computes "today", "this week" (starting Monday), and report ranges in its own zone, and sends them as UTC `[start, end)` timestamps. The server needs no time-zone logic.
@@ -161,8 +154,6 @@ service LedgerService {
   rpc CreateCycle(CreateCycleRequest) returns (CreateCycleResponse);
   rpc UpdateCycle(UpdateCycleRequest) returns (UpdateCycleResponse);
 
-  // Report
-  rpc GetReport(GetReportRequest) returns (GetReportResponse);
 }
 ```
 
@@ -203,21 +194,6 @@ message EstimatePb {
   int32 cycle_count = 3;
 }
 
-message ModeStatsPb {
-  FocusMode mode = 1;
-  int32 minutes = 2;
-  int32 planned_minutes = 3;
-  int32 cycle_count = 4;
-}
-
-message NodeStatsPb {
-  repeated ModeStatsPb own = 1;
-  // Own plus all descendants.
-  repeated ModeStatsPb rolled_up = 2;
-  // Start of the most recent cycle on this node, across all time. Unset if the node has no cycles.
-  google.protobuf.Timestamp last_worked_at = 3;
-}
-
 message CyclePb {
   string id = 1;
   // Unset means the cycle is in the Inbox.
@@ -229,6 +205,7 @@ message CyclePb {
   optional int32 minutes = 6;
 }
 
+// The Inbox is returned as a node with no id and no name. Its cycles have no node_id.
 message NodePb {
   string id = 1;
   // Unset means a root node.
@@ -236,18 +213,9 @@ message NodePb {
   string name = 3;
   bool closed = 4;
   repeated EstimatePb estimates = 5;
-  NodeStatsPb stats = 6;
-  // Filled only when the request asks for cycles.
-  repeated CyclePb cycles = 7;
-  google.protobuf.Timestamp created_at = 8;
-}
-
-message UnfiledPb {
-  // Stats for Inbox cycles, over the same range as the node stats.
-  repeated ModeStatsPb stats = 1;
-  int32 cycle_count = 2;
-  // Filled only when the request asks for unfiled cycles.
-  repeated CyclePb cycles = 3;
+  // The node's own cycles inside the requested period. Descendants' cycles are on their own nodes.
+  repeated CyclePb cycles = 6;
+  google.protobuf.Timestamp created_at = 7;
 }
 ```
 
@@ -352,25 +320,16 @@ message UpdateNodeResponse {
 #### `ListNodes`
 
 ```protobuf
-// Returns the whole tree in one response, with no pagination: roll-ups need every node.
-// Node stats cover all time.
+// Returns the whole tree in one response, with no pagination. The client computes
+// all totals and roll-ups from the cycles.
 message ListNodesRequest {
   bool include_closed = 1;
-  // When set, every node carries its cycles that started at or after this time.
-  google.protobuf.Timestamp cycles_since = 2;
-  bool include_unfiled_cycles = 3;
-  PeriodPb today = 4;
-  PeriodPb week = 5;
+  // Only cycles that started inside this period are returned. Unset means all time.
+  PeriodPb period = 2;
 }
 
 message ListNodesResponse {
   repeated NodePb nodes = 1;
-  UnfiledPb unfiled = 2;
-  // Unset when no cycle is running.
-  CyclePb running_cycle = 3;
-  // Totals per mode over all cycles, filed and unfiled.
-  repeated ModeStatsPb today_totals = 4;
-  repeated ModeStatsPb week_totals = 5;
 }
 ```
 
@@ -410,24 +369,6 @@ message UpdateCycleRequest {
 
 message UpdateCycleResponse {
   CyclePb cycle = 1;
-}
-```
-
-### Report messages
-
-#### `GetReport`
-
-```protobuf
-message GetReportRequest {
-  PeriodPb period = 1;
-}
-
-// Includes closed nodes. Node stats cover the request period.
-message GetReportResponse {
-  repeated NodePb nodes = 1;
-  UnfiledPb unfiled = 2;
-  // Grand totals per mode, filed and unfiled.
-  repeated ModeStatsPb totals = 3;
 }
 ```
 
