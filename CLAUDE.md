@@ -75,4 +75,6 @@ To be filled in by Phase 0. Every worker runs the setup commands first, because 
 
 ## Sessions
 
+**Start every session with `/ledger-session`.** The skill finds this session's role from its name (`design`, `orchestrator`, `ws-a` … `ws-e`) and loads that role's playbook and the message protocol. Start a session with its name, for example `claude --name orchestrator`, or set it with `/rename`.
+
 See "Orchestration" in `docs/execution-plan.md`. In short: the `design` session owns `docs/`, the `orchestrator` merges PRs once CI is green and tests are present, and each worker (`ws-a` … `ws-e`) builds one workstream in its own worktree. A worker with a design question messages `design` and labels its issue `needs-design`.
