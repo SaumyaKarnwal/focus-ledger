@@ -11,8 +11,8 @@ The MCP server lets a user's AI agent read and log their work. Examples: "log 50
 | 1 | The MCP server is an adapter inside the backend. It calls the same core ledger service as the gRPC handlers. No backend rule or RPC changes for MCP. | Agreed |
 | 2 | The `list_nodes` tool returns the tree with totals for a period, computed on top of the `ListNodes` logic. | Agreed |
 | 3 | Times are UTC by default. A tool call can pass a `time_zone`, and the MCP layer converts. | Agreed |
-| 4 | Agents sign in with OAuth 2.1, built into our backend. | Proposed |
-| 5 | MCP ships in v1, or right after the web app. | Open |
+| 4 | Agents sign in with personal access tokens first, then OAuth 2.1 built into our backend. | Agreed |
+| 5 | MCP (with personal access tokens) is built in parallel with the web app after Phase 0. OAuth follows it. See `execution-plan.md`. | Agreed |
 
 ## Architecture
 
@@ -127,6 +127,4 @@ Other options that were considered:
 
 ## Open items
 
-1. Approve decision 4: built-in OAuth.
-2. Decide whether MCP ships in v1.
-3. The spike: prove the Armeria `/mcp` forward to Ktor, including a streamed response.
+1. The spike: prove the Armeria `/mcp` forward to Ktor, including a streamed response.
