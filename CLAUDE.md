@@ -39,7 +39,30 @@ infra/          deploy setup (later, ws-c)
 
 ## Commands
 
-To be filled in by Phase 0. Every worker runs the setup commands first, because a fresh worktree has no `node_modules` and no generated code.
+Every worker runs the setup commands first, because a fresh worktree has no `node_modules` and no generated code. Run them from the worktree root.
+
+Setup:
+
+```bash
+docker compose up -d --wait                 # local Postgres 18 with the roles and schemas
+(cd web && corepack pnpm install)           # Corepack reads the pnpm version from web/package.json
+```
+
+Check (run before every push):
+
+```bash
+./gradlew build spotlessCheck
+(cd web && corepack pnpm test && corepack pnpm lint && corepack pnpm build)
+```
+
+Format:
+
+```bash
+./gradlew spotlessApply
+(cd web && corepack pnpm format)
+```
+
+After `corepack enable`, plain `pnpm` works in place of `corepack pnpm`. Two worktrees cannot run `docker compose up` at the same time, because both bind port 5432.
 
 ## Rules the code must never break
 
