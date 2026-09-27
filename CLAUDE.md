@@ -58,7 +58,7 @@ docker compose down -v && docker compose up -d --wait
 Check (run before every push):
 
 ```bash
-./gradlew build spotlessCheck
+./gradlew build                             # includes spotlessCheck and the Testcontainers tests (Docker must run)
 (cd web && corepack pnpm test && corepack pnpm lint && corepack pnpm build)
 ```
 
@@ -69,7 +69,7 @@ Format:
 (cd web && corepack pnpm format)
 ```
 
-After `corepack enable`, plain `pnpm` works in place of `corepack pnpm`. Each worktree runs its own database on its own `POSTGRES_PORT` (for example, `ws-a` uses 5433 and `ws-b` uses 5434).
+After `corepack enable`, plain `pnpm` works in place of `corepack pnpm`. Each worktree runs its own database on its own `POSTGRES_PORT` (for example, `ws-a` uses 5433 and `ws-b` uses 5434). The port also names the Compose project, so `docker compose` fails until `.env` sets it.
 
 ## Rules the code must never break
 

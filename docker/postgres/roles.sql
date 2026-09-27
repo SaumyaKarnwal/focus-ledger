@@ -1,6 +1,5 @@
--- The role script from docs/setup.md, "How the roles are created", with the local database name.
--- It runs as focusledger_owner, the local stand-in for neondb_owner (see init/01_roles_as_owner.sh).
--- Local logins have no password. docker-compose.yml uses trust auth on 127.0.0.1.
+-- The role script from docs/setup.md, "How the roles are created", for the local database.
+-- Local logins have no password.
 
 REVOKE CONNECT, TEMPORARY ON DATABASE focusledger FROM PUBLIC;
 

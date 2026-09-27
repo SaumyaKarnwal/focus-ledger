@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "test": "TZ=UTC vitest run",
+    "test": "vitest run",
     "lint": "eslint . --max-warnings 0 && prettier --check .",
     "format": "eslint --fix . && prettier --write ."
   },
