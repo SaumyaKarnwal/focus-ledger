@@ -50,7 +50,12 @@ To be filled in by Phase 0. Every worker runs the setup commands first, because 
 7. **Every `Update*` request needs an `update_mask`.** A missing or empty mask returns `INVALID_ARGUMENT`.
 8. **The browser computes roll-ups.** The gRPC API returns rows. Only the MCP layer computes summaries on the server.
 9. **Every create is idempotent.** `CreateNode` and `CreateCycle` require a `request_id`. Insert with `ON CONFLICT (user_id, request_id) DO NOTHING`, and return the existing row on a repeat.
-10. **No secrets in files, commits, or logs.**
+10. **Never commit a secret or a token, anywhere.** A secret is a password, an API key, a token, a private key, a signing key, or a connection string with a password in it.
+    - Not in code, config, tests, docs, commit messages, PR descriptions, issue comments, or logs.
+    - Secrets live only in Google Secret Manager (production) or in a local `.env` file that git ignores. `.env.example` lists the variable names with fake values only.
+    - Tests use obviously fake values (for example `test-signing-key`) or keys generated during the test run.
+    - CI runs `gitleaks` on every PR. A finding fails the build, and the orchestrator does not merge it.
+    - If a secret is ever committed, treat it as leaked: rotate it first, then remove it from history.
 
 ## Contracts
 

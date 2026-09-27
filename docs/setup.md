@@ -193,6 +193,10 @@ HikariCP with a small pool: 4 connections, and a minimum idle of 0 so that an id
 - `V1__init.sql` is the draft DDL from the schema design, plus the roles and grants, plus decision 2 above.
 - The CI deploy job runs migrations with `DB_URL_MIGRATE` **before** it deploys the new service. Every migration must work with the service version that is already running. A column rename, for example, is split across two deploys.
 
+## Provisioning
+
+The step-by-step sign-ups and provisioning (Google Cloud, the sign-in client, Neon, secrets, service accounts, the domain, GitHub settings) are in [`runbooks/provisioning.md`](runbooks/provisioning.md).
+
 ## What the setup does not cover
 
 - The MCP OAuth tables and keys. They are in [`mcp.md`](mcp.md).

@@ -21,7 +21,7 @@ Phase 0 unblocks everything else. It runs in one session, in this order:
 1. **Repo scaffold.** The Gradle build with the modules from `setup.md`, `docker-compose.yml`, `.env.example`, the license, a README.
 2. **Contracts into the repo.** The `.proto` files and code generation for Kotlin and TypeScript. `V1__init.sql` with the roles and grants. Flyway runs it against local Postgres.
 3. **Core service interfaces.** The Kotlin interfaces for the ledger and account services, with their input and output types, and no implementation yet. With these, the backend, MCP, and test work can proceed side by side.
-4. **CI skeleton.** GitHub Actions: build, `buf lint`, and the tests, on every PR.
+4. **CI skeleton.** GitHub Actions: build, `buf lint`, the tests, and a `gitleaks` secret scan, on every PR. `.gitignore` covers `.env` files.
 5. **The spike.** Prove three things, and write the results in the PR:
     1. A browser gRPC-Web call reaches Armeria.
     2. An MCP tool call works through the Armeria `/mcp` forward to Ktor, including a streamed response.
