@@ -68,7 +68,7 @@ class RoleScriptTest {
                     JOIN pg_roles granted ON granted.oid = m.roleid
                     JOIN pg_roles member ON member.oid = m.member
                     WHERE m.grantor = 'focusledger_owner'::regrole
-                        AND member.rolname IN ($OWNED_ROLES_SQL_LIST)
+
                     """
                 )
             }
@@ -275,9 +275,9 @@ class RoleScriptTest {
         fun startDatabase() {
             postgres.start()
             createProbeTablesInPlaceOfV1()
-            connectAs(OWNER).use { owner ->
-                owner.execute("CREATE ROLE $UNGRANTED_LOGIN LOGIN")
-                owner.execute("CREATE ROLE $LEDGER_READER_LOGIN LOGIN IN ROLE ledger_reader")
+            connectAs(SUPERUSER).use { superuser ->
+                superuser.execute("CREATE ROLE $UNGRANTED_LOGIN LOGIN")
+                superuser.execute("CREATE ROLE $LEDGER_READER_LOGIN LOGIN IN ROLE ledger_reader")
             }
         }
 
