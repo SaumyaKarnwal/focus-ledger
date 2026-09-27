@@ -1,5 +1,10 @@
 -- The role script from docs/setup.md, "How the roles are created", with the local database name.
+-- It runs as focusledger_owner, the local stand-in for neondb_owner (see init/01_roles_as_owner.sh).
 -- Local logins have no password. docker-compose.yml uses trust auth on 127.0.0.1.
+
+REVOKE CONNECT, TEMPORARY ON DATABASE focusledger FROM PUBLIC;
+
+CREATE EXTENSION IF NOT EXISTS citext;
 
 CREATE ROLE focusledger_migrate LOGIN;
 CREATE ROLE focusledger_app     LOGIN;
@@ -11,8 +16,9 @@ CREATE ROLE account_writer NOLOGIN;
 GRANT ledger_reader  TO ledger_writer;
 GRANT account_reader TO account_writer;
 
+GRANT focusledger_migrate TO focusledger_owner WITH INHERIT FALSE, SET TRUE;
 CREATE SCHEMA ledger  AUTHORIZATION focusledger_migrate;
 CREATE SCHEMA account AUTHORIZATION focusledger_migrate;
 
-GRANT CONNECT ON DATABASE focusledger TO ledger_reader, account_reader;
+GRANT CONNECT ON DATABASE focusledger TO focusledger_migrate, ledger_reader, account_reader;
 GRANT ledger_writer, account_writer TO focusledger_app;

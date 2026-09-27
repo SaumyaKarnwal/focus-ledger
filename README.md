@@ -19,7 +19,7 @@ Run these commands from the repository root:
 3. Build and check the backend: `./gradlew build spotlessCheck`
 4. Check the web app: `(cd web && corepack pnpm install && corepack pnpm test && corepack pnpm lint && corepack pnpm build)`
 
-The database runs its init scripts only on an empty volume. After a change to `docker/postgres/init/`, reset the database with `docker compose down -v && docker compose up -d --wait`.
+The database runs its init scripts only on an empty volume. After a change to `docker/postgres/`, reset the database with `docker compose down -v && docker compose up -d --wait`.
 
 ## License
 

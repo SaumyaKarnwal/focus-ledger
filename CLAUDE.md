@@ -49,7 +49,7 @@ docker compose up -d --wait                 # local Postgres 18 with the roles a
 (cd web && corepack pnpm install)           # Node from web/.nvmrc; Corepack reads the pnpm version from web/package.json
 ```
 
-Reset the local database (the init scripts run only on an empty volume, so run this after a change to `docker/postgres/init/`):
+Reset the local database (the init scripts run only on an empty volume, so run this after a change to `docker/postgres/`):
 
 ```bash
 docker compose down -v && docker compose up -d --wait

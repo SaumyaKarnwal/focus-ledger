@@ -10,6 +10,7 @@ services:
     volumes:
       # Init scripts run only on an empty volume. Reset with `docker compose down -v`.
       - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./docker/postgres/roles.sql:/focusledger/roles.sql:ro
       - postgres-data:/var/lib/postgresql
     healthcheck:
       # TCP, not the Unix socket: the init server opens only the socket, so this waits for the roles.
