@@ -44,8 +44,15 @@ Every worker runs the setup commands first, because a fresh worktree has no `nod
 Setup:
 
 ```bash
+cp -n .env.example .env                     # then set a POSTGRES_PORT that no other worktree uses
 docker compose up -d --wait                 # local Postgres 18 with the roles and schemas
-(cd web && corepack pnpm install)           # Corepack reads the pnpm version from web/package.json
+(cd web && corepack pnpm install)           # Node from web/.nvmrc; Corepack reads the pnpm version from web/package.json
+```
+
+Reset the local database (the init scripts run only on an empty volume, so run this after a change to `docker/postgres/init/`):
+
+```bash
+docker compose down -v && docker compose up -d --wait
 ```
 
 Check (run before every push):
@@ -62,7 +69,7 @@ Format:
 (cd web && corepack pnpm format)
 ```
 
-After `corepack enable`, plain `pnpm` works in place of `corepack pnpm`. Two worktrees cannot run `docker compose up` at the same time, because both bind port 5432.
+After `corepack enable`, plain `pnpm` works in place of `corepack pnpm`. Each worktree runs its own database on its own `POSTGRES_PORT` (for example, `ws-a` uses 5433 and `ws-b` uses 5434).
 
 ## Rules the code must never break
 

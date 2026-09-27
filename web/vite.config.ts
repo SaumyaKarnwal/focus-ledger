@@ -5,5 +5,7 @@ export default defineConfig({
   plugins: [react()],
   test: {
     environment: "jsdom",
+    // Testing Library registers its automatic cleanup only when Vitest globals are on.
+    globals: true,
   },
 });

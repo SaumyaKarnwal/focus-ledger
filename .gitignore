@@ -1,4 +1,8 @@
 .env
+.env.*
+!.env.example
+.claude/worktrees/
+.plan/
 .gradle/
 build/
 .kotlin/

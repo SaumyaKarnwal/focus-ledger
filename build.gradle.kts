@@ -16,7 +16,8 @@ spotless {
 }
 
 subprojects {
-    if (!buildFile.exists()) return@subprojects
+    if (childProjects.isNotEmpty()) return@subprojects
+    check(buildFile.exists()) { "Module $path has no build file: $buildFile" }
 
     apply(plugin = "org.jetbrains.kotlin.jvm")
     apply(plugin = "com.diffplug.spotless")
@@ -24,7 +25,10 @@ subprojects {
     extensions.configure<KotlinJvmProjectExtension> { jvmToolchain(21) }
 
     extensions.configure<SpotlessExtension> {
-        kotlin { ktfmt(ktfmtVersion).kotlinlangStyle() }
+        kotlin {
+            targetExclude("build/**")
+            ktfmt(ktfmtVersion).kotlinlangStyle()
+        }
         kotlinGradle { ktfmt(ktfmtVersion).kotlinlangStyle() }
     }
 
@@ -34,5 +38,8 @@ subprojects {
         "testRuntimeOnly"(rootProject.libs.junit.platform.launcher)
     }
 
-    tasks.withType<Test>().configureEach { useJUnitPlatform() }
+    tasks.withType<Test>().configureEach {
+        useJUnitPlatform()
+        systemProperty("user.timezone", "UTC")
+    }
 }
