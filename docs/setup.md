@@ -75,6 +75,12 @@ Rights are granted to **rights roles** that cannot log in. **Login roles** recei
 The owner runs this once, as `neondb_owner`. The generated passwords go straight into Secret Manager and nowhere else.
 
 ```sql
+-- Only granted roles may connect or create temporary tables.
+REVOKE CONNECT, TEMPORARY ON DATABASE neondb FROM PUBLIC;
+
+-- The owner installs the extension. The migrate role has no database-level CREATE.
+CREATE EXTENSION IF NOT EXISTS citext;
+
 CREATE ROLE focusledger_migrate LOGIN PASSWORD '<generated>';
 CREATE ROLE focusledger_app     LOGIN PASSWORD '<generated>';
 
@@ -85,12 +91,19 @@ CREATE ROLE account_writer NOLOGIN;
 GRANT ledger_reader  TO ledger_writer;
 GRANT account_reader TO account_writer;
 
+-- Postgres 16+: to create a schema owned by another role, the owner must be able to SET ROLE to it.
+GRANT focusledger_migrate TO neondb_owner WITH INHERIT FALSE, SET TRUE;
 CREATE SCHEMA ledger  AUTHORIZATION focusledger_migrate;
 CREATE SCHEMA account AUTHORIZATION focusledger_migrate;
 
-GRANT CONNECT ON DATABASE neondb TO ledger_reader, account_reader;
+GRANT CONNECT ON DATABASE neondb TO focusledger_migrate, ledger_reader, account_reader;
 GRANT ledger_writer, account_writer TO focusledger_app;
 ```
+
+- `REVOKE ... FROM PUBLIC` closes two defaults: any role could connect, and any role could create temporary tables. After it, only the roles above can connect.
+- `citext` is created by the owner once. `V1__init.sql` uses it and does not create it.
+- The grant to `neondb_owner` has `INHERIT FALSE`: the owner does not pick up the migrate role's rights automatically. It can only switch to that role on purpose.
+- The Phase 0 scaffold tests this script on Postgres 18 as a non-superuser owner (with `CREATEROLE`, like `neondb_owner` on Neon), then runs `V1__init.sql` as `focusledger_migrate`, then checks that `focusledger_app` cannot `DELETE`, cannot create a temporary table, and cannot create a table.
 
 The first migration, `V1__init.sql`, runs as `focusledger_migrate` and sets the default privileges before it creates any table:
 

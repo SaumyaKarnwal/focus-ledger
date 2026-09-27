@@ -69,7 +69,19 @@ gcloud services enable --project="$PROJECT_ID" \
   cloudresourcemanager.googleapis.com
 ```
 
-Set a budget alert before anything runs: **Billing → Budgets & alerts → Create budget**, $5 per month, email alerts at 50%, 90%, and 100%.
+### The $5 limit
+
+Set both of these before anything runs. A budget alert only sends email. It does not stop spending, so the hard cap comes from the Cloud Run settings.
+
+1. **Budget alert:** **Billing → Budgets & alerts → Create budget**. Amount **$5 per month**, for this project. Email alerts at 50%, 90%, and 100% of the budget.
+2. **Hard cap on Cloud Run** (workstream C sets these on every deploy):
+   - `--max-instances=1`: never more than one copy runs, so the compute cost has a ceiling.
+   - `--min-instances=0`: no copy runs while idle, so idle time costs nothing.
+   - `--memory=512Mi --cpu=1`: a small instance.
+   - `--concurrency=80`: one copy serves many requests at once, so one instance is enough at this scale.
+3. **Check the bill weekly** for the first month: **Billing → Reports**, filtered to this project.
+
+With these settings, normal use stays inside the always-free allowance ($0). If something unusual happens, the budget email arrives, and one instance at most limits how fast cost can grow.
 
 Upgrade to a paid account before day 90 of the trial. If the trial ends first, Google shuts down the workloads.
 
@@ -94,7 +106,7 @@ The client ID is not a secret (the browser sees it), but it goes into Secret Man
 ## 4. Neon database
 
 1. Create a project: name `focus-ledger`, **Postgres 18**, region **AWS US East (N. Virginia)**. Keep the default database `neondb` and the default role `neondb_owner`.
-2. Open the **SQL editor** (connected as `neondb_owner`) and run the role script from [`../setup.md`](../setup.md), "How the roles are created". For each `PASSWORD '<generated>'`:
+2. Open the **SQL editor** (connected as `neondb_owner`) and run the role script from [`../setup.md`](../setup.md), "How the roles are created". It also installs `citext` and closes the default `CONNECT` and `TEMPORARY` rights. For each `PASSWORD '<generated>'`:
    - generate a password in the terminal (`openssl rand -base64 32`),
    - paste it into the SQL editor and into the matching secret in step 5, in the same sitting,
    - then clear the terminal. Do not save it anywhere else.
