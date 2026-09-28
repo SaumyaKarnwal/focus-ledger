@@ -12,6 +12,9 @@ import {
   saveExtension,
 } from "./cycle/extensionStore";
 import { RunningScreen } from "./cycle/RunningScreen";
+import { EntryDialog } from "./entry/EntryDialog";
+import { InboxScreen } from "./inbox/InboxScreen";
+import { TreeScreen } from "./tree/TreeScreen";
 import type { CyclePb } from "./gen/focusledger/v1/model_pb";
 import { browserTimeZone } from "./ledger/period";
 import type { LoggedMode } from "./ledger/rollup";
@@ -21,6 +24,7 @@ import { TodayScreen } from "./today/TodayScreen";
 import {
   cycleContext,
   INBOX_ID,
+  isClosedOrUnderClosed,
   knownCycles,
   type TodayData,
   todayModel,
@@ -49,6 +53,14 @@ function pendingExtensionFor(
   }
   return { cycle, extension };
 }
+
+type View = "today" | "tree" | "inbox";
+
+const VIEWS: readonly [View, string][] = [
+  ["today", "Today"],
+  ["tree", "Tree"],
+  ["inbox", "Inbox"],
+];
 
 type Props = {
   client: LedgerClient;
@@ -98,6 +110,14 @@ export function App({
     act(async () => {
       setScreen(screenFor(await refreshWithRetry()));
     });
+
+  const [view, setView] = useState<View>("today");
+  const [entryNodeId, setEntryNodeId] = useState<string>();
+  const openView = (next: View) => {
+    setView(next);
+    setEntryNodeId(undefined);
+    if (next === "today") void showToday();
+  };
 
   const [loadAttempt, setLoadAttempt] = useState(0);
   useEffect(() => {
@@ -223,6 +243,20 @@ export function App({
           <p>Loading…</p>
         ))}
       {screen.kind === "today" && data && (
+        <nav aria-label="Views">
+          {VIEWS.map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              aria-current={view === key ? "page" : undefined}
+              onClick={() => openView(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+      )}
+      {screen.kind === "today" && data && view === "today" && (
         <TodayScreen
           data={data}
           timeZone={timeZone}
@@ -230,6 +264,45 @@ export function App({
           onStart={(nodeId, mode, plannedMinutes) =>
             void start(nodeId, mode, plannedMinutes)
           }
+          onAddEntry={setEntryNodeId}
+          onOpenTree={() => openView("tree")}
+        />
+      )}
+      {screen.kind === "today" &&
+        data &&
+        view === "today" &&
+        entryNodeId !== undefined && (
+          <EntryDialog
+            client={client}
+            settings={data.settings}
+            nodes={data.allTimeNodes.filter(
+              (node) =>
+                node.id !== INBOX_ID &&
+                !isClosedOrUnderClosed(node, data.allTimeNodes),
+            )}
+            initialNodeId={entryNodeId}
+            timeZone={timeZone}
+            retryDelaysMs={retryDelaysMs}
+            onSaved={() => {
+              setEntryNodeId(undefined);
+              void showToday();
+            }}
+            onCancel={() => setEntryNodeId(undefined)}
+          />
+        )}
+      {screen.kind === "today" && data && view === "tree" && (
+        <TreeScreen
+          client={client}
+          settings={data.settings}
+          timeZone={timeZone}
+          retryDelaysMs={retryDelaysMs}
+        />
+      )}
+      {screen.kind === "today" && data && view === "inbox" && (
+        <InboxScreen
+          client={client}
+          timeZone={timeZone}
+          retryDelaysMs={retryDelaysMs}
         />
       )}
       {screen.kind === "running" && data && (

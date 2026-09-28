@@ -73,7 +73,7 @@ export function todayModel(
 ): TodayModel {
   const nodes = data.allTimeNodes;
   const rail = nodes
-    .filter((node) => !isInbox(node))
+    .filter((node) => !isInbox(node) && !isClosedOrUnderClosed(node, nodes))
     .map((node) => railRow(node, nodes))
     .sort(
       (left, right) =>
@@ -201,6 +201,18 @@ export function formatRelative(instant: Date, now: Date): string {
     1,
   ];
   return format.format(Math.round(seconds / size), unit);
+}
+
+/** ListNodes() also returns a closed node and its ancestors when a cycle runs on it. */
+export function isClosedOrUnderClosed(
+  node: NodePb,
+  nodes: readonly NodePb[],
+): boolean {
+  const parent = nodes.find((listed) => listed.id === node.parentId);
+  return (
+    node.closed ||
+    (parent !== undefined && isClosedOrUnderClosed(parent, nodes))
+  );
 }
 
 function railRow(node: NodePb, nodes: readonly NodePb[]): RailRow {

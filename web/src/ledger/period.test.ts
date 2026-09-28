@@ -1,6 +1,14 @@
 import { describe, expect, test } from "vitest";
 import { exampleExpected, exampleNow } from "./exampleData";
-import { dayRange, isInRange, toPeriodPb, weekRange } from "./period";
+import {
+  dayRange,
+  isInRange,
+  localDateString,
+  localTimeString,
+  toPeriodPb,
+  weekRange,
+  zonedDateTimeToInstant,
+} from "./period";
 
 const HOUR_MS = 3_600_000;
 
@@ -120,6 +128,57 @@ describe("dayRange and weekRange", () => {
     const range = weekRange(new Date("2026-11-01T23:59:59Z"), "UTC");
 
     expect(iso(range).start).toBe("2026-10-26T00:00:00.000Z");
+  });
+});
+
+describe("zonedDateTimeToInstant", () => {
+  test.each([
+    ["UTC", "2026-11-01", "09:30", "2026-11-01T09:30:00.000Z"],
+    ["America/Los_Angeles", "2026-10-30", "09:30", "2026-10-30T16:30:00.000Z"],
+    ["America/Los_Angeles", "2026-11-02", "09:30", "2026-11-02T17:30:00.000Z"],
+    ["Asia/Kolkata", "2026-11-01", "00:15", "2026-10-31T18:45:00.000Z"],
+  ])(
+    "zonedDateTimeToInstant_%s_%s_%s_is%s",
+    (timeZone, date, time, expected) => {
+      expect(zonedDateTimeToInstant(date, time, timeZone).toISOString()).toBe(
+        expected,
+      );
+    },
+  );
+
+  test("zonedDateTimeToInstant_skippedTime_movesForwardByTheGap", () => {
+    expect(
+      zonedDateTimeToInstant(
+        "2026-03-08",
+        "02:30",
+        "America/Los_Angeles",
+      ).toISOString(),
+    ).toBe("2026-03-08T10:30:00.000Z");
+  });
+
+  test("zonedDateTimeToInstant_timeThatOccursTwice_givesTheEarlierInstant", () => {
+    expect(
+      zonedDateTimeToInstant(
+        "2026-11-01",
+        "01:30",
+        "America/Los_Angeles",
+      ).toISOString(),
+    ).toBe("2026-11-01T08:30:00.000Z");
+  });
+
+  test("localDateAndTimeStrings_roundTrip_giveTheSameInstant", () => {
+    const instant = new Date("2026-11-01T06:30:00Z");
+    const zone = "America/Los_Angeles";
+
+    expect(localDateString(instant, zone)).toBe("2026-10-31");
+    expect(localTimeString(instant, zone)).toBe("23:30");
+    expect(
+      zonedDateTimeToInstant(
+        localDateString(instant, zone),
+        localTimeString(instant, zone),
+        zone,
+      ),
+    ).toEqual(instant);
   });
 });
 

@@ -41,6 +41,41 @@ export function isInRange(instant: Date, range: TimeRange): boolean {
   return time >= range.start.getTime() && time < range.end.getTime();
 }
 
+/**
+ * The instant of a local date ("2026-11-01") and time ("09:30") in `timeZone`.
+ * A time that the zone skips moves forward by the gap. A time that occurs
+ * twice gives the earlier instant.
+ */
+export function zonedDateTimeToInstant(
+  date: string,
+  time: string,
+  timeZone: string,
+): Date {
+  const [year, month, day] = date.split("-").map(Number);
+  const [hour, minute] = time.split(":").map(Number);
+  const wallClock = Date.UTC(year, month - 1, day, hour, minute);
+  const offsetBefore = zoneOffsetMs(new Date(addDays(wallClock, -1)), timeZone);
+  const offsetAfter = zoneOffsetMs(new Date(addDays(wallClock, 1)), timeZone);
+  const exact = [wallClock - offsetBefore, wallClock - offsetAfter]
+    .sort((left, right) => left - right)
+    .find((candidate) => wallClockMs(candidate, timeZone) === wallClock);
+  return new Date(exact ?? wallClock - offsetBefore);
+}
+
+/** "YYYY-MM-DD" in `timeZone`. */
+export function localDateString(instant: Date, timeZone: string): string {
+  return new Date(wallClockMs(instant.getTime(), timeZone))
+    .toISOString()
+    .slice(0, 10);
+}
+
+/** "HH:MM" in `timeZone`. */
+export function localTimeString(instant: Date, timeZone: string): string {
+  return new Date(wallClockMs(instant.getTime(), timeZone))
+    .toISOString()
+    .slice(11, 16);
+}
+
 /** A calendar date as the UTC midnight of that date, in epoch milliseconds. */
 type LocalDate = number;
 

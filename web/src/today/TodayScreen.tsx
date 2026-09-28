@@ -30,9 +30,18 @@ type Props = {
   timeZone: string;
   busy: boolean;
   onStart: (nodeId: string, mode: LoggedMode, plannedMinutes: number) => void;
+  onAddEntry: (nodeId: string) => void;
+  onOpenTree: () => void;
 };
 
-export function TodayScreen({ data, timeZone, busy, onStart }: Props) {
+export function TodayScreen({
+  data,
+  timeZone,
+  busy,
+  onStart,
+  onAddEntry,
+  onOpenTree,
+}: Props) {
   const now = useNow();
   const model = todayModel(data, now, timeZone);
   const [selectedId, setSelectedId] = useState(
@@ -97,8 +106,11 @@ export function TodayScreen({ data, timeZone, busy, onStart }: Props) {
           ))}
         </ul>
         <p>
-          Closed nodes are not listed. <a href="#tree">Open the Tree</a> to see
-          them.
+          Closed nodes are not listed.{" "}
+          <button type="button" onClick={onOpenTree}>
+            Open the Tree
+          </button>{" "}
+          to see them.
         </p>
       </section>
 
@@ -165,7 +177,15 @@ export function TodayScreen({ data, timeZone, busy, onStart }: Props) {
               : "no estimate for this mode"}
         </p>
 
-        <h3>Logged today</h3>
+        <h3>
+          Logged today{" "}
+          <button
+            type="button"
+            onClick={() => onAddEntry(selected?.nodeId ?? INBOX_ID)}
+          >
+            + Add an entry
+          </button>
+        </h3>
         {selected && selected.loggedToday.length > 0 ? (
           <ul aria-label="Logged today">
             {selected.loggedToday.map((cycle) => (

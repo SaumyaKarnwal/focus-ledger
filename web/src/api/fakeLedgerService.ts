@@ -161,10 +161,18 @@ export function createFakeLedgerService(
       createdAt: timestampFromDate(node.createdAt),
     });
 
-  const cyclesOf = (nodeId: string | undefined, period?: TimeWindow) =>
+  const ancestorsAndSelf = (nodeId: string | undefined): string[] =>
+    nodeId === undefined
+      ? []
+      : [nodeId, ...ancestorsAndSelf(nodes.get(nodeId)?.parentId)];
+
+  const cyclesOf = (
+    nodeId: string | undefined,
+    listed: (cycle: StoredCycle) => boolean,
+  ) =>
     [...cycles.values()]
       .filter((cycle) => cycle.nodeId === nodeId)
-      .filter((cycle) => !period || period.contains(cycle.startedAt))
+      .filter(listed)
       .sort(
         (left, right) =>
           left.startedAt.getTime() - right.startedAt.getTime() ||
@@ -282,17 +290,29 @@ export function createFakeLedgerService(
     listNodes(request) {
       requireSession();
       const period = request.period && timeWindow(request.period);
+      // The running cycle, its node, and the node's ancestors always come back (api.md).
+      const running = [...cycles.values()].find(
+        (cycle) => cycle.minutes === undefined,
+      );
+      const runningPath = new Set(ancestorsAndSelf(running?.nodeId));
+      const listed = (cycle: StoredCycle) =>
+        cycle === running || !period || period.contains(cycle.startedAt);
       const inbox = create(NodePbSchema, {
-        cycles: cyclesOf(undefined, period),
+        cycles: cyclesOf(undefined, listed),
       });
       const tree = [...nodes.values()]
-        .filter((node) => request.includeClosed || !isClosedOrUnderClosed(node))
+        .filter(
+          (node) =>
+            request.includeClosed ||
+            !isClosedOrUnderClosed(node) ||
+            runningPath.has(node.id),
+        )
         .sort(
           (left, right) =>
             left.createdAt.getTime() - right.createdAt.getTime() ||
             left.id.localeCompare(right.id),
         )
-        .map((node) => nodeResponse(node, cyclesOf(node.id, period)));
+        .map((node) => nodeResponse(node, cyclesOf(node.id, listed)));
       return { nodes: [inbox, ...tree] };
     },
 

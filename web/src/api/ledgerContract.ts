@@ -692,6 +692,68 @@ export function describeLedgerContract(
           book.id,
         );
       });
+
+      test("listNodes_runningCycleUnderClosedNodes_returnsItsNodeAndAncestors", async () => {
+        const book = await createNode("Book");
+        const chapter = await createNode("Chapter", book.id);
+        const other = await createNode("Other");
+        const running = await start(chapter.id);
+        await Promise.all(
+          [book, other].map((node) =>
+            client.updateNode({
+              nodeId: node.id,
+              closed: true,
+              updateMask: { paths: ["closed"] },
+            }),
+          ),
+        );
+
+        const { nodes } = await client.listNodes({});
+
+        expect((await treeNodeIds(client)).sort()).toEqual(
+          [book.id, chapter.id].sort(),
+        );
+        expect(
+          nodes.find((node) => node.id === chapter.id)?.cycles.map((c) => c.id),
+        ).toEqual([running.id]);
+      });
+
+      test("listNodes_runningCycleBeforePeriod_isStillReturned", async () => {
+        const node = await createNode("Book");
+        const logged = await logEntry(
+          new Date("2020-01-01T09:00:00Z"),
+          node.id,
+        );
+        const running = await start(node.id);
+
+        const { nodes } = await client.listNodes({
+          period: {
+            start: timestampFromDate(new Date("2099-01-01T00:00:00Z")),
+            end: timestampFromDate(new Date("2099-01-08T00:00:00Z")),
+          },
+        });
+
+        const cycleIds = nodes
+          .find((listed) => listed.id === node.id)
+          ?.cycles.map((cycle) => cycle.id);
+        expect(cycleIds).toEqual([running.id]);
+        expect(cycleIds).not.toContain(logged.id);
+      });
+
+      test("listNodes_runningInboxCycleBeforePeriod_isOnTheInbox", async () => {
+        const running = await start();
+
+        const { nodes } = await client.listNodes({
+          period: {
+            start: timestampFromDate(new Date("2099-01-01T00:00:00Z")),
+            end: timestampFromDate(new Date("2099-01-08T00:00:00Z")),
+          },
+        });
+
+        expect(
+          nodes.find((node) => node.id === "")?.cycles.map((c) => c.id),
+        ).toEqual([running.id]);
+      });
     });
   });
 }
