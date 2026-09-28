@@ -4,7 +4,8 @@ import { FocusMode } from "../gen/focusledger/v1/model_pb";
 import { exampleNodes, exampleNow } from "../ledger/exampleData";
 import { overallTotals, runningCycle } from "../ledger/rollup";
 import { createFakeLedgerTransport } from "./fakeLedgerService";
-import { describeLedgerContract, newRequestId } from "./ledgerContract";
+import { describeLedgerContract } from "./ledgerContract";
+import { newRequestId } from "./requestId";
 import { createLedgerClient } from "./ledgerClient";
 
 describeLedgerContract("fake", () =>

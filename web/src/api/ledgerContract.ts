@@ -3,6 +3,7 @@ import { Code, ConnectError } from "@connectrpc/connect";
 import { beforeEach, describe, expect, test } from "vitest";
 import { FocusMode } from "../gen/focusledger/v1/model_pb";
 import type { LedgerClient } from "./ledgerClient";
+import { newRequestId } from "./requestId";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -693,10 +694,6 @@ export function describeLedgerContract(
       });
     });
   });
-}
-
-export function newRequestId(): string {
-  return crypto.randomUUID();
 }
 
 async function treeNodeIds(client: LedgerClient, includeClosed = false) {
