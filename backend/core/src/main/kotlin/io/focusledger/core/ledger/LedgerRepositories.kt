@@ -11,7 +11,10 @@ import java.time.Instant
 sealed interface IdempotentInsert<out T> {
     data class Created<out T>(val row: T) : IdempotentInsert<T>
 
-    /** The key was used before. The service compares [row] with the request. */
+    /**
+     * The key was used before. [row] is the current row, which may have changed since the first
+     * request, so the service compares only the fields that never change.
+     */
     data class Existing<out T>(val row: T) : IdempotentInsert<T>
 }
 

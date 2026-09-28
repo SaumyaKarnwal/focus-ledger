@@ -34,7 +34,8 @@ data class Node(
     val closed: Boolean,
     val estimates: List<Estimate>,
     /**
-     * The node's own cycles in the requested period. Descendants' cycles are on their own nodes.
+     * The node's own cycles in the requested period, from [LedgerService.listNodes] only. Other
+     * functions return a node with no cycles. Descendants' cycles are on their own nodes.
      */
     val cycles: List<Cycle>,
     val createdAt: Instant,

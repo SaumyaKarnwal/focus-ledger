@@ -7,9 +7,13 @@ import io.focusledger.core.UserId
 
 /** Nodes, estimates, and cycles. The gRPC handlers and the MCP tools call the same functions. */
 interface LedgerService {
-    /** A repeat with the same request ID returns the existing node. */
+    /**
+     * A repeat with the same request ID returns the existing node with no comparison, because a
+     * node has no field that never changes. The node carries no cycles.
+     */
     fun createNode(userId: UserId, request: CreateNode): ServiceResult<Node>
 
+    /** The node carries no cycles. Read cycles with [listNodes]. */
     fun updateNode(userId: UserId, nodeId: NodeId, update: NodeUpdate): ServiceResult<Node>
 
     fun listNodes(userId: UserId, query: ListNodesQuery): ServiceResult<NodeTree>

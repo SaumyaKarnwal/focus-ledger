@@ -49,8 +49,8 @@ sealed interface CreateCycle {
     val mode: FocusMode
 
     /**
-     * Starts a running cycle now, by the server clock. A repeat compares the node, the mode, and
-     * the planned minutes, not the start time.
+     * Starts a running cycle now, by the server clock. A repeat compares only the mode and the
+     * planned minutes, because the node, the minutes, and the server's start time can differ.
      */
     data class Start(
         override val requestId: RequestId,
@@ -59,7 +59,10 @@ sealed interface CreateCycle {
         val plannedMinutes: Int,
     ) : CreateCycle
 
-    /** Writes a logged cycle. Its planned minutes equal [minutes]. */
+    /**
+     * Writes a logged cycle. Its planned minutes equal [minutes]. A repeat compares only the mode,
+     * the planned minutes, and [startedAt].
+     */
     data class HandEntry(
         override val requestId: RequestId,
         override val nodeId: NodeId?,
