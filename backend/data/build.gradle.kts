@@ -5,6 +5,7 @@ dependencies {
     runtimeOnly(libs.postgresql)
 
     testImplementation(libs.testcontainers.postgresql)
+    testImplementation(libs.postgresql)
 }
 
 val dockerPostgresDir = rootProject.file("docker/postgres")

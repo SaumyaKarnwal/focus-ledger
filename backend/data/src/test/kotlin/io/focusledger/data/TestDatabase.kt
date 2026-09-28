@@ -4,9 +4,11 @@ import java.nio.file.Path
 import java.sql.Connection
 import java.sql.DriverManager
 import java.sql.SQLException
+import javax.sql.DataSource
 import org.flywaydb.core.api.output.MigrateResult
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.assertThrows
+import org.postgresql.ds.PGSimpleDataSource
 import org.testcontainers.containers.output.OutputFrame
 import org.testcontainers.postgresql.PostgreSQLContainer
 import org.testcontainers.utility.MountableFile
@@ -67,6 +69,9 @@ object TestDatabase {
     fun migrate(): MigrateResult = LedgerMigrations.flyway(jdbcUrl(MIGRATE)).migrate()
 
     fun connectAs(role: String): Connection = DriverManager.getConnection(jdbcUrl(role))
+
+    fun dataSourceAs(role: String): DataSource =
+        PGSimpleDataSource().apply { setUrl(jdbcUrl(role)) }
 
     private fun jdbcUrl(role: String) =
         "jdbc:postgresql://${postgres.host}:${postgres.firstMappedPort}/focusledger?user=$role"
