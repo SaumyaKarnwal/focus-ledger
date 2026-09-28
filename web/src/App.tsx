@@ -18,6 +18,8 @@ import type { CyclePb, NodePb } from "./gen/focusledger/v1/model_pb";
 import { browserTimeZone, formatHeaderTime } from "./ledger/period";
 import type { LoggedMode } from "./ledger/rollup";
 import type { toEstimates } from "./tree/estimateModel";
+import { ReportScreen } from "./report/ReportScreen";
+import { SettingsScreen } from "./settings/SettingsScreen";
 import { TreeScreen } from "./tree/TreeScreen";
 import { PageHeader } from "./ui/PageHeader";
 import { useNow } from "./useNow";
@@ -56,11 +58,13 @@ function pendingExtensionFor(
   return { cycle, extension };
 }
 
-type View = "today" | "tree";
+type View = "today" | "tree" | "report" | "settings";
 
 const VIEWS: readonly [View, string][] = [
   ["today", "Today"],
   ["tree", "Tree"],
+  ["report", "Report"],
+  ["settings", "Settings"],
 ];
 
 type Props = {
@@ -119,6 +123,22 @@ export function App({
     setEntryNodeId(undefined);
     if (next === "today") void showToday();
     else setPreselectedNodeId(undefined);
+  };
+
+  // Settings returns to the page it was opened from, with the new settings loaded.
+  const [returnView, setReturnView] = useState<View>("today");
+  const openSettings = () => {
+    if (view !== "settings") setReturnView(view);
+    openView("settings");
+  };
+  const closeSettings = () => {
+    if (returnView === "today") openView("today");
+    else {
+      void refreshWithRetry().catch((reason: unknown) =>
+        setError(String(reason)),
+      );
+      openView(returnView);
+    }
   };
 
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -285,7 +305,7 @@ export function App({
           key={key}
           type="button"
           aria-current={view === key ? "page" : undefined}
-          onClick={() => openView(key)}
+          onClick={() => (key === "settings" ? openSettings() : openView(key))}
         >
           {label}
         </button>
@@ -389,6 +409,30 @@ export function App({
             retryDelaysMs={retryDelaysMs}
             nav={nav}
             onOpenOnToday={openOnToday}
+          />
+        </>
+      )}
+      {!firstRun && screen.kind === "today" && data && view === "report" && (
+        <>
+          {alert}
+          <ReportScreen
+            client={client}
+            timeZone={timeZone}
+            retryDelaysMs={retryDelaysMs}
+            nav={nav}
+            headerEnd={<HeaderClock timeZone={timeZone} />}
+          />
+        </>
+      )}
+      {!firstRun && screen.kind === "today" && data && view === "settings" && (
+        <>
+          {alert}
+          <SettingsScreen
+            client={client}
+            settings={data.settings}
+            retryDelaysMs={retryDelaysMs}
+            nav={nav}
+            onDone={closeSettings}
           />
         </>
       )}

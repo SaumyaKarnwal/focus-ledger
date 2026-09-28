@@ -1,8 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { exampleExpected, exampleNow } from "./exampleData";
 import {
+  dateSpanRange,
   dayRange,
   formatHeaderTime,
+  lastWeekRange,
+  monthRange,
   formatShortDate,
   formatSince,
   isInRange,
@@ -212,6 +215,38 @@ describe("formatSince", () => {
     expect(
       formatShortDate(new Date("2026-11-01T06:30:00Z"), "America/Los_Angeles"),
     ).toBe("31 Oct");
+  });
+});
+
+describe("report ranges", () => {
+  test("monthRange_losAngelesInNovember_coversTheLocalMonth", () => {
+    expect(iso(monthRange(exampleNow, "America/Los_Angeles"))).toEqual({
+      start: "2026-11-01T07:00:00.000Z",
+      end: "2026-12-01T08:00:00.000Z",
+    });
+  });
+
+  test("monthRange_december_endsInJanuary", () => {
+    expect(iso(monthRange(new Date("2026-12-15T12:00:00Z"), "UTC"))).toEqual({
+      start: "2026-12-01T00:00:00.000Z",
+      end: "2027-01-01T00:00:00.000Z",
+    });
+  });
+
+  test("lastWeekRange_sunday_isThePreviousMondayToMonday", () => {
+    expect(iso(lastWeekRange(exampleNow, "UTC"))).toEqual({
+      start: "2026-10-19T00:00:00.000Z",
+      end: "2026-10-26T00:00:00.000Z",
+    });
+  });
+
+  test("dateSpanRange_santiagoOnASkippedMidnight_startsAtTheOffsetChange", () => {
+    expect(
+      iso(dateSpanRange("2026-09-06", "2026-09-07", "America/Santiago")),
+    ).toEqual({
+      start: "2026-09-06T04:00:00.000Z",
+      end: "2026-09-08T03:00:00.000Z",
+    });
   });
 });
 

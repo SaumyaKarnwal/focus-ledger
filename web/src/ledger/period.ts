@@ -29,6 +29,48 @@ export function weekRange(instant: Date, timeZone: string): TimeRange {
   };
 }
 
+/** The local month in `timeZone` that holds `instant`. */
+export function monthRange(instant: Date, timeZone: string): TimeRange {
+  const [year, month] = localDateString(instant, timeZone)
+    .split("-")
+    .map(Number);
+  const next = month === 12 ? [year + 1, 1] : [year, month + 1];
+  return {
+    start: localDayStart(`${year}-${pad2(month)}-01`, timeZone),
+    end: localDayStart(`${next[0]}-${pad2(next[1])}-01`, timeZone),
+  };
+}
+
+/** The week before the local week that holds `instant`. */
+export function lastWeekRange(instant: Date, timeZone: string): TimeRange {
+  return weekRange(
+    new Date(weekRange(instant, timeZone).start.getTime() - 1),
+    timeZone,
+  );
+}
+
+/** From the start of local date `from` to the end of local date `to` ("YYYY-MM-DD"). */
+export function dateSpanRange(
+  from: string,
+  to: string,
+  timeZone: string,
+): TimeRange {
+  return {
+    start: localDayStart(from, timeZone),
+    end: dayRange(zonedDateTimeToInstant(to, "12:00", timeZone), timeZone).end,
+  };
+}
+
+// Noon exists on every local date, also where the zone skips midnight.
+function localDayStart(date: string, timeZone: string): Date {
+  return dayRange(zonedDateTimeToInstant(date, "12:00", timeZone), timeZone)
+    .start;
+}
+
+function pad2(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
 export function toPeriodPb(range: TimeRange): PeriodPb {
   return create(PeriodPbSchema, {
     start: timestampFromDate(range.start),
