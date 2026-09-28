@@ -388,6 +388,7 @@ message UpdateNodeResponse {
 // Returns the whole tree in one response, with no pagination. The client computes
 // all totals and roll-ups from the cycles.
 message ListNodesRequest {
+  // False leaves out closed nodes and every node under a closed node.
   bool include_closed = 1;
   // Only cycles that started inside this period are returned. Unset means all time.
   PeriodPb period = 2;
