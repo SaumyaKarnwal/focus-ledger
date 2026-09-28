@@ -21,7 +21,7 @@ import org.junit.jupiter.params.provider.ValueSource
 
 /**
  * Checks the roles from the local Docker init (the role script as a non-superuser owner) and their
- * rights on the tables that V1 creates.
+ * rights on the tables that V1 and V2 create.
  */
 class RoleScriptTest {
 
@@ -167,9 +167,9 @@ class RoleScriptTest {
     }
 
     @Test
-    fun firstMigration_appliesV1() {
-        assertEquals(1, TestDatabase.firstMigration.migrationsExecuted)
-        assertEquals("1", TestDatabase.firstMigration.targetSchemaVersion)
+    fun firstMigration_appliesV1AndV2() {
+        assertEquals(2, TestDatabase.firstMigration.migrationsExecuted)
+        assertEquals("2", TestDatabase.firstMigration.targetSchemaVersion)
     }
 
     @Test
@@ -200,6 +200,7 @@ class RoleScriptTest {
             [
                 "account.app_user",
                 "account.user_settings",
+                "account.agent_connection",
                 "ledger.node",
                 "ledger.cycle",
                 "ledger.estimate",
@@ -219,6 +220,11 @@ class RoleScriptTest {
             assertDoesNotThrow {
                 app.execute("INSERT INTO account.user_settings (user_id) VALUES (?)", userId)
                 app.execute(
+                    "INSERT INTO account.agent_connection (user_id, client_id, refresh_token_hash) VALUES (?, 'https://agent.example/client.json', ?)",
+                    userId,
+                    ByteArray(32),
+                )
+                app.execute(
                     "INSERT INTO ledger.estimate (user_id, node_id, mode, cycle_minutes, cycle_count) VALUES (?, ?, 'shallow', 25, 2)",
                     userId,
                     nodeId,
@@ -232,6 +238,7 @@ class RoleScriptTest {
     @CsvSource(
         "account.app_user, email",
         "account.user_settings, sound_enabled",
+        "account.agent_connection, revoked_at",
         "ledger.node, name",
         "ledger.cycle, minutes",
         "ledger.estimate, cycle_count",
@@ -248,6 +255,7 @@ class RoleScriptTest {
             [
                 "account.app_user",
                 "account.user_settings",
+                "account.agent_connection",
                 "ledger.node",
                 "ledger.cycle",
                 "ledger.estimate",
@@ -263,6 +271,7 @@ class RoleScriptTest {
             [
                 "account.app_user",
                 "account.user_settings",
+                "account.agent_connection",
                 "ledger.node",
                 "ledger.cycle",
                 "ledger.estimate",
@@ -327,6 +336,7 @@ class RoleScriptTest {
             listOf(
                 "account.app_user",
                 "account.user_settings",
+                "account.agent_connection",
                 "ledger.node",
                 "ledger.cycle",
                 "ledger.estimate",
