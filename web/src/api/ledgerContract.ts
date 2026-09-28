@@ -217,6 +217,57 @@ export function describeLedgerContract(
         );
       });
 
+      test("updateNode_estimatesLeaveOutAMode_keepsItsRowWithCountZero", async () => {
+        const { node } = await client.createNode({
+          requestId: newRequestId(),
+          name: "Book",
+          estimates: [
+            { mode: FocusMode.DEEP_FOCUS, cycleMinutes: 90, cycleCount: 2 },
+            { mode: FocusMode.EXECUTION, cycleMinutes: 45, cycleCount: 6 },
+          ],
+        });
+
+        const { node: updated } = await client.updateNode({
+          nodeId: node!.id,
+          estimates: [
+            { mode: FocusMode.DEEP_FOCUS, cycleMinutes: 90, cycleCount: 3 },
+          ],
+          updateMask: { paths: ["estimates"] },
+        });
+
+        const expected = [
+          { mode: FocusMode.DEEP_FOCUS, cycleMinutes: 90, cycleCount: 3 },
+          { mode: FocusMode.EXECUTION, cycleMinutes: 45, cycleCount: 0 },
+        ];
+        expect(updated?.estimates).toMatchObject(expected);
+        const { nodes } = await client.listNodes({});
+        expect(
+          nodes.find((listed) => listed.id === node!.id)?.estimates,
+        ).toMatchObject(expected);
+      });
+
+      test("updateNode_estimateCountZero_keepsTheRow", async () => {
+        const { node } = await client.createNode({
+          requestId: newRequestId(),
+          name: "Book",
+          estimates: [
+            { mode: FocusMode.SHALLOW, cycleMinutes: 30, cycleCount: 4 },
+          ],
+        });
+
+        const { node: updated } = await client.updateNode({
+          nodeId: node!.id,
+          estimates: [
+            { mode: FocusMode.SHALLOW, cycleMinutes: 30, cycleCount: 0 },
+          ],
+          updateMask: { paths: ["estimates"] },
+        });
+
+        expect(updated?.estimates).toMatchObject([
+          { mode: FocusMode.SHALLOW, cycleMinutes: 30, cycleCount: 0 },
+        ]);
+      });
+
       test("updateNode_nameAndEstimates_changesBoth", async () => {
         const node = await createNode("Book");
 
