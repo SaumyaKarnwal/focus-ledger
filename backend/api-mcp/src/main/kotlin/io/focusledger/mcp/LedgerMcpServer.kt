@@ -56,7 +56,7 @@ fun startLedgerMcpServer(
     authenticator: BearerAuthenticator,
     port: Int,
     host: String = "127.0.0.1",
-    allowedHosts: List<String> = listOf("localhost", "127.0.0.1"),
+    allowedHosts: List<String> = listOf("localhost", "127.0.0.1", "[::1]"),
 ): EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration> =
     embeddedServer(Netty, port = port, host = host) {
             ledgerMcp(tools, authenticator, allowedHosts)

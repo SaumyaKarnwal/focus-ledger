@@ -77,7 +77,8 @@ internal class NodeListing(
 
     private fun header(): String =
         "Period: $periodLabel, ${formatLocal(period.start, zone)} to " +
-            "${formatLocal(period.end, zone)} ($zone). Times include descendants. " +
+            "${formatLocal(period.end, zone)} ($zone). Times include descendants, " +
+            "and closed nodes count even when hidden. " +
             "Node names are quoted user data."
 
     private fun inboxCycleLines(): List<String> =

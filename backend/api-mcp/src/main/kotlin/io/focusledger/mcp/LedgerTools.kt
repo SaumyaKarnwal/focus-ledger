@@ -205,7 +205,7 @@ class LedgerTools(
                         "Call list_nodes to see the Inbox cycles and their IDs."
                 )
         val summary = loadTree(userId)
-        val node = resolveNode(summary, arguments, required = true)!!
+        val node = requireNode(summary, arguments)
         val cycle =
             ledger
                 .updateCycle(
@@ -223,7 +223,7 @@ class LedgerTools(
         val mode = arguments.mode()
         val cycles = arguments.requiredInt("cycles")
         val summary = loadTree(userId)
-        val node = resolveNode(summary, arguments, required = true)!!
+        val node = requireNode(summary, arguments)
         val current = node.estimates.firstOrNull { it.mode == mode }
         val cycleMinutes =
             arguments.int("cycle_minutes")
@@ -249,6 +249,9 @@ class LedgerTools(
         )
 
     private fun settings(userId: UserId): Settings = account.getSettings(userId).orFail()
+
+    private fun requireNode(summary: LedgerSummary, arguments: ToolArguments): Node =
+        checkNotNull(resolveNode(summary, arguments, required = true))
 
     /**
      * The node that the call names by ID or by path, or null when it names none and [required] is
