@@ -145,6 +145,7 @@ There is no delete. The server rejects a change that breaks the cycle rules: min
 The proto is frozen. These rules are server behavior, not wire changes:
 - `ListNodes` with `include_closed = false` leaves out closed nodes and every node under a closed node.
 - `UpdateNodeResponse.node` carries no cycles. Read cycles with `ListNodes`.
+- Every `ListNodes` call returns the user's running cycle, whatever its start time and the `period`, together with its node and that node's ancestors, even when they are closed and `include_closed = false`. So the client can always find the running cycle, and a Start never fails for a cycle it cannot see.
 
 ## Decisions
 
