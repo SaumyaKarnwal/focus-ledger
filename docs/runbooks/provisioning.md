@@ -46,12 +46,17 @@ flowchart LR
 | Cloudflare | cloudflare.com | For the domain and DNS. The free plan is enough. |
 | GitHub | already set up | Repository `SaumyaKarnwal/focus-ledger` |
 
-Install the Google Cloud CLI on the Mac and sign in with the personal account:
+The Google Cloud CLI (`gcloud`) is already installed on this Mac, and its default profile is signed in to a work account. Focus Ledger gets its own profile, so nothing touches the work setup:
 
 ```bash
-brew install --cask google-cloud-sdk
-gcloud auth login            # opens the browser; choose the personal account
+gcloud config configurations create focus-ledger   # creates and activates a separate profile
+gcloud auth login                                  # opens the browser; choose the PERSONAL account
+gcloud config list                                 # check: account = the personal address
 ```
+
+Every command below runs in this profile. Before each session of this runbook, check `gcloud config list`. To go back to work: `gcloud config configurations activate default`. To return here: `gcloud config configurations activate focus-ledger`.
+
+The command names and flags in this runbook were checked against the installed `gcloud` (563.0.0). The calls themselves have not been run.
 
 ## 2. Google Cloud project
 
