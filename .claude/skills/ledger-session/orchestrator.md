@@ -51,7 +51,7 @@ Merging is automatic. It does not wait for the owner. For every PR, in this orde
 
 1. **Build.** CI compiles every module and runs every test. It must be green.
 2. **Tests.** Check that the PR adds tests for everything it changes, as `CLAUDE.md` requires: unit tests for rules, integration tests against a real Postgres, and a user-isolation test for every RPC and MCP tool it touches. If tests are missing, send the PR back to the worker.
-3. **Code review.** Run an intense review of the PR diff: `/code-review max <PR number>`. Send every confirmed finding back to the worker, and review again after the fix. Judge each finding marked "plausible", and write your decision on the PR.
+3. **Code review.** Run a normal review of the PR diff: `/code-review medium <PR number>`. Do not use `high`, `xhigh`, or `max`: they use too much of the usage limit. Send every finding back to the worker, and review again after the fix.
 4. **Scope.** The acceptance criteria on the issue are met, and the PR changes no contract unless a merged design PR allowed it.
 5. **Merge** (squash) when steps 1–4 pass and the PR has no `hold` label.
 
