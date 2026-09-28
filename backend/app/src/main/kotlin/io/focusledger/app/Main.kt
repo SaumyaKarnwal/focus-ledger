@@ -10,6 +10,9 @@ import io.focusledger.data.JooqNodeRepository
 import io.focusledger.data.JooqSettingsRepository
 import io.focusledger.data.JooqTransactor
 import io.focusledger.data.LedgerDatabase
+import io.focusledger.grpc.GoogleIdTokenVerifier
+import io.focusledger.grpc.LedgerGrpc
+import io.focusledger.grpc.SessionCookies
 import io.focusledger.mcp.oauth.HttpClientMetadataSource
 import java.time.Clock
 import kotlin.system.exitProcess
@@ -25,6 +28,7 @@ fun main() {
     val dataSource = connectionPool(config.databaseUrl)
     val database = LedgerDatabase(dataSource)
     val clock = Clock.systemUTC()
+    val sessionCookies = SessionCookies(config.sessionSigningKey, clock)
     val server =
         FocusLedgerApp.start(
             config,
@@ -38,15 +42,16 @@ fun main() {
                     ),
                 account =
                     CoreAccountService(
-                        // Google sign-in and the session cookie arrive with #65. Until then no
-                        // credential passes, and every sign-in page asks the user to sign in.
-                        verifier = { null },
+                        verifier = GoogleIdTokenVerifier.forGoogle(config.googleClientId),
                         accounts = JooqAccountRepository(database),
                         settings = JooqSettingsRepository(database),
                     ),
                 agentConnections = JdbcAgentConnectionRepository(dataSource),
                 clientMetadata = HttpClientMetadataSource(),
-                browserSessions = { null },
+                browserSessions = { cookieHeader ->
+                    LedgerGrpc.browserUser(sessionCookies, cookieHeader)
+                },
+                sessionCookies = sessionCookies,
                 clock = clock,
             ),
         )
