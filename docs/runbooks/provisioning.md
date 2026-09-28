@@ -35,6 +35,8 @@ To generate a password without writing it down:
 VALUE=$(openssl rand -base64 32)   # use it in the same terminal, then: unset VALUE
 ```
 
+Each Google Cloud step has terminal commands in the step itself, and click-by-click console steps in the appendix at the end. Use either one.
+
 ## Order
 
 ```mermaid
@@ -224,3 +226,67 @@ The repository needs **no GitHub secrets** for deploys. The workflow gets short-
 ## When you finish
 
 Tell the design session which steps are done. It records the provisioning state (with no secret values) and starts workstream C.
+
+## Appendix: the Google Cloud steps in the web console
+
+Every Google Cloud step above can also be done by clicking in the console (console.cloud.google.com), signed in with the **personal** account. The result is the same as the commands. Google changes menu labels from time to time, so a label can differ slightly from the one written here. The values (names, region, roles) must stay exactly as written.
+
+### Step 2 in the console: project, billing, $5 limit, services, registry
+
+1. **Create the project:** in the top bar, click the project picker, then **New project**. Project name `Focus Ledger`. Click **Edit** next to the project ID and set `focus-ledger-prod` (add a suffix if it is taken). Choose your billing account if the form offers it. Click **Create**, then select the new project in the picker.
+2. **Link billing** (if the form did not): **☰ → Billing → Account management → My projects**, open the project's menu, **Change billing**, and choose your billing account.
+3. **The $5 budget:** **☰ → Billing → Budgets & alerts → Create budget**. Scope: only the project `focus-ledger-prod`. Amount type: specified amount, **$5**. Thresholds: 50%, 90%, 100% of actual spend. Email alerts to billing admins. Click **Finish**.
+4. **Turn on the services:** **☰ → APIs & Services → Library**. Search for each and click **Enable**:
+   - Cloud Run Admin API
+   - Artifact Registry API
+   - Secret Manager API
+   - Identity and Access Management (IAM) API
+   - IAM Service Account Credentials API
+   - Security Token Service API
+   - Cloud Resource Manager API
+5. **The container registry:** **☰ → Artifact Registry → Repositories → Create repository**. Name `focus-ledger`. Format **Docker**. Mode **Standard**. Location type **Region**, region **asia-southeast1 (Singapore)**. Click **Create**.
+
+### Step 3 in the console: the sign-in client
+
+1. **☰ → APIs & Services → OAuth consent screen** (newer consoles call this **Google Auth Platform**). If asked, click **Get started**. App name `Ekagra`, your support email. Audience: **External**. Contact email: yours. Save.
+2. **Data access** (or **Scopes**): keep only `openid`, `.../auth/userinfo.email`, and `.../auth/userinfo.profile`. Add nothing else.
+3. **Clients → Create client** (or **Credentials → Create credentials → OAuth client ID**). Type **Web application**. Name `Ekagra web`. Authorized JavaScript origins: `http://localhost:5173` now, and `https://ekagra.app` after step 7. Leave redirect URIs empty. Click **Create**.
+4. Copy only the **client ID** (it ends in `.apps.googleusercontent.com`). Do not download or store the client secret; the design does not use it.
+
+### Step 5 in the console: secrets
+
+**☰ → Security → Secret Manager → Create secret**, once for each of `DB_URL_APP`, `DB_URL_MIGRATE`, `SESSION_SIGNING_KEY`, `GOOGLE_CLIENT_ID`:
+
+1. Name: exactly as written.
+2. Secret value: paste the value. It goes from the browser straight to Secret Manager. Do not save it anywhere else, and clear your clipboard afterwards.
+3. Replication: **Automatic**. Click **Create secret**.
+
+For `SESSION_SIGNING_KEY`, generate the value in a terminal with `openssl rand -base64 48`, copy it straight into the browser, then close the terminal window.
+
+### Step 6 in the console: service accounts and GitHub sign-in
+
+**Create the two service accounts:** **☰ → IAM & Admin → Service accounts → Create service account**:
+- `focusledger-run`, display name "Focus Ledger service". Skip the optional role and user steps. Click **Done**.
+- `focusledger-deploy`, display name "Focus Ledger deploy". Skip the optional steps. Click **Done**.
+
+**Give each account exactly its rights:**
+
+| Where to click | Principal | Role |
+|---|---|---|
+| **Secret Manager** → each of `DB_URL_APP`, `SESSION_SIGNING_KEY`, `GOOGLE_CLIENT_ID` → **Permissions → Grant access** | `focusledger-run@…` | Secret Manager Secret Accessor |
+| **Secret Manager** → `DB_URL_MIGRATE` → **Permissions → Grant access** | `focusledger-deploy@…` | Secret Manager Secret Accessor |
+| **Artifact Registry** → repository `focus-ledger` → **Permissions → Add principal** | `focusledger-deploy@…` | Artifact Registry Writer |
+| **IAM & Admin → IAM → Grant access** (project level) | `focusledger-deploy@…` | Cloud Run Admin |
+| **IAM & Admin → Service accounts** → `focusledger-run` → **Principals with access → Grant access** | `focusledger-deploy@…` | Service Account User |
+
+**GitHub sign-in (Workload Identity Federation):** **☰ → IAM & Admin → Workload Identity Federation → Create pool**:
+1. Pool name `github`. Continue.
+2. Add a provider: **OpenID Connect (OIDC)**. Provider name `focus-ledger`. Issuer URL `https://token.actions.githubusercontent.com`. Audiences: default. Continue.
+3. Attribute mapping:
+   - `google.subject` = `assertion.sub`
+   - `attribute.repository` = `assertion.repository`
+   - `attribute.ref` = `assertion.ref`
+4. Attribute condition: `assertion.repository=='SaumyaKarnwal/focus-ledger' && assertion.ref=='refs/heads/main'`. Click **Save**.
+5. Open the `github` pool → **Grant access** → **Grant access using service account impersonation** → service account `focusledger-deploy`. Principals: only identities that match the filter, attribute **repository** = `SaumyaKarnwal/focus-ledger`. Click **Save**. Dismiss the offer to download a configuration file; nothing needs it.
+
+Never click **Keys → Add key** on a service account. The design needs no key file.
