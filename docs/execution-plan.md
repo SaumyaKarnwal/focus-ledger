@@ -23,7 +23,7 @@ The owner asked for 24/7 work and a faster finish. From Phase 0 item 2 on, work 
 | 0.3 core interfaces | ws-a | 0.2 (the contracts) |
 | 0.4 CI skeleton, 0.5 spike | ws-c | provisioning |
 | Web app (against a fake `LedgerService`) | ws-b | 0.2 |
-| MCP with personal access tokens | ws-d | 0.3 |
+| MCP tools + OAuth sign-in | ws-d | 0.3 |
 | Backend core + gRPC | ws-a | 0.3 |
 | MCP OAuth + security review | ws-e | ws-d, and a `START` from design |
 
@@ -52,7 +52,7 @@ flowchart LR
     P0["Phase 0<br/>foundation + spike"] --> A["A: backend core + gRPC"]
     P0 --> B["B: web app"]
     P0 --> C["C: infra + deploy"]
-    P0 --> D["D: MCP with personal access tokens"]
+    P0 --> D["D: MCP tools + OAuth"]
     A --> I["Integration<br/>web ↔ real backend"]
     B --> I
     C --> I
