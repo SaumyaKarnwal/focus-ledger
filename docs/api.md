@@ -174,7 +174,7 @@ sequenceDiagram
 1. Rejects a missing or malformed `request_id` with `INVALID_ARGUMENT`.
 2. Runs `INSERT ... ON CONFLICT (user_id, request_id) DO NOTHING RETURNING *`, with `user_id` from the session.
 3. If a row comes back, returns it.
-4. If no row comes back, reads the row by `(user_id, request_id)`. If its content matches the request, returns it. If not, returns `INVALID_ARGUMENT` ("request_id was already used for a different request").
+4. If no row comes back, reads the row by `(user_id, request_id)` and returns it. The row may have changed since the first request (a Stop, an extension, a filing, a rename), so the server compares only the fields that never change. For a cycle: `mode` and `planned_minutes`, and for a hand entry also `started_at`. If one differs, it returns `INVALID_ARGUMENT` ("request_id was already used for a different request"). A node has no field that never changes, so a `CreateNode` repeat returns the row with no comparison.
 5. Treats a Start (`CreateCycle` without `minutes`) the same way: a retried Start returns the running cycle, and a new Start with a new key while one runs still fails with `FAILED_PRECONDITION`.
 
 **Updates** need no key. Each sends an absolute value, so a repeat gives the same result: Stop sends the minutes, an extension sends the new total (for example 65, never "+15"), and filing sends the node.
@@ -376,6 +376,7 @@ message UpdateNodeRequest {
   google.protobuf.FieldMask update_mask = 6;
 }
 
+// The node carries no cycles here. Read cycles with ListNodes.
 message UpdateNodeResponse {
   NodePb node = 1;
 }
