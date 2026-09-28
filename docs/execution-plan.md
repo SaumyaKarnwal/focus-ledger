@@ -67,8 +67,8 @@ flowchart LR
 | **A. Backend core + gRPC** | The core services, jOOQ repositories, the 10 RPCs, Google sign-in and session cookies, user-isolation tests | Phase 0 | right after Phase 0 |
 | **B. Web app** | Sign-in, Today, the running timer, the Tree, the Report, Settings, the roll-up code in TypeScript | Phase 0 (the generated TypeScript client) | right after Phase 0. It develops against a fake `LedgerService` that returns fixed data, then switches to the real backend at integration. |
 | **C. Infra + deploy** | The Google Cloud project, service accounts, Workload Identity Federation, Secret Manager, Neon with the two roles, the Cloudflare domain, the CI deploy job | Phase 0 | right after Phase 0 |
-| **D. MCP with personal access tokens** | The Ktor MCP server, the 8 tools, the Kotlin summaries, personal access tokens | The core interfaces (Phase 0). The tools call A's implementations once they land. | right after Phase 0 |
-| **E. MCP OAuth + security review** | OAuth 2.1 from `mcp.md`, the `agent_grant` table, the attack-case tests, rate limits, a review of the whole system against the security rules | D | after D |
+| **D. MCP tools + OAuth** | The Ktor MCP server, the 8 tools, the Kotlin summaries, OAuth 2.1 sign-in and the `agent_connection` table | The core interfaces (Phase 0). The tools call A's implementations once they land. | right after Phase 0 |
+| **E. Security review** | The OAuth attack-case tests, rate limits, a review of the whole system against the security rules | D | after D |
 
 **Integration** connects the web app to the real backend on a deployed environment. **The launch checklist** covers error tracking, an uptime monitor, database backups, and a final pass of the user-isolation tests.
 
