@@ -31,12 +31,17 @@ class LedgerMcpServerTest {
     private val ledger = FakeLedger(clock).apply { addNode(userA, "Book") }
     private val tokens = mapOf("test-token-a" to userA, "test-token-b" to userB)
 
+    private companion object {
+        const val RESOURCE_METADATA_URL = "http://localhost/.well-known/oauth-protected-resource"
+    }
+
     private fun mcpTest(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
         application {
             ledgerMcp(
                 LedgerTools(ledger, FakeAccounts(), clock),
                 authenticator = { token -> tokens[token] },
                 allowedHosts = listOf("localhost"),
+                resourceMetadataUrl = RESOURCE_METADATA_URL,
             )
         }
         block()
@@ -68,7 +73,21 @@ class LedgerMcpServerTest {
         val response = rpc(token = null, toolCall(LIST_NODES))
 
         assertEquals(HttpStatusCode.Unauthorized, response.status)
-        assertEquals("Bearer", response.headers[HttpHeaders.WWWAuthenticate])
+        assertEquals(
+            "Bearer resource_metadata=\"$RESOURCE_METADATA_URL\"",
+            response.headers[HttpHeaders.WWWAuthenticate],
+        )
+    }
+
+    @Test
+    fun invalidToken_gets401WithInvalidTokenError() = mcpTest {
+        val response = rpc("test-token-unknown", toolCall(LIST_NODES))
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+        assertEquals(
+            "Bearer resource_metadata=\"$RESOURCE_METADATA_URL\", error=\"invalid_token\"",
+            response.headers[HttpHeaders.WWWAuthenticate],
+        )
     }
 
     @Test

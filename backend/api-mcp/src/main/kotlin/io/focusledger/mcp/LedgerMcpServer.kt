@@ -1,6 +1,8 @@
 package io.focusledger.mcp
 
 import io.focusledger.core.UserId
+import io.focusledger.mcp.oauth.OAuthServer
+import io.focusledger.mcp.oauth.ledgerOAuth
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
@@ -36,36 +38,39 @@ const val MCP_PATH = "/mcp"
 
 /**
  * Serves the MCP tools at [MCP_PATH] over stateless Streamable HTTP, so any instance can answer any
- * call. A call without a valid Bearer token gets 401 before the MCP layer reads it. [allowedHosts]
- * are the `Host` values that pass the SDK's DNS-rebinding check.
+ * call. A call without a valid Bearer token gets 401 before the MCP layer reads it, with the
+ * [resourceMetadataUrl] that tells an MCP client where to sign in. [allowedHosts] are the `Host`
+ * values that pass the SDK's DNS-rebinding check.
  */
 fun Application.ledgerMcp(
     tools: LedgerTools,
     authenticator: BearerAuthenticator,
     allowedHosts: List<String>,
+    resourceMetadataUrl: String,
 ) {
-    install(bearerAuthentication(authenticator))
+    install(bearerAuthentication(authenticator, resourceMetadataUrl))
     mcpStatelessStreamableHttp(path = MCP_PATH, allowedHosts = allowedHosts) {
         mcpServer(tools, call.attributes[authenticatedUser])
     }
 }
 
-/** The MCP server on its own port. Armeria forwards `/mcp` to it. */
+/** The MCP server and its OAuth endpoints on their own port. Armeria forwards those paths here. */
 fun startLedgerMcpServer(
     tools: LedgerTools,
-    authenticator: BearerAuthenticator,
+    oauth: OAuthServer,
     port: Int,
     host: String = "127.0.0.1",
     allowedHosts: List<String> = listOf("localhost", "127.0.0.1", "[::1]"),
 ): EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration> =
     embeddedServer(Netty, port = port, host = host) {
-            ledgerMcp(tools, authenticator, allowedHosts)
+            ledgerMcp(tools, oauth, allowedHosts, oauth.config.resourceMetadataUrl)
+            ledgerOAuth(oauth)
         }
         .start(wait = false)
 
 private val authenticatedUser = AttributeKey<UserId>("focusledger.mcp.user")
 
-private fun bearerAuthentication(authenticator: BearerAuthenticator) =
+private fun bearerAuthentication(authenticator: BearerAuthenticator, resourceMetadataUrl: String) =
     createApplicationPlugin("McpBearerAuthentication") {
         onCall { call ->
             if (call.request.path() != MCP_PATH) return@onCall
@@ -78,7 +83,11 @@ private fun bearerAuthentication(authenticator: BearerAuthenticator) =
                     ?.takeIf { it.isNotEmpty() }
             val userId = token?.let(authenticator::authenticate)
             if (userId == null) {
-                call.response.header(HttpHeaders.WWWAuthenticate, "Bearer")
+                val invalidToken = if (token != null) ", error=\"invalid_token\"" else ""
+                call.response.header(
+                    HttpHeaders.WWWAuthenticate,
+                    "Bearer resource_metadata=\"$resourceMetadataUrl\"$invalidToken",
+                )
                 call.respondText(
                     "A valid Bearer token is required.",
                     status = HttpStatusCode.Unauthorized,
