@@ -2,6 +2,9 @@ import { describe, expect, test } from "vitest";
 import { exampleExpected, exampleNow } from "./exampleData";
 import {
   dayRange,
+  formatHeaderTime,
+  formatShortDate,
+  formatSince,
   isInRange,
   localDateString,
   localTimeString,
@@ -179,6 +182,36 @@ describe("zonedDateTimeToInstant", () => {
         zone,
       ),
     ).toEqual(instant);
+  });
+});
+
+describe("formatHeaderTime", () => {
+  test.each([
+    ["UTC", "Sun 1 Nov · 20:00"],
+    ["America/Los_Angeles", "Sun 1 Nov · 12:00"],
+  ])("formatHeaderTime_%s_is%s", (timeZone, expected) => {
+    expect(formatHeaderTime(exampleNow, timeZone)).toBe(expected);
+  });
+});
+
+describe("formatSince", () => {
+  const ago = (ms: number) => new Date(exampleNow.getTime() - ms);
+
+  test.each([
+    [20_000, "just now"],
+    [12 * 60_000, "12m ago"],
+    [2 * 3_600_000, "2h ago"],
+    [26 * 3_600_000, "yesterday"],
+    [3 * 86_400_000, "Thu"],
+    [30 * 86_400_000, "2 Oct"],
+  ])("formatSince_%sMsAgo_is%s", (ms, expected) => {
+    expect(formatSince(ago(ms), exampleNow, "UTC")).toBe(expected);
+  });
+
+  test("formatShortDate_losAngeles_usesTheLocalDay", () => {
+    expect(
+      formatShortDate(new Date("2026-11-01T06:30:00Z"), "America/Los_Angeles"),
+    ).toBe("31 Oct");
   });
 });
 
