@@ -100,7 +100,6 @@ message UpdateNodeRequest {
   google.protobuf.FieldMask update_mask = 6;
 }
 
-// The node carries no cycles here. Read cycles with ListNodes.
 message UpdateNodeResponse {
   NodePb node = 1;
 }
