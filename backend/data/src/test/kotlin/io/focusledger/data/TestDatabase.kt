@@ -73,6 +73,9 @@ object TestDatabase {
     fun dataSourceAs(role: String): DataSource =
         PGSimpleDataSource().apply { setUrl(jdbcUrl(role)) }
 
+    /** The pooled database as focusledger_app, which the service tests share. */
+    val app: LedgerDatabase by lazy { LedgerDatabase.pooled(jdbcUrl(APP)) }
+
     private fun jdbcUrl(role: String) =
         "jdbc:postgresql://${postgres.host}:${postgres.firstMappedPort}/focusledger?user=$role"
 }

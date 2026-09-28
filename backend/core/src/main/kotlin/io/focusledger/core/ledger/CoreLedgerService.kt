@@ -155,10 +155,12 @@ class CoreLedgerService(
                     else null
                 },
                 {
-                    if (CycleField.MINUTES !in update.mask) null
-                    else
-                        update.minutes?.let { checkRange("minutes", it, Limits.CYCLE_MINUTES) }
-                            ?: invalid("minutes", "must be set when the mask names it")
+                    val minutes = update.minutes
+                    when {
+                        CycleField.MINUTES !in update.mask -> null
+                        minutes == null -> invalid("minutes", "must be set when the mask names it")
+                        else -> checkRange("minutes", minutes, Limits.CYCLE_MINUTES)
+                    }
                 },
                 {
                     if (CycleField.NODE_ID in update.mask && update.nodeId == null) {
