@@ -1,0 +1,26 @@
+# One Compose project per port, so two checkouts never share a container or a volume.
+name: focusledger-${POSTGRES_PORT:?set POSTGRES_PORT in .env (copy .env.example)}
+
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: focusledger
+      # Local only: the port binds to 127.0.0.1, so trust auth needs no password in any file.
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT}:5432"
+    volumes:
+      # Init scripts run only on an empty volume. Reset with `docker compose down -v`.
+      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./docker/postgres/roles.sql:/focusledger/roles.sql:ro
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      # TCP, not the Unix socket: the init server opens only the socket, so this waits for the roles.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres", "-d", "focusledger"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  postgres-data:

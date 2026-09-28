@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+.claude/worktrees/
+.plan/
+.gradle/
+build/
+.kotlin/
+.idea/
+*.iml
+.DS_Store
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
