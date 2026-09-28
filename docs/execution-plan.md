@@ -14,6 +14,21 @@ The goal: get the first working version out fast by running several Claude Code 
 
 A worker session never changes a contract on its own. A contract change is a question for the design session (see "Orchestration").
 
+## Schedule update (2026-09-28): parallel from item 2
+
+The owner asked for 24/7 work and a faster finish. From Phase 0 item 2 on, work runs in parallel. Each piece starts as soon as its dependency merges:
+
+| Piece | Worker | Starts after |
+|---|---|---|
+| 0.3 core interfaces | ws-a | 0.2 (the contracts) |
+| 0.4 CI skeleton, 0.5 spike | ws-c | provisioning |
+| Web app (against a fake `LedgerService`) | ws-b | 0.2 |
+| MCP with personal access tokens | ws-d | 0.3 |
+| Backend core + gRPC | ws-a | 0.3 |
+| MCP OAuth + security review | ws-e | ws-d, and a `START` from design |
+
+The orchestrator runs a self-paced loop (about every 30 minutes) that merges passing PRs, routes questions, and starts workers whose dependency merged. The contract rule is unchanged. The sections below describe the original serial order.
+
 ## Phase 0: foundation (serial, one session)
 
 Phase 0 unblocks everything else. It runs in one session, in this order:
