@@ -6,7 +6,9 @@ Focus Ledger is one Kotlin program, one Postgres database, and one domain. The b
 
 ## Name and domain
 
-- **Brand name:** Ekagra (एकाग्र, "one-pointed focus"). **Domain:** `ekagra.app`. All user-facing text uses the brand name.
+- **Brand name: tentative.** The working choice is Ekagra (एकाग्र, "one-pointed focus"), but the owner is still looking for a better name. No domain is bought yet.
+- **Until the domain exists,** the app runs on the free Cloud Run address (`https://<service>-<id>.<region>.run.app`), which has HTTPS. Adding the domain later: buy it, point DNS at the Cloud Run service, and add it to the sign-in client's allowed origins. Users sign in once more after the switch, because cookies belong to one address. Search ranking starts with the final domain, so the `run.app` address is not marketed.
+- **In code, the product name lives in one constant** (one per client), so a rename is a one-line change.
 - **Internal name:** `focus-ledger` stays in the repository, the proto package (`focusledger.v1`), the database roles, and the cloud resources. Renaming internals brings no benefit.
 - **Known risk:** other focus apps in India already use the name "Ekagra" (on Google Play, as a Firefox extension, and Ekagra OS). Search results and app stores will show them next to ours. The owner accepts this. Before investing in branding, check the trademark registries (India IP office, USPTO).
 - `.app` domains always use HTTPS, which the design uses anyway. Google ranks `.app` and `.com` the same.
