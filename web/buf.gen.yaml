@@ -1,0 +1,7 @@
+# TypeScript code for the web app. `pnpm generate` runs this into src/gen, which git ignores.
+version: v2
+clean: true
+plugins:
+  - local: protoc-gen-es
+    out: src/gen
+    opt: target=ts

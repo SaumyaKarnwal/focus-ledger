@@ -46,13 +46,16 @@ Setup:
 ```bash
 cp -n .env.example .env                     # then set a POSTGRES_PORT that no other worktree uses
 docker compose up -d --wait                 # local Postgres 18 with the roles and schemas
+./gradlew :backend:data:migrateLocal        # Flyway applies the migrations as focusledger_migrate
 (cd web && corepack pnpm install)           # Node from web/.nvmrc; Corepack reads the pnpm version from web/package.json
 ```
+
+The builds generate the proto code (Gradle into `backend/api-grpc/build`, pnpm into `web/src/gen`). Git ignores both, and neither needs a separate step. Gradle downloads buf from Maven Central, and pnpm installs it from npm. The Kotlin plugins in `buf.gen.yaml` are remote, so the first backend build needs network access.
 
 Reset the local database (the init scripts run only on an empty volume, so run this after a change to `docker/postgres/`):
 
 ```bash
-docker compose down -v && docker compose up -d --wait
+docker compose down -v && docker compose up -d --wait && ./gradlew :backend:data:migrateLocal
 ```
 
 Check (run before every push):

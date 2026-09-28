@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+package focusledger.v1;
+
+import "google/protobuf/timestamp.proto";
+
+enum FocusMode {
+  FOCUS_MODE_UNSPECIFIED = 0;
+  FOCUS_MODE_DEEP_FOCUS = 1;
+  FOCUS_MODE_EXECUTION = 2;
+  FOCUS_MODE_SHALLOW = 3;
+}
+
+// A time range [start, end). The browser computes it in the user's zone and sends it in UTC.
+message PeriodPb {
+  google.protobuf.Timestamp start = 1;
+  google.protobuf.Timestamp end = 2;
+}
+
+message AccountPb {
+  string id = 1;
+  string email = 2;
+  google.protobuf.Timestamp created_at = 3;
+}
+
+message SettingsPb {
+  int32 deep_focus_minutes = 1;
+  int32 execution_minutes = 2;
+  int32 shallow_minutes = 3;
+  int32 break_minutes = 4;
+  bool sound_enabled = 5;
+  bool notifications_enabled = 6;
+}
+
+message EstimatePb {
+  FocusMode mode = 1;
+  int32 cycle_minutes = 2;
+  int32 cycle_count = 3;
+}
+
+message CyclePb {
+  string id = 1;
+  // Unset means the cycle is in the Inbox.
+  optional string node_id = 2;
+  FocusMode mode = 3;
+  google.protobuf.Timestamp started_at = 4;
+  int32 planned_minutes = 5;
+  // Unset means the cycle is running.
+  optional int32 minutes = 6;
+}
+
+// The Inbox is returned as a node with no id and no name. Its cycles have no node_id.
+message NodePb {
+  string id = 1;
+  // Unset means a root node.
+  optional string parent_id = 2;
+  string name = 3;
+  bool closed = 4;
+  repeated EstimatePb estimates = 5;
+  // The node's own cycles inside the requested period. Descendants' cycles are on their own nodes.
+  repeated CyclePb cycles = 6;
+  google.protobuf.Timestamp created_at = 7;
+}
