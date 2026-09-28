@@ -50,6 +50,7 @@ Everything runs in **Singapore**: the Neon database in `aws-ap-southeast-1` and 
 | `/app/...` | The web app |
 | `/focusledger.v1.LedgerService/...` | The gRPC-Web API |
 | `/mcp` | The MCP server for AI agents |
+| `/oauth/*`, `/.well-known/oauth-*` | Agent sign-in (OAuth 2.1). Armeria forwards these to Ktor, like `/mcp`. |
 
 One origin means the session cookie works everywhere and no CORS setup is needed. Visitors who arrive from search stay on the same domain when they sign in.
 
@@ -127,11 +128,11 @@ sequenceDiagram
 
 | Area | Design | Detail in |
 |---|---|---|
-| Sessions | Signed, HttpOnly, `SameSite=Strict` cookie, 30 days, renewed on use. No session table. | `api.md` → Sessions |
+| Sessions | Signed, HttpOnly, `Secure`, `SameSite=Lax` cookie, 30 days, renewed on use. No session table. | `api.md` → Sessions |
 | User isolation | The user comes from the session or token. Every query filters by it. Composite foreign keys block cross-user references. | `api.md` → User isolation |
 | Time | UTC everywhere. The browser sends UTC ranges. MCP tools take a `time_zone`. | `schema.md` → decision 4 |
 | Idempotency | `CreateNode` and `CreateCycle` require a client-made `request_id`. `UNIQUE (user_id, request_id)` on `ledger.node` and `ledger.cycle` makes a retry insert nothing, and the server returns the existing row. | `api.md` → Idempotency, `schema.md` → Idempotency |
-| CSRF and CORS | One origin, so no CORS. `SameSite=Strict` cookies block cross-site requests. | this doc |
+| CSRF and CORS | One origin, so no CORS. `SameSite=Lax` blocks cross-site POSTs. The OAuth consent form has a CSRF token. | this doc |
 | Rate limits | Per session and per MCP token. Stricter on `SignIn`. | to build |
 
 ## Hosting and cost

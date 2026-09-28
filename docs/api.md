@@ -24,7 +24,7 @@ The first build step is a spike that proves three things: a browser gRPC-Web cal
 
 ## Sessions
 
-After `SignIn`, the server sets a signed, HttpOnly, `SameSite=Strict` cookie that holds `{user_id, expires_at}`. There is no session table.
+After `SignIn`, the server sets a signed, HttpOnly, `Secure`, `SameSite=Lax` cookie that holds `{user_id, expires_at}`. There is no session table. `Lax` sends the cookie on a top-level navigation from another site (an agent app opening `/oauth/authorize`), and not on a cross-site POST, so the gRPC-Web calls stay protected. The OAuth consent form carries its own CSRF token.
 
 - The server checks the cookie's signature on every request. The signing key lives in the platform's secret store, never in the repository.
 - The cookie expires after 30 days. When it is more than one day old, the next request gets a fresh 30-day cookie. A user who opens the app at least once every 30 days stays signed in.
