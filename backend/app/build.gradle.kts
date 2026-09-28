@@ -1,6 +1,7 @@
 plugins { application }
 
 dependencies {
+    implementation(platform(libs.netty.bom))
     implementation(project(":backend:core"))
     implementation(project(":backend:data"))
     implementation(project(":backend:api-grpc"))

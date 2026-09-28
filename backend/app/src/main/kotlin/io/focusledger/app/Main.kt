@@ -1,12 +1,17 @@
 package io.focusledger.app
 
 import com.zaxxer.hikari.HikariDataSource
-import io.focusledger.core.account.AccountService
-import io.focusledger.core.ledger.LedgerService
+import io.focusledger.core.account.CoreAccountService
+import io.focusledger.core.ledger.CoreLedgerService
 import io.focusledger.data.JdbcAgentConnectionRepository
+import io.focusledger.data.JooqAccountRepository
+import io.focusledger.data.JooqCycleRepository
+import io.focusledger.data.JooqNodeRepository
+import io.focusledger.data.JooqSettingsRepository
+import io.focusledger.data.JooqTransactor
+import io.focusledger.data.LedgerDatabase
 import io.focusledger.mcp.oauth.HttpClientMetadataSource
 import java.time.Clock
-import javax.sql.DataSource
 import kotlin.system.exitProcess
 
 fun main() {
@@ -18,18 +23,29 @@ fun main() {
             exitProcess(1)
         }
     val dataSource = connectionPool(config.databaseUrl)
+    val database = LedgerDatabase(dataSource)
     val clock = Clock.systemUTC()
-    val (ledger, account) = coreServices(dataSource, clock)
     val server =
         FocusLedgerApp.start(
             config,
             AppServices(
-                ledger = ledger,
-                account = account,
+                ledger =
+                    CoreLedgerService(
+                        JooqNodeRepository(database),
+                        JooqCycleRepository(database),
+                        JooqTransactor(database),
+                        clock,
+                    ),
+                account =
+                    CoreAccountService(
+                        // Google sign-in and the session cookie arrive with #65. Until then no
+                        // credential passes, and every sign-in page asks the user to sign in.
+                        verifier = { null },
+                        accounts = JooqAccountRepository(database),
+                        settings = JooqSettingsRepository(database),
+                    ),
                 agentConnections = JdbcAgentConnectionRepository(dataSource),
                 clientMetadata = HttpClientMetadataSource(),
-                // No session cookie exists until ws-a builds it, so every sign-in page asks
-                // the user to sign in first.
                 browserSessions = { null },
                 clock = clock,
             ),
@@ -46,8 +62,9 @@ fun main() {
 }
 
 /**
- * A small pool: Neon's pooler does the heavy pooling (docs/setup.md, "Connection pool"). The pool
- * connects on first use, so the program starts while the database still wakes up.
+ * One small pool for jOOQ and the agent connections: Neon's pooler does the heavy pooling
+ * (docs/setup.md, "Connection pool"). It connects on first use, so the program starts while the
+ * database still wakes up.
  */
 private fun connectionPool(jdbcUrl: String) =
     HikariDataSource().apply {
@@ -55,11 +72,3 @@ private fun connectionPool(jdbcUrl: String) =
         maximumPoolSize = 4
         minimumIdle = 0
     }
-
-// TODO(#61): build CoreLedgerService and CoreAccountService on the jOOQ repositories once #61
-// merges. The orchestrator holds this PR until then.
-@Suppress("UNUSED_PARAMETER")
-private fun coreServices(
-    dataSource: DataSource,
-    clock: Clock,
-): Pair<LedgerService, AccountService> = error("The core services arrive with #61.")
