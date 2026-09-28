@@ -84,10 +84,11 @@ internal object ClientMetadataRules {
                     ?: return ClientLookup.Invalid("redirect_uris must hold only strings.")
             }
         val authMethod = document.string("token_endpoint_auth_method") ?: "none"
+        val clientName = document.string("client_name")?.trim()
         return when {
             document.string("client_id") != clientId ->
                 ClientLookup.Invalid("The client_id in the metadata does not match the URL.")
-            document.string("client_name").isNullOrBlank() ->
+            clientName.isNullOrEmpty() ->
                 ClientLookup.Invalid("The client metadata has no client_name.")
             redirectUris.isNullOrEmpty() ->
                 ClientLookup.Invalid("The client metadata has no redirect_uris.")
@@ -97,10 +98,7 @@ internal object ClientMetadataRules {
                 ClientLookup.Invalid(
                     "Only public clients (token_endpoint_auth_method none) are supported."
                 )
-            else ->
-                ClientLookup.Found(
-                    ClientMetadata(clientId, document.string("client_name")!!.trim(), redirectUris)
-                )
+            else -> ClientLookup.Found(ClientMetadata(clientId, clientName, redirectUris))
         }
     }
 

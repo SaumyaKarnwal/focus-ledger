@@ -31,6 +31,10 @@ internal class VerifiedToken(val userId: UserId, private val claims: JWTClaimsSe
     val expiresAt = claims.expirationTime.toInstant()
 
     fun string(name: String): String? = claims.getStringClaim(name)
+
+    /** A claim that the server always signs into this kind of token. */
+    fun requireClaim(name: String): String =
+        checkNotNull(string(name)) { "The signed token has no $name claim." }
 }
 
 /** HS256 JWTs with MCP_TOKEN_SIGNING_KEY, through Nimbus JOSE+JWT. */

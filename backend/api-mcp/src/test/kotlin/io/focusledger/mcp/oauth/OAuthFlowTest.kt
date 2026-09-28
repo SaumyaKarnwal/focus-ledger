@@ -553,6 +553,30 @@ class OAuthFlowTest {
     }
 
     @Test
+    fun attack_repeatedParameter_isRejected() = oauthTest { client ->
+        val code = client.loginCode(userA)
+        val response =
+            client.submitForm(
+                OAuthConfig.TOKEN_PATH,
+                parameters {
+                    append("grant_type", "authorization_code")
+                    append("code", code)
+                    append("redirect_uri", redirectUri)
+                    append("client_id", clientId)
+                    append("code_verifier", verifier)
+                    append("resource", config.resource)
+                    append("resource", "https://other.example/mcp")
+                },
+            )
+
+        response.assertTokenError("invalid_request")
+        assertEquals(
+            HttpStatusCode.BadRequest,
+            client.consentPage(userA, authorizeUrl() + "&state=state-2").status,
+        )
+    }
+
+    @Test
     fun userIsolation_userBsTokenCannotReadOrChangeUserAsData() = oauthTest { client ->
         val (tokenOfB, _) = client.signIn(userB)
         val nodesOfA = ledger.nodesOf(userA)

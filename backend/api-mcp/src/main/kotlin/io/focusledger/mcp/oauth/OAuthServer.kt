@@ -149,7 +149,7 @@ class OAuthServer(
                 ?: return AuthorizationCheck.ShowError(
                     "This approval form is not valid anymore. Start the connection again from the agent."
                 )
-        val redirectUri = consent.string(REDIRECT_URI)!!
+        val redirectUri = consent.requireClaim(REDIRECT_URI)
         val state = consent.string(STATE)
         if (!approved) {
             return AuthorizationCheck.Redirect(
@@ -163,10 +163,10 @@ class OAuthServer(
                 config.tokenEndpoint,
                 config.codeLifetime,
                 mapOf(
-                    CLIENT_ID to consent.string(CLIENT_ID)!!,
+                    CLIENT_ID to consent.requireClaim(CLIENT_ID),
                     REDIRECT_URI to redirectUri,
-                    CODE_CHALLENGE to consent.string(CODE_CHALLENGE)!!,
-                    RESOURCE to consent.string(RESOURCE)!!,
+                    CODE_CHALLENGE to consent.requireClaim(CODE_CHALLENGE),
+                    RESOURCE to consent.requireClaim(RESOURCE),
                 ),
             )
         return AuthorizationCheck.Redirect(
@@ -208,7 +208,7 @@ class OAuthServer(
                 )
             !isOurResource(parameters["resource"] ?: config.resource) ->
                 failed("invalid_target", "The resource must be ${config.resource}.")
-            !pkceMatches(parameters.getValue("code_verifier"), code.string(CODE_CHALLENGE)!!) ->
+            !pkceMatches(parameters.getValue("code_verifier"), code.requireClaim(CODE_CHALLENGE)) ->
                 failed("invalid_grant", "The code_verifier does not match the code_challenge.")
             else -> {
                 val clientId = parameters.getValue("client_id")

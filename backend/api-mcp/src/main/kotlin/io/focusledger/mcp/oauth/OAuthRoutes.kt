@@ -34,7 +34,11 @@ fun Application.ledgerOAuth(oauth: OAuthServer) {
             call.respondJson(oauth.authorizationServerMetadata())
         }
         get(OAuthConfig.AUTHORIZE_PATH) {
-            when (val check = oauth.checkAuthorization(call.request.queryParameters.single())) {
+            val parameters = call.request.queryParameters.singleValues()
+            val check =
+                parameters?.let(oauth::checkAuthorization)
+                    ?: AuthorizationCheck.ShowError(REPEATED_PARAMETER)
+            when (check) {
                 is AuthorizationCheck.ShowError ->
                     call.respondPage(Pages.error(check.message), HttpStatusCode.BadRequest)
                 is AuthorizationCheck.Redirect -> call.respondRedirect(check.url)
@@ -71,7 +75,11 @@ fun Application.ledgerOAuth(oauth: OAuthServer) {
         post(OAuthConfig.TOKEN_PATH) {
             call.response.header(HttpHeaders.CacheControl, "no-store")
             call.response.header(HttpHeaders.Pragma, "no-cache")
-            when (val result = oauth.token(call.receiveParameters().single())) {
+            val parameters = call.receiveParameters().singleValues()
+            val result =
+                parameters?.let(oauth::token)
+                    ?: TokenResult.Failed("invalid_request", REPEATED_PARAMETER)
+            when (result) {
                 is TokenResult.Issued -> call.respondJson(result.body)
                 is TokenResult.Failed ->
                     call.respondJson(
@@ -86,9 +94,11 @@ fun Application.ledgerOAuth(oauth: OAuthServer) {
     }
 }
 
-/** One value per name. A name that appears twice is dropped, as OAuth requires (RFC 6749, 3.1). */
-private fun Parameters.single(): Map<String, String> =
-    entries().mapNotNull { (name, values) -> values.singleOrNull()?.let { name to it } }.toMap()
+private const val REPEATED_PARAMETER = "A request parameter appears more than once."
+
+/** One value per name, or null when a name repeats, which OAuth rejects (RFC 6749, 3.1). */
+private fun Parameters.singleValues(): Map<String, String>? =
+    entries().map { (name, values) -> name to (values.singleOrNull() ?: return null) }.toMap()
 
 private suspend fun ApplicationCall.respondJson(
     body: JsonObject,
