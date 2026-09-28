@@ -1,6 +1,6 @@
 import { create, fromBinary, toBinary } from "@bufbuild/protobuf";
 import { createClient } from "@connectrpc/connect";
-import { createConnectTransport } from "@connectrpc/connect-web";
+import { createGrpcWebTransport } from "@connectrpc/connect-web";
 import { expect, test } from "vitest";
 import { LedgerService } from "./gen/focusledger/v1/ledger_service_pb";
 import { CyclePbSchema, FocusMode } from "./gen/focusledger/v1/model_pb";
@@ -22,7 +22,7 @@ test("generatedCyclePb_binaryRoundTrip_keepsOptionalFields", () => {
 test("generatedLedgerService_connectClient_hasEveryRpc", () => {
   const client = createClient(
     LedgerService,
-    createConnectTransport({ baseUrl: "http://localhost" }),
+    createGrpcWebTransport({ baseUrl: "http://localhost" }),
   );
 
   expect(Object.keys(LedgerService.method).sort()).toEqual([

@@ -16,16 +16,20 @@ tasks.test {
 
 tasks.register<JavaExec>("migrateLocal") {
     description =
-        "Applies the migrations to the local Docker database, with DB_URL_MIGRATE from .env."
+        "Applies the migrations to the database in DB_URL_MIGRATE, from the environment or .env."
     group = "database"
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass = "io.focusledger.data.LedgerMigrationsKt"
-    doFirst { environment("DB_URL_MIGRATE", localEnvironment().getValue("DB_URL_MIGRATE")) }
+    doFirst {
+        val jdbcUrl =
+            System.getenv("DB_URL_MIGRATE") ?: localEnvironment().getValue("DB_URL_MIGRATE")
+        environment("DB_URL_MIGRATE", jdbcUrl)
+    }
 }
 
 /**
  * The variables from the repository's .env file, with `${NAME}` references expanded from earlier
- * lines. A variable set in the process environment wins over the file.
+ * lines. For each name, a variable set in the process environment wins over the file.
  */
 fun localEnvironment(): Map<String, String> {
     val envFile = rootProject.file(".env")

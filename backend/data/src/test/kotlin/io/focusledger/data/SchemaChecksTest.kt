@@ -367,6 +367,28 @@ class SchemaChecksTest {
         )
     }
 
+    @Test
+    fun userSettingsUpdate_asApp_setsUpdatedAtThroughLedgerTrigger() {
+        val userId = fixtures.newUser()
+        app.execute(
+            "INSERT INTO account.user_settings (user_id, updated_at) VALUES (?, '2000-01-01Z')",
+            userId,
+        )
+
+        app.execute(
+            "UPDATE account.user_settings SET sound_enabled = false WHERE user_id = ?",
+            userId,
+        )
+
+        assertEquals(
+            "t",
+            app.queryString(
+                "SELECT updated_at > '2000-01-01Z' FROM account.user_settings WHERE user_id = ?",
+                userId,
+            ),
+        )
+    }
+
     private fun minutesOf(userId: UUID, cycleId: UUID): String? =
         app.queryString(
             "SELECT minutes FROM ledger.cycle WHERE user_id = ? AND id = ?",
