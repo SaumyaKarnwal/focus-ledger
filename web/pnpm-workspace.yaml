@@ -1,0 +1,3 @@
+# The buf binary comes from a platform package, so its install script is not needed.
+allowBuilds:
+  "@bufbuild/buf": false

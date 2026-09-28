@@ -1,0 +1,13 @@
+# Kotlin and Java code for the backend. Gradle runs this into backend/api-grpc/build.
+# Each plugin version matches the runtime version in gradle/libs.versions.toml.
+version: v2
+clean: true
+plugins:
+  - remote: buf.build/protocolbuffers/java:v36.2
+    out: backend/api-grpc/build/generated/buf/java
+  - remote: buf.build/protocolbuffers/kotlin:v36.2
+    out: backend/api-grpc/build/generated/buf/kotlin
+  - remote: buf.build/grpc/java:v1.84.0
+    out: backend/api-grpc/build/generated/buf/java
+  - remote: buf.build/grpc/kotlin:v1.5.0
+    out: backend/api-grpc/build/generated/buf/kotlin

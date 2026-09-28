@@ -8,17 +8,23 @@
     "node": ">=24.15.0 <25"
   },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build",
-    "test": "vitest run",
+    "generate": "buf generate .. --template buf.gen.yaml",
+    "dev": "buf generate .. --template buf.gen.yaml && vite",
+    "build": "buf generate .. --template buf.gen.yaml && tsc -b && vite build",
+    "test": "buf generate .. --template buf.gen.yaml && vitest run",
     "lint": "eslint . --max-warnings 0 && prettier --check .",
     "format": "eslint --fix . && prettier --write ."
   },
   "dependencies": {
+    "@bufbuild/protobuf": "^2.15.0",
+    "@connectrpc/connect": "^2.2.0",
+    "@connectrpc/connect-web": "^2.2.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@bufbuild/buf": "1.73.0",
+    "@bufbuild/protoc-gen-es": "^2.15.0",
     "@eslint/js": "^10.0.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
