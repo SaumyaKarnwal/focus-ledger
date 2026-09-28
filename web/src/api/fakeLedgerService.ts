@@ -18,6 +18,7 @@ import {
   type CyclePb,
   CyclePbSchema,
   type EstimatePb,
+  EstimatePbSchema,
   FocusMode,
   type NodePb,
   NodePbSchema,
@@ -268,7 +269,10 @@ export function createFakeLedgerService(
       const changes: Partial<StoredNode> = {};
       if (paths.includes("name")) changes.name = requireName(request.name);
       if (paths.includes("estimates")) {
-        changes.estimates = requireEstimates(request.estimates);
+        changes.estimates = replaceEstimates(
+          node.estimates,
+          requireEstimates(request.estimates),
+        );
       }
       if (paths.includes("closed")) changes.closed = request.closed;
       if (paths.includes("parent_id")) {
@@ -504,6 +508,25 @@ function requireEstimates(estimates: EstimatePb[]): EstimatePb[] {
     throw invalid("each mode can have one estimate");
   }
   return [...estimates].sort((left, right) => left.mode - right.mode);
+}
+
+/**
+ * The backend never deletes an estimate row. A stored mode that the request
+ * leaves out keeps its cycle_minutes, and its cycle_count becomes 0.
+ */
+function replaceEstimates(
+  stored: readonly EstimatePb[],
+  requested: EstimatePb[],
+): EstimatePb[] {
+  const requestedModes = new Set(requested.map((estimate) => estimate.mode));
+  const cleared = stored
+    .filter((estimate) => !requestedModes.has(estimate.mode))
+    .map((estimate) =>
+      create(EstimatePbSchema, { ...estimate, cycleCount: 0 }),
+    );
+  return [...requested, ...cleared].sort(
+    (left, right) => left.mode - right.mode,
+  );
 }
 
 function requireInRange(value: number, range: Range, fieldName: string) {

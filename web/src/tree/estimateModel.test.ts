@@ -33,6 +33,23 @@ describe("estimateModel", () => {
     });
   });
 
+  test("estimateRows_clearedModeRow_keepsItsLengthAtCountZero", () => {
+    const node = create(NodePbSchema, {
+      estimates: [
+        { mode: FocusMode.EXECUTION, cycleMinutes: 45, cycleCount: 0 },
+      ],
+    });
+
+    expect(estimateRows(node, settings)[FocusMode.EXECUTION]).toEqual({
+      cycleMinutes: 45,
+      cycleCount: 0,
+    });
+    expect(estimateSummary(estimateRows(node, settings))).toEqual({
+      cycles: 0,
+      minutes: 0,
+    });
+  });
+
   test("toEstimates_rows_givesOneEstimatePerMode", () => {
     const rows = estimateRows(create(NodePbSchema), settings);
 
