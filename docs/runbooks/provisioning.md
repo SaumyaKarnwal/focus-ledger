@@ -136,10 +136,10 @@ The client ID is not a secret (the browser sees it), but it goes into Secret Man
 
 ## 5. Secrets
 
-Create the four secrets, then add one version to each with the `read -rs` pattern above:
+Create the five secrets, then add one version to each with the `read -rs` pattern above:
 
 ```bash
-for NAME in DB_URL_APP DB_URL_MIGRATE SESSION_SIGNING_KEY GOOGLE_CLIENT_ID; do
+for NAME in DB_URL_APP DB_URL_MIGRATE SESSION_SIGNING_KEY MCP_TOKEN_SIGNING_KEY GOOGLE_CLIENT_ID; do
   gcloud secrets create "$NAME" --replication-policy=automatic --project="$PROJECT_ID"
 done
 ```
@@ -149,6 +149,7 @@ done
 | `DB_URL_APP` | the pooled connection string for `focusledger_app` |
 | `DB_URL_MIGRATE` | the direct connection string for `focusledger_migrate` |
 | `SESSION_SIGNING_KEY` | a new random value: `openssl rand -base64 48` |
+| `MCP_TOKEN_SIGNING_KEY` | a different new random value: `openssl rand -base64 48` |
 | `GOOGLE_CLIENT_ID` | the client ID from step 3 |
 
 The free tier covers 6 active secret versions. When you rotate a secret, destroy the old version.
@@ -163,7 +164,7 @@ RUN_SA=focusledger-run@$PROJECT_ID.iam.gserviceaccount.com
 DEPLOY_SA=focusledger-deploy@$PROJECT_ID.iam.gserviceaccount.com
 
 # the service reads only its own secrets
-for NAME in DB_URL_APP SESSION_SIGNING_KEY GOOGLE_CLIENT_ID; do
+for NAME in DB_URL_APP SESSION_SIGNING_KEY MCP_TOKEN_SIGNING_KEY GOOGLE_CLIENT_ID; do
   gcloud secrets add-iam-policy-binding "$NAME" --project="$PROJECT_ID" \
     --member="serviceAccount:$RUN_SA" --role=roles/secretmanager.secretAccessor
 done
@@ -255,13 +256,13 @@ Every Google Cloud step above can also be done by clicking in the console (conso
 
 ### Step 5 in the console: secrets
 
-**☰ → Security → Secret Manager → Create secret**, once for each of `DB_URL_APP`, `DB_URL_MIGRATE`, `SESSION_SIGNING_KEY`, `GOOGLE_CLIENT_ID`:
+**☰ → Security → Secret Manager → Create secret**, once for each of `DB_URL_APP`, `DB_URL_MIGRATE`, `SESSION_SIGNING_KEY`, `MCP_TOKEN_SIGNING_KEY`, `GOOGLE_CLIENT_ID`:
 
 1. Name: exactly as written.
 2. Secret value: paste the value. It goes from the browser straight to Secret Manager. Do not save it anywhere else, and clear your clipboard afterwards.
 3. Replication: **Automatic**. Click **Create secret**.
 
-For `SESSION_SIGNING_KEY`, generate the value in a terminal with `openssl rand -base64 48`, copy it straight into the browser, then close the terminal window.
+For `SESSION_SIGNING_KEY` and `MCP_TOKEN_SIGNING_KEY`, generate a separate value for each in a terminal with `openssl rand -base64 48`, copy it straight into the browser, then close the terminal window.
 
 ### Step 6 in the console: service accounts and GitHub sign-in
 
@@ -273,7 +274,7 @@ For `SESSION_SIGNING_KEY`, generate the value in a terminal with `openssl rand -
 
 | Where to click | Principal | Role |
 |---|---|---|
-| **Secret Manager** → each of `DB_URL_APP`, `SESSION_SIGNING_KEY`, `GOOGLE_CLIENT_ID` → **Permissions → Grant access** | `focusledger-run@…` | Secret Manager Secret Accessor |
+| **Secret Manager** → each of `DB_URL_APP`, `SESSION_SIGNING_KEY`, `MCP_TOKEN_SIGNING_KEY`, `GOOGLE_CLIENT_ID` → **Permissions → Grant access** | `focusledger-run@…` | Secret Manager Secret Accessor |
 | **Secret Manager** → `DB_URL_MIGRATE` → **Permissions → Grant access** | `focusledger-deploy@…` | Secret Manager Secret Accessor |
 | **Artifact Registry** → repository `ekagra` → **Permissions → Add principal** | `focusledger-deploy@…` | Artifact Registry Writer |
 | **IAM & Admin → IAM → Grant access** (project level) | `focusledger-deploy@…` | Cloud Run Admin |

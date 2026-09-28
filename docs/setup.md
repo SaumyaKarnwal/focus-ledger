@@ -156,7 +156,7 @@ The free tier covers 6 active secret versions and 10,000 access operations a mon
 
 | Service account | Used by | Permissions |
 |---|---|---|
-| `focusledger-run` | The Cloud Run service identity | Read `DB_URL_APP`, `SESSION_SIGNING_KEY`, `GOOGLE_CLIENT_ID`. Nothing else. |
+| `focusledger-run` | The Cloud Run service identity | Read `DB_URL_APP`, `SESSION_SIGNING_KEY`, `MCP_TOKEN_SIGNING_KEY`, `GOOGLE_CLIENT_ID`. Nothing else. |
 | `focusledger-deploy` | GitHub Actions | Push images to Artifact Registry. Deploy the Cloud Run service. Act as `focusledger-run` (needed to deploy a service with that identity). Read `DB_URL_MIGRATE`. |
 
 - GitHub Actions signs in to Google Cloud with **Workload Identity Federation**: GitHub proves which repository and branch is running, and Google issues a short-lived credential. No service-account key file exists anywhere.
@@ -194,6 +194,7 @@ All configuration comes from environment variables. Locally, a `.env.example` fi
 | `DB_URL_APP` | `jdbc:postgresql://localhost:5432/focusledger?user=focusledger_app` |
 | `DB_URL_MIGRATE` | `jdbc:postgresql://localhost:5432/focusledger?user=focusledger_migrate` |
 | `SESSION_SIGNING_KEY` | a random local-only value |
+| `MCP_TOKEN_SIGNING_KEY` | a different random local-only value |
 | `GOOGLE_CLIENT_ID` | the development OAuth client ID |
 | `PORT` | `8080` (Cloud Run sets it) |
 | `PUBLIC_BASE_URL` | `http://localhost:8080` (the Cloud Run address in production; used in OAuth metadata and redirects) |
