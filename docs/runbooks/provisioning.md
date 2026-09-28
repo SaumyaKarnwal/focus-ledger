@@ -4,6 +4,19 @@ Status: draft. The owner runs this once, before workstream C (infra and deploy) 
 
 The design behind every step is in [`../setup.md`](../setup.md) and [`../architecture.md`](../architecture.md).
 
+## Progress
+
+| Step | State |
+|---|---|
+| 1. Accounts | Neon: done. Google Cloud and Cloudflare: to do. |
+| 2. Google Cloud project, $5 limit | to do |
+| 3. Google sign-in client | to do |
+| 4. Neon database | project created (Singapore, Postgres 18). The role script is still to run, together with step 5. |
+| 5. Secrets | to do |
+| 6. Deploy identity | to do |
+| 7. Domain `ekagra.app` | to do. Buy early, before someone else does. |
+| 8. GitHub settings | to do |
+
 ## The one rule for this whole runbook
 
 **No secret goes into a file, a commit, a chat, a note, or a log.** Secrets are passwords, keys, tokens, and connection strings. Each secret goes from your terminal straight into Google Secret Manager (or into Neon's SQL editor), and nowhere else.
@@ -185,8 +198,11 @@ Never create a service-account key (`gcloud iam service-accounts keys create`). 
 
 ## 7. Domain
 
-1. In Cloudflare, **Domain Registration → Register domains**, and buy **`ekagra.app`**. Check the price at checkout (`.app` usually costs a little more than `.com`). Optionally also buy `getekagra.com` and redirect it to `ekagra.app`.
-2. Cloudflare becomes the DNS for the domain automatically.
+1. Sign in at dash.cloudflare.com. In the left menu, open **Domain Registration → Register Domains**.
+2. Search for **`ekagra.app`**. Check the yearly price and the renewal price at checkout (`.app` usually costs a little more than `.com`).
+3. Buy it with the card. Keep **auto-renew on**, so the domain never lapses. WHOIS privacy is included, so your name and address stay hidden.
+4. Optional: also buy `getekagra.com`, and redirect it to `ekagra.app` later.
+5. Cloudflare becomes the DNS for the domain automatically. Do not add any DNS records yet.
 3. How the domain reaches Cloud Run (a Cloud Run domain mapping, or a Cloudflare route to the service URL) is decided in workstream C.
 4. Add `https://ekagra.app` to the authorized origins of the sign-in client (step 3).
 
