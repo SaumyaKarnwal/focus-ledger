@@ -8,13 +8,13 @@ The design behind every step is in [`../setup.md`](../setup.md) and [`../archite
 
 | Step | State |
 |---|---|
-| 1. Accounts | Neon: done. Google Cloud and Cloudflare: to do. |
-| 2. Google Cloud project, $5 limit | to do |
+| 1. Accounts | Neon and Google Cloud: done (the Google Cloud trial had been used before, so there is no credit; billing is on for the always-free allowance). Cloudflare: later, with the domain. |
+| 2. Google Cloud project, $5 limit | done (registry named `ekagra`) |
 | 3. Google sign-in client | to do |
 | 4. Neon database | project created (Singapore, Postgres 18). The role script is still to run, together with step 5. |
 | 5. Secrets | to do |
 | 6. Deploy identity | to do |
-| 7. Domain `ekagra.app` | to do. Buy early, before someone else does. |
+| 7. Domain | on hold: the name is not final. The app runs on the Cloud Run address until then. |
 | 8. GitHub settings | to do |
 
 ## The one rule for this whole runbook
@@ -108,7 +108,7 @@ Upgrade to a paid account before day 90 of the trial. If the trial ends first, G
 Create the container registry:
 
 ```bash
-gcloud artifacts repositories create focus-ledger \
+gcloud artifacts repositories create ekagra \
   --repository-format=docker --location="$REGION" --project="$PROJECT_ID"
 ```
 
@@ -118,7 +118,7 @@ In the console, **APIs & Services**:
 
 1. **OAuth consent screen:** user type "External". App name "Focus Ledger", your support email. Scopes: `openid`, `email`, `profile` only. These are basic scopes.
 2. **Credentials → Create credentials → OAuth client ID:** type "Web application".
-   - Authorized JavaScript origins: `http://localhost:5173` (local web app) and `https://ekagra.app` (after step 7).
+   - Authorized JavaScript origins: `http://localhost:5173` (local web app), then the Cloud Run address after the first deploy, then the domain when it exists.
 3. Copy the **client ID**. The sign-in design uses only the client ID; do not create or store a client secret.
 
 The client ID is not a secret (the browser sees it), but it goes into Secret Manager with the other configuration so that every setting lives in one place.
@@ -169,7 +169,7 @@ for NAME in DB_URL_APP SESSION_SIGNING_KEY GOOGLE_CLIENT_ID; do
 done
 
 # the deploy job: push images, deploy the service, act as the service identity, run migrations
-gcloud artifacts repositories add-iam-policy-binding focus-ledger --location="$REGION" --project="$PROJECT_ID" \
+gcloud artifacts repositories add-iam-policy-binding ekagra --location="$REGION" --project="$PROJECT_ID" \
   --member="serviceAccount:$DEPLOY_SA" --role=roles/artifactregistry.writer
 gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member="serviceAccount:$DEPLOY_SA" --role=roles/run.admin
@@ -201,12 +201,12 @@ Never create a service-account key (`gcloud iam service-accounts keys create`). 
 ## 7. Domain
 
 1. Sign in at dash.cloudflare.com. In the left menu, open **Domain Registration → Register Domains**.
-2. Search for **`ekagra.app`**. Check the yearly price and the renewal price at checkout (`.app` usually costs a little more than `.com`).
+2. Search for the chosen domain. Check the yearly price and the renewal price at checkout (`.app` usually costs a little more than `.com`).
 3. Buy it with the card. Keep **auto-renew on**, so the domain never lapses. WHOIS privacy is included, so your name and address stay hidden.
 4. Optional: also buy `getekagra.com`, and redirect it to `ekagra.app` later.
 5. Cloudflare becomes the DNS for the domain automatically. Do not add any DNS records yet.
 3. How the domain reaches Cloud Run (a Cloud Run domain mapping, or a Cloudflare route to the service URL) is decided in workstream C.
-4. Add `https://ekagra.app` to the authorized origins of the sign-in client (step 3).
+4. Add `https://<the domain>` to the authorized origins of the sign-in client (step 3).
 
 ## 8. GitHub repository settings
 
@@ -244,13 +244,13 @@ Every Google Cloud step above can also be done by clicking in the console (conso
    - IAM Service Account Credentials API
    - Security Token Service API
    - Cloud Resource Manager API
-5. **The container registry:** **☰ → Artifact Registry → Repositories → Create repository**. Name `focus-ledger`. Format **Docker**. Mode **Standard**. Location type **Region**, region **asia-southeast1 (Singapore)**. Click **Create**.
+5. **The container registry:** **☰ → Artifact Registry → Repositories → Create repository**. Name `ekagra`. Format **Docker**. Mode **Standard**. Location type **Region**, region **asia-southeast1 (Singapore)**. Click **Create**.
 
 ### Step 3 in the console: the sign-in client
 
-1. **☰ → APIs & Services → OAuth consent screen** (newer consoles call this **Google Auth Platform**). If asked, click **Get started**. App name `Ekagra`, your support email. Audience: **External**. Contact email: yours. Save.
+1. **☰ → APIs & Services → OAuth consent screen** (newer consoles call this **Google Auth Platform**). If asked, click **Get started**. App name `Focus Ledger` for now (rename it when the brand name is final), your support email. Audience: **External**. Contact email: yours. Save.
 2. **Data access** (or **Scopes**): keep only `openid`, `.../auth/userinfo.email`, and `.../auth/userinfo.profile`. Add nothing else.
-3. **Clients → Create client** (or **Credentials → Create credentials → OAuth client ID**). Type **Web application**. Name `Ekagra web`. Authorized JavaScript origins: `http://localhost:5173` now, and `https://ekagra.app` after step 7. Leave redirect URIs empty. Click **Create**.
+3. **Clients → Create client** (or **Credentials → Create credentials → OAuth client ID**). Type **Web application**. Name `Focus Ledger web`. Authorized JavaScript origins: `http://localhost:5173` now; the Cloud Run address after the first deploy; the domain when it exists. Leave redirect URIs empty. Click **Create**.
 4. Copy only the **client ID** (it ends in `.apps.googleusercontent.com`). Do not download or store the client secret; the design does not use it.
 
 ### Step 5 in the console: secrets
@@ -275,7 +275,7 @@ For `SESSION_SIGNING_KEY`, generate the value in a terminal with `openssl rand -
 |---|---|---|
 | **Secret Manager** → each of `DB_URL_APP`, `SESSION_SIGNING_KEY`, `GOOGLE_CLIENT_ID` → **Permissions → Grant access** | `focusledger-run@…` | Secret Manager Secret Accessor |
 | **Secret Manager** → `DB_URL_MIGRATE` → **Permissions → Grant access** | `focusledger-deploy@…` | Secret Manager Secret Accessor |
-| **Artifact Registry** → repository `focus-ledger` → **Permissions → Add principal** | `focusledger-deploy@…` | Artifact Registry Writer |
+| **Artifact Registry** → repository `ekagra` → **Permissions → Add principal** | `focusledger-deploy@…` | Artifact Registry Writer |
 | **IAM & Admin → IAM → Grant access** (project level) | `focusledger-deploy@…` | Cloud Run Admin |
 | **IAM & Admin → Service accounts** → `focusledger-run` → **Principals with access → Grant access** | `focusledger-deploy@…` | Service Account User |
 
