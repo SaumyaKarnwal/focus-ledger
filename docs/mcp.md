@@ -104,7 +104,7 @@ account.agent_connection(id, user_id, client_id, refresh_token_hash, created_at,
 
 - The agent app refreshes its tokens itself. The server runs nothing in the background; it answers `/oauth/token` when the app asks.
 - The access token is signed and short-lived (about 1 hour), so it needs no table and no lookup per call.
-- `refresh_token_hash` holds the hash of the current refresh token only. Each refresh replaces it, so an old refresh token matches nothing and is rejected. A refresh must come from the same `client_id`.
+- A refresh token is `<connection id>.<32 random bytes>`. The ID part is not secret: the server finds the row by it. `refresh_token_hash` holds the SHA-256 of the current token only, and each refresh replaces it. If the ID matches a row but the hash does not, an old token was reused (a sign of theft), and the server revokes that connection. A refresh must come from the same `client_id`.
 - The one-time login code is signed, lives 60 seconds, is bound to the PKCE challenge, and is single-use through an in-memory set (the service runs one instance).
 - A "connected apps" screen with names and revoke comes later, with its own RPCs.
 
