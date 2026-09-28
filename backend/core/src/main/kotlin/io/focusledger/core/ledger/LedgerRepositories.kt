@@ -23,7 +23,7 @@ sealed interface IdempotentInsert<out T> {
 interface NodeRepository {
     /**
      * Inserts the node and its estimate rows. A parent that this user does not have gives
-     * `NotFound(NODE)`.
+     * `NotFound(NODE, "parent_id")`.
      */
     fun insert(
         userId: UserId,
@@ -37,8 +37,9 @@ interface NodeRepository {
     fun find(userId: UserId, nodeId: NodeId): Node?
 
     /**
-     * Changes the fields that [update] holds. A missing node or parent gives `NotFound(NODE)`. The
-     * loop trigger's error gives `FailedPrecondition(MOVE_UNDER_OWN_DESCENDANT)`.
+     * Changes the fields that [update] holds. A missing node gives `NotFound(NODE, "node_id")`, and
+     * a missing new parent gives `NotFound(NODE, "parent_id")`. The loop trigger's error gives
+     * `FailedPrecondition(MOVE_UNDER_OWN_DESCENDANT)`.
      */
     fun update(userId: UserId, nodeId: NodeId, update: NodeUpdate): ServiceResult<Node>
 
@@ -53,8 +54,9 @@ interface NodeRepository {
  */
 interface CycleRepository {
     /**
-     * A second running cycle gives `FailedPrecondition(SECOND_RUNNING_CYCLE)`. A node that this
-     * user does not have gives `NotFound(NODE)`.
+     * A second running cycle (the `cycle_one_running` index) gives
+     * `FailedPrecondition(SECOND_RUNNING_CYCLE)`. A node that this user does not have gives
+     * `NotFound(NODE, "node_id")`.
      */
     fun insert(
         userId: UserId,
@@ -71,9 +73,9 @@ interface CycleRepository {
     fun findRunning(userId: UserId): Cycle?
 
     /**
-     * Changes the fields that [update] holds. A missing cycle gives `NotFound(CYCLE)`, and a
-     * missing node gives `NotFound(NODE)`. The guard trigger's errors give `FailedPrecondition`
-     * with `MINUTES_DECREASE` or `CYCLE_ALREADY_FILED`.
+     * Changes the fields that [update] holds. A missing cycle gives `NotFound(CYCLE, "cycle_id")`,
+     * and a missing node to file to gives `NotFound(NODE, "node_id")`. The guard trigger's errors
+     * give `FailedPrecondition` with `MINUTES_DECREASE` or `CYCLE_ALREADY_FILED`.
      */
     fun update(userId: UserId, cycleId: CycleId, update: CycleUpdate): ServiceResult<Cycle>
 }

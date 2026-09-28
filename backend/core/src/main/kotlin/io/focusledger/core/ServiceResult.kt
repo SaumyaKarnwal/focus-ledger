@@ -18,8 +18,11 @@ sealed interface ServiceError {
      */
     data class InvalidArgument(val field: String, val reason: String) : ServiceError
 
-    /** The node or cycle does not exist for this user. Another user's ID gives the same error. */
-    data class NotFound(val resource: Resource) : ServiceError
+    /**
+     * The node or cycle does not exist for this user. Another user's ID gives the same error.
+     * [field] names the request field that held the ID, for example `node_id` or `parent_id`.
+     */
+    data class NotFound(val resource: Resource, val field: String) : ServiceError
 
     /** A rule rejects the change. */
     data class FailedPrecondition(val rule: Rule) : ServiceError
