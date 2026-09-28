@@ -148,6 +148,7 @@ Stored in Secret Manager. Never in the repository, in files, or in logs.
 | `DB_URL_MIGRATE` (direct, `focusledger_migrate`) | CI deploy job |
 | `SESSION_SIGNING_KEY` | Cloud Run service |
 | `GOOGLE_CLIENT_ID` | Cloud Run service |
+| `MCP_TOKEN_SIGNING_KEY` | Cloud Run service (signs agent access tokens and login codes) |
 
 The free tier covers 6 active secret versions and 10,000 access operations a month ([Secret Manager pricing](https://cloud.google.com/secret-manager/pricing)). Four secrets fit. Cloud Run reads the secrets once per instance start. A rotated secret creates a new version, so old versions must be destroyed to stay inside 6. The MCP token signing key, when it arrives, makes 5.
 
@@ -195,6 +196,7 @@ All configuration comes from environment variables. Locally, a `.env.example` fi
 | `SESSION_SIGNING_KEY` | a random local-only value |
 | `GOOGLE_CLIENT_ID` | the development OAuth client ID |
 | `PORT` | `8080` (Cloud Run sets it) |
+| `PUBLIC_BASE_URL` | `http://localhost:8080` (the Cloud Run address in production; used in OAuth metadata and redirects) |
 
 ### Connection pool
 
