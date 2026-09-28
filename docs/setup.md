@@ -206,6 +206,12 @@ HikariCP with a small pool: 4 connections, and a minimum idle of 0 so that an id
 - `V1__init.sql` is the draft DDL from the schema design, plus the roles and grants, plus decision 2 above.
 - The CI deploy job runs migrations with `DB_URL_MIGRATE` **before** it deploys the new service. Every migration must work with the service version that is already running. A column rename, for example, is split across two deploys.
 
+## Backups
+
+There is no backup job in v1. The owner accepts Neon's free-plan history retention of 6 hours: the database can be restored, or branched, to any moment in the last 6 hours. The design also limits data loss: the app role cannot delete, and cycles are append-only.
+
+Before any risky change (a large migration, a bulk data fix), create a Neon branch first. A branch is an instant, free copy of the database at that moment, and it stays until someone deletes it.
+
 ## Provisioning
 
 The step-by-step sign-ups and provisioning (Google Cloud, the sign-in client, Neon, secrets, service accounts, the domain, GitHub settings) are in [`runbooks/provisioning.md`](runbooks/provisioning.md).

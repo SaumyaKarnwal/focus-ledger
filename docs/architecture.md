@@ -36,6 +36,10 @@ flowchart LR
 | Database | Postgres | Neon |
 | Sign-in | Google ID token, checked by the backend | Google |
 
+## Region
+
+Everything runs in **Singapore**: the Neon database in `aws-ap-southeast-1` and Cloud Run in `asia-southeast1`. Most users are expected in India, where neither Neon nor this plan has a region, and Singapore is the closest. The backend sits next to the database, so each query stays inside the city. If most users later come from another place, the whole setup moves (a new Neon project, a data copy, a redeploy). If large groups grow in several places, each region gets its own setup, and each user's data lives in their home region: no query mixes two users' data, so users split cleanly.
+
 ## One domain, split by path
 
 | Path | Serves |

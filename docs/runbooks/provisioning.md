@@ -62,7 +62,7 @@ The command names and flags in this runbook were checked against the installed `
 
 ```bash
 export PROJECT_ID=focus-ledger-prod          # must be globally unique; add a suffix if taken
-export REGION=us-east4                       # Northern Virginia; close to Neon's aws-us-east-1
+export REGION=asia-southeast1                # Singapore; next to the Neon database (aws-ap-southeast-1)
 
 gcloud projects create "$PROJECT_ID" --name="Focus Ledger"
 gcloud billing accounts list                 # copy the billing account ID
@@ -110,7 +110,7 @@ The client ID is not a secret (the browser sees it), but it goes into Secret Man
 
 ## 4. Neon database
 
-1. Create a project: name `focus-ledger`, **Postgres 18**, region **AWS US East (N. Virginia)**. Keep the default database `neondb` and the default role `neondb_owner`.
+1. Create a project: name `focus-ledger`, **Postgres 18**, region **AWS Asia Pacific (Singapore)**. Turn on only the Postgres database: leave Object storage, Functions, AI gateway, and Neon Auth off. Keep the default database `neondb`, the default role `neondb_owner`, and the default branch `production`. Skip Neon's quick-start commands (`neon skills`, `neon mcp`, `neon link`, `neon deploy`): the design does not use them. **Done on 2026-09-28** (project `broad-dew-10360247`, Singapore, Postgres 18).
 2. Open the **SQL editor** (connected as `neondb_owner`) and run the role script from [`../setup.md`](../setup.md), "How the roles are created". It also installs `citext` and closes the default `CONNECT` and `TEMPORARY` rights. For each `PASSWORD '<generated>'`:
    - generate a password in the terminal (`openssl rand -base64 32`),
    - paste it into the SQL editor and into the matching secret in step 5, in the same sitting,
