@@ -558,6 +558,36 @@ describe("Failures", () => {
     const timer = await screen.findByRole("timer", { name: "Time left" });
     expect(timer.textContent).toBe("20:00");
     expect(screen.getByRole("heading", { name: "Notes" })).toBeDefined();
+
+    fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Start a new cycle" }),
+    );
+    const rows = await screen.findAllByTestId("rail-row");
+    expect(
+      rows.map((row) => within(row).getByRole("button").textContent),
+    ).toEqual(["Book", "Chapter 1", "Admin"]);
+  });
+
+  test("today_runningCycleUnderClosedParent_railLeavesOutTheSubtree", async () => {
+    const { client } = recordingClient(exampleNodes());
+    await client.updateNode({
+      nodeId: "00000000-0000-4000-8000-00000000000b",
+      closed: true,
+      updateMask: { paths: ["closed"] },
+    });
+    renderApp(client);
+    await screen.findByRole("timer", { name: "Time left" });
+
+    fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Start a new cycle" }),
+    );
+
+    const rows = await screen.findAllByTestId("rail-row");
+    expect(
+      rows.map((row) => within(row).getByRole("button").textContent),
+    ).toEqual(["Book", "Admin"]);
   });
 
   test("stop_refreshFailsAfterTheWrite_stillShowsTheBell", async () => {
