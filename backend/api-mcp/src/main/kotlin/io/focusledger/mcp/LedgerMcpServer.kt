@@ -8,10 +8,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.createApplicationPlugin
 import io.ktor.server.application.install
-import io.ktor.server.engine.EmbeddedServer
-import io.ktor.server.engine.embeddedServer
-import io.ktor.server.netty.Netty
-import io.ktor.server.netty.NettyApplicationEngine
 import io.ktor.server.request.header
 import io.ktor.server.request.path
 import io.ktor.server.response.header
@@ -26,6 +22,7 @@ import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolAnnotations
 import io.modelcontextprotocol.kotlin.sdk.types.ToolSchema
+import java.net.URI
 import kotlinx.serialization.json.JsonObject
 
 /** Turns the Bearer token of an MCP call into the user it belongs to. */
@@ -54,19 +51,16 @@ fun Application.ledgerMcp(
     }
 }
 
-/** The MCP server and its OAuth endpoints on their own port. Armeria forwards those paths here. */
-fun startLedgerMcpServer(
-    tools: LedgerTools,
-    oauth: OAuthServer,
-    port: Int,
-    host: String = "127.0.0.1",
-    allowedHosts: List<String> = listOf("localhost", "127.0.0.1", "[::1]"),
-): EmbeddedServer<NettyApplicationEngine, NettyApplicationEngine.Configuration> =
-    embeddedServer(Netty, port = port, host = host) {
-            ledgerMcp(tools, oauth, allowedHosts, oauth.config.resourceMetadataUrl)
-            ledgerOAuth(oauth)
-        }
-        .start(wait = false)
+/**
+ * The MCP server and its OAuth endpoints, the Ktor side of the program. Armeria forwards `/mcp`,
+ * the paths under `/oauth/`, and the `/.well-known/oauth-` documents here. The `Host` check accepts
+ * the public host and the loopback names.
+ */
+fun Application.focusLedgerMcp(tools: LedgerTools, oauth: OAuthServer) {
+    val allowedHosts = listOf(URI(oauth.config.issuer).host, "localhost", "127.0.0.1", "[::1]")
+    ledgerMcp(tools, oauth, allowedHosts.distinct(), oauth.config.resourceMetadataUrl)
+    ledgerOAuth(oauth)
+}
 
 private val authenticatedUser = AttributeKey<UserId>("focusledger.mcp.user")
 
