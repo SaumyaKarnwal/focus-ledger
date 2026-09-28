@@ -129,11 +129,16 @@ There is no delete. The server rejects a change that breaks the cycle rules: min
 
 | Screen | Call | The browser then computes |
 |---|---|---|
-| Today | `ListNodes(period = this week)` | *Logged today* and today's totals (from today's cycles), the week's totals, the running cycle (the cycle with no `minutes`) |
+| Today | `ListNodes(period = this week, include_closed = true)`, so closing a node changes no total | *Logged today* and today's totals (from today's cycles), the week's totals, the running cycle (the cycle with no `minutes`) |
 | Today, estimate progress | `ListNodes()` (all time) | "3 of 8" per node, from its own cycles against its estimate |
 | Tree | `ListNodes()` (all time) | the rolled-up `done / est` and time per row |
 | Inbox | `ListNodes()` (all time) | the cycles of the node with no id |
 | Report | `ListNodes(period = range, include_closed = true)` | the node × mode cross-tab, estimate vs actual, planned vs actual |
+
+### Timer rules in the web app
+
+- **Pause** keeps its paused time in browser storage, keyed by the cycle ID, so a reload does not count paused time as work. A pause over 10 minutes stops the cycle (FR-3.6).
+- **Extension** on the bell runs an N-minute countdown. At its end, or on Stop, the app sends `UpdateCycle(minutes = logged + elapsed extension)`. It never writes minutes that were not worked. The extension start also lives in browser storage, so a reload resumes the countdown.
 
 ### Behavior the proto does not show
 
