@@ -126,6 +126,8 @@ There is no `break` table. FR-5.5 keeps breaks out of the ledger.
 
 Constraints: all columns are `NOT NULL`. `UNIQUE (email)` gives one account per email.
 
+A lookup must compare the email as `citext`. The JDBC driver binds a Kotlin `String` as `varchar`, and `email = $1` then compares as `text`: the match is case-sensitive and skips the unique index. Bind the parameter as `citext` in the email-lookup query (`CAST(? AS citext)`, or a jOOQ `citext` data type). A test signs in with `A@Example.com` against a stored `a@example.com`, and checks with `EXPLAIN` that the unique index is used.
+
 Sign-in rules:
 - The server checks the provider's ID token (signature, audience, issuer, expiry), then reads the email.
 - If the token says the email is not verified (`email_verified` is false), the sign-in is rejected. Only a verified email can reach an account.
