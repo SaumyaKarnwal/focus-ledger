@@ -135,6 +135,12 @@ There is no delete. The server rejects a change that breaks the cycle rules: min
 | Inbox | `ListNodes()` (all time) | the cycles of the node with no id |
 | Report | `ListNodes(period = range, include_closed = true)` | the node × mode cross-tab, estimate vs actual, planned vs actual |
 
+### Behavior the proto does not show
+
+The proto is frozen. These rules are server behavior, not wire changes:
+- `ListNodes` with `include_closed = false` leaves out closed nodes and every node under a closed node.
+- `UpdateNodeResponse.node` carries no cycles. Read cycles with `ListNodes`.
+
 ## Decisions
 
 1. **Sign-in: Google only in v1.** `SignInRequest` holds a `oneof credential` with one field, `google_id_token`. A new provider is a new field in the `oneof`, so adding it is not a breaking change. Sign in with Apple needs a paid Apple Developer account, so it comes with the iOS app. No magic link.
@@ -376,7 +382,6 @@ message UpdateNodeRequest {
   google.protobuf.FieldMask update_mask = 6;
 }
 
-// The node carries no cycles here. Read cycles with ListNodes.
 message UpdateNodeResponse {
   NodePb node = 1;
 }
@@ -388,7 +393,6 @@ message UpdateNodeResponse {
 // Returns the whole tree in one response, with no pagination. The client computes
 // all totals and roll-ups from the cycles.
 message ListNodesRequest {
-  // False leaves out closed nodes and every node under a closed node.
   bool include_closed = 1;
   // Only cycles that started inside this period are returned. Unset means all time.
   PeriodPb period = 2;
