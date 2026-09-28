@@ -1,0 +1,428 @@
+{
+  "about": [
+    "Shared example data for the roll-up code. The web app and the MCP summaries test against the same file.",
+    "listNodesResponse is a ListNodesResponse in the proto3 JSON mapping: all time, include_closed = true.",
+    "The tree: Book (A) has the children Chapter 1 (B) and Chapter 2 (C). C is closed. Notes (D) is under B. Admin (E) is a root with no cycles.",
+    "The Inbox is the node with no id. D2 is the running cycle (no minutes).",
+    "now is Sunday 2026-11-01T20:00:00Z. America/Los_Angeles leaves daylight-saving time that day, so its day has 25 hours.",
+    "Cycles A2, A3, and C2 start near midnight: they fall on different days or weeks in the two zones.",
+    "doneCycles counts logged cycles. estimatedCycles adds the cycleCount of the estimates. Running cycles add no minutes and no count.",
+    "own covers the node's own cycles and estimates. rolledUp adds all descendants. The Inbox enters no node's figures.",
+    "Period totals cover logged cycles that started in [start, end), including Inbox cycles and cycles on closed nodes."
+  ],
+  "now": "2026-11-01T20:00:00Z",
+  "listNodesResponse": {
+    "nodes": [
+      {
+        "id": "",
+        "name": "",
+        "cycles": [
+          {
+            "id": "00000000-0000-4000-8000-0000000000f2",
+            "mode": "FOCUS_MODE_EXECUTION",
+            "startedAt": "2026-10-20T10:00:00Z",
+            "plannedMinutes": 50,
+            "minutes": 50
+          },
+          {
+            "id": "00000000-0000-4000-8000-0000000000f1",
+            "mode": "FOCUS_MODE_SHALLOW",
+            "startedAt": "2026-11-01T07:30:00Z",
+            "plannedMinutes": 25,
+            "minutes": 25
+          }
+        ]
+      },
+      {
+        "id": "00000000-0000-4000-8000-00000000000a",
+        "name": "Book",
+        "closed": false,
+        "estimates": [
+          {
+            "mode": "FOCUS_MODE_DEEP_FOCUS",
+            "cycleMinutes": 90,
+            "cycleCount": 5
+          }
+        ],
+        "cycles": [
+          {
+            "id": "00000000-0000-4000-8000-0000000000a1",
+            "nodeId": "00000000-0000-4000-8000-00000000000a",
+            "mode": "FOCUS_MODE_DEEP_FOCUS",
+            "startedAt": "2026-10-20T09:00:00Z",
+            "plannedMinutes": 90,
+            "minutes": 90
+          },
+          {
+            "id": "00000000-0000-4000-8000-0000000000a2",
+            "nodeId": "00000000-0000-4000-8000-00000000000a",
+            "mode": "FOCUS_MODE_DEEP_FOCUS",
+            "startedAt": "2026-10-26T03:00:00Z",
+            "plannedMinutes": 90,
+            "minutes": 110
+          },
+          {
+            "id": "00000000-0000-4000-8000-0000000000a3",
+            "nodeId": "00000000-0000-4000-8000-00000000000a",
+            "mode": "FOCUS_MODE_DEEP_FOCUS",
+            "startedAt": "2026-11-01T06:30:00Z",
+            "plannedMinutes": 90,
+            "minutes": 75
+          }
+        ],
+        "createdAt": "2026-10-01T08:00:00Z"
+      },
+      {
+        "id": "00000000-0000-4000-8000-00000000000b",
+        "parentId": "00000000-0000-4000-8000-00000000000a",
+        "name": "Chapter 1",
+        "closed": false,
+        "estimates": [
+          {
+            "mode": "FOCUS_MODE_EXECUTION",
+            "cycleMinutes": 50,
+            "cycleCount": 20
+          }
+        ],
+        "cycles": [
+          {
+            "id": "00000000-0000-4000-8000-0000000000b1",
+            "nodeId": "00000000-0000-4000-8000-00000000000b",
+            "mode": "FOCUS_MODE_EXECUTION",
+            "startedAt": "2026-10-22T14:00:00Z",
+            "plannedMinutes": 50,
+            "minutes": 50
+          },
+          {
+            "id": "00000000-0000-4000-8000-0000000000b2",
+            "nodeId": "00000000-0000-4000-8000-00000000000b",
+            "mode": "FOCUS_MODE_DEEP_FOCUS",
+            "startedAt": "2026-10-28T16:00:00Z",
+            "plannedMinutes": 90,
+            "minutes": 60
+          }
+        ],
+        "createdAt": "2026-10-01T08:01:00Z"
+      },
+      {
+        "id": "00000000-0000-4000-8000-00000000000c",
+        "parentId": "00000000-0000-4000-8000-00000000000a",
+        "name": "Chapter 2",
+        "closed": true,
+        "estimates": [
+          {
+            "mode": "FOCUS_MODE_SHALLOW",
+            "cycleMinutes": 25,
+            "cycleCount": 15
+          }
+        ],
+        "cycles": [
+          {
+            "id": "00000000-0000-4000-8000-0000000000c1",
+            "nodeId": "00000000-0000-4000-8000-00000000000c",
+            "mode": "FOCUS_MODE_SHALLOW",
+            "startedAt": "2026-10-15T12:00:00Z",
+            "plannedMinutes": 25,
+            "minutes": 25
+          },
+          {
+            "id": "00000000-0000-4000-8000-0000000000c2",
+            "nodeId": "00000000-0000-4000-8000-00000000000c",
+            "mode": "FOCUS_MODE_SHALLOW",
+            "startedAt": "2026-10-31T23:50:00Z",
+            "plannedMinutes": 25,
+            "minutes": 30
+          }
+        ],
+        "createdAt": "2026-10-01T08:02:00Z"
+      },
+      {
+        "id": "00000000-0000-4000-8000-00000000000d",
+        "parentId": "00000000-0000-4000-8000-00000000000b",
+        "name": "Notes",
+        "closed": false,
+        "cycles": [
+          {
+            "id": "00000000-0000-4000-8000-0000000000d1",
+            "nodeId": "00000000-0000-4000-8000-00000000000d",
+            "mode": "FOCUS_MODE_EXECUTION",
+            "startedAt": "2026-11-01T09:30:00Z",
+            "plannedMinutes": 50,
+            "minutes": 50
+          },
+          {
+            "id": "00000000-0000-4000-8000-0000000000d2",
+            "nodeId": "00000000-0000-4000-8000-00000000000d",
+            "mode": "FOCUS_MODE_EXECUTION",
+            "startedAt": "2026-11-01T19:30:00Z",
+            "plannedMinutes": 50
+          }
+        ],
+        "createdAt": "2026-10-02T08:00:00Z"
+      },
+      {
+        "id": "00000000-0000-4000-8000-00000000000e",
+        "name": "Admin",
+        "closed": false,
+        "createdAt": "2026-10-03T08:00:00Z"
+      }
+    ]
+  },
+  "expected": {
+    "totals": {
+      "minutes": 565,
+      "minutesByMode": {
+        "FOCUS_MODE_DEEP_FOCUS": 335,
+        "FOCUS_MODE_EXECUTION": 150,
+        "FOCUS_MODE_SHALLOW": 80
+      }
+    },
+    "inbox": {
+      "doneCycles": 2,
+      "minutes": 75
+    },
+    "runningCycleId": "00000000-0000-4000-8000-0000000000d2",
+    "tree": [
+      {
+        "nodeId": "00000000-0000-4000-8000-00000000000a",
+        "own": {
+          "doneCycles": 3,
+          "estimatedCycles": 5,
+          "minutes": 275,
+          "minutesByMode": {
+            "FOCUS_MODE_DEEP_FOCUS": 275,
+            "FOCUS_MODE_EXECUTION": 0,
+            "FOCUS_MODE_SHALLOW": 0
+          }
+        },
+        "rolledUp": {
+          "doneCycles": 8,
+          "estimatedCycles": 40,
+          "minutes": 490,
+          "minutesByMode": {
+            "FOCUS_MODE_DEEP_FOCUS": 335,
+            "FOCUS_MODE_EXECUTION": 100,
+            "FOCUS_MODE_SHALLOW": 55
+          }
+        }
+      },
+      {
+        "nodeId": "00000000-0000-4000-8000-00000000000b",
+        "own": {
+          "doneCycles": 2,
+          "estimatedCycles": 20,
+          "minutes": 110,
+          "minutesByMode": {
+            "FOCUS_MODE_DEEP_FOCUS": 60,
+            "FOCUS_MODE_EXECUTION": 50,
+            "FOCUS_MODE_SHALLOW": 0
+          }
+        },
+        "rolledUp": {
+          "doneCycles": 3,
+          "estimatedCycles": 20,
+          "minutes": 160,
+          "minutesByMode": {
+            "FOCUS_MODE_DEEP_FOCUS": 60,
+            "FOCUS_MODE_EXECUTION": 100,
+            "FOCUS_MODE_SHALLOW": 0
+          }
+        }
+      },
+      {
+        "nodeId": "00000000-0000-4000-8000-00000000000c",
+        "own": {
+          "doneCycles": 2,
+          "estimatedCycles": 15,
+          "minutes": 55,
+          "minutesByMode": {
+            "FOCUS_MODE_DEEP_FOCUS": 0,
+            "FOCUS_MODE_EXECUTION": 0,
+            "FOCUS_MODE_SHALLOW": 55
+          }
+        },
+        "rolledUp": {
+          "doneCycles": 2,
+          "estimatedCycles": 15,
+          "minutes": 55,
+          "minutesByMode": {
+            "FOCUS_MODE_DEEP_FOCUS": 0,
+            "FOCUS_MODE_EXECUTION": 0,
+            "FOCUS_MODE_SHALLOW": 55
+          }
+        }
+      },
+      {
+        "nodeId": "00000000-0000-4000-8000-00000000000d",
+        "own": {
+          "doneCycles": 1,
+          "estimatedCycles": 0,
+          "minutes": 50,
+          "minutesByMode": {
+            "FOCUS_MODE_DEEP_FOCUS": 0,
+            "FOCUS_MODE_EXECUTION": 50,
+            "FOCUS_MODE_SHALLOW": 0
+          }
+        },
+        "rolledUp": {
+          "doneCycles": 1,
+          "estimatedCycles": 0,
+          "minutes": 50,
+          "minutesByMode": {
+            "FOCUS_MODE_DEEP_FOCUS": 0,
+            "FOCUS_MODE_EXECUTION": 50,
+            "FOCUS_MODE_SHALLOW": 0
+          }
+        }
+      },
+      {
+        "nodeId": "00000000-0000-4000-8000-00000000000e",
+        "own": {
+          "doneCycles": 0,
+          "estimatedCycles": 0,
+          "minutes": 0,
+          "minutesByMode": {
+            "FOCUS_MODE_DEEP_FOCUS": 0,
+            "FOCUS_MODE_EXECUTION": 0,
+            "FOCUS_MODE_SHALLOW": 0
+          }
+        },
+        "rolledUp": {
+          "doneCycles": 0,
+          "estimatedCycles": 0,
+          "minutes": 0,
+          "minutesByMode": {
+            "FOCUS_MODE_DEEP_FOCUS": 0,
+            "FOCUS_MODE_EXECUTION": 0,
+            "FOCUS_MODE_SHALLOW": 0
+          }
+        }
+      }
+    ],
+    "estimateProgress": [
+      {
+        "nodeId": "00000000-0000-4000-8000-00000000000a",
+        "doneCycles": 3,
+        "estimatedCycles": 5,
+        "byMode": {
+          "FOCUS_MODE_DEEP_FOCUS": { "doneCycles": 3, "estimatedCycles": 5 },
+          "FOCUS_MODE_EXECUTION": { "doneCycles": 0, "estimatedCycles": 0 },
+          "FOCUS_MODE_SHALLOW": { "doneCycles": 0, "estimatedCycles": 0 }
+        }
+      },
+      {
+        "nodeId": "00000000-0000-4000-8000-00000000000b",
+        "doneCycles": 2,
+        "estimatedCycles": 20,
+        "byMode": {
+          "FOCUS_MODE_DEEP_FOCUS": { "doneCycles": 1, "estimatedCycles": 0 },
+          "FOCUS_MODE_EXECUTION": { "doneCycles": 1, "estimatedCycles": 20 },
+          "FOCUS_MODE_SHALLOW": { "doneCycles": 0, "estimatedCycles": 0 }
+        }
+      },
+      {
+        "nodeId": "00000000-0000-4000-8000-00000000000c",
+        "doneCycles": 2,
+        "estimatedCycles": 15,
+        "byMode": {
+          "FOCUS_MODE_DEEP_FOCUS": { "doneCycles": 0, "estimatedCycles": 0 },
+          "FOCUS_MODE_EXECUTION": { "doneCycles": 0, "estimatedCycles": 0 },
+          "FOCUS_MODE_SHALLOW": { "doneCycles": 2, "estimatedCycles": 15 }
+        }
+      },
+      {
+        "nodeId": "00000000-0000-4000-8000-00000000000d",
+        "doneCycles": 1,
+        "estimatedCycles": 0,
+        "byMode": {
+          "FOCUS_MODE_DEEP_FOCUS": { "doneCycles": 0, "estimatedCycles": 0 },
+          "FOCUS_MODE_EXECUTION": { "doneCycles": 1, "estimatedCycles": 0 },
+          "FOCUS_MODE_SHALLOW": { "doneCycles": 0, "estimatedCycles": 0 }
+        }
+      },
+      {
+        "nodeId": "00000000-0000-4000-8000-00000000000e",
+        "doneCycles": 0,
+        "estimatedCycles": 0,
+        "byMode": {
+          "FOCUS_MODE_DEEP_FOCUS": { "doneCycles": 0, "estimatedCycles": 0 },
+          "FOCUS_MODE_EXECUTION": { "doneCycles": 0, "estimatedCycles": 0 },
+          "FOCUS_MODE_SHALLOW": { "doneCycles": 0, "estimatedCycles": 0 }
+        }
+      }
+    ],
+    "plannedVsActual": {
+      "FOCUS_MODE_DEEP_FOCUS": {
+        "doneCycles": 4,
+        "plannedMinutes": 360,
+        "minutes": 335
+      },
+      "FOCUS_MODE_EXECUTION": {
+        "doneCycles": 3,
+        "plannedMinutes": 150,
+        "minutes": 150
+      },
+      "FOCUS_MODE_SHALLOW": {
+        "doneCycles": 3,
+        "plannedMinutes": 75,
+        "minutes": 80
+      }
+    },
+    "periods": [
+      {
+        "timeZone": "UTC",
+        "today": {
+          "start": "2026-11-01T00:00:00Z",
+          "end": "2026-11-02T00:00:00Z"
+        },
+        "week": {
+          "start": "2026-10-26T00:00:00Z",
+          "end": "2026-11-02T00:00:00Z"
+        },
+        "todayTotals": {
+          "minutes": 150,
+          "minutesByMode": {
+            "FOCUS_MODE_DEEP_FOCUS": 75,
+            "FOCUS_MODE_EXECUTION": 50,
+            "FOCUS_MODE_SHALLOW": 25
+          }
+        },
+        "weekTotals": {
+          "minutes": 350,
+          "minutesByMode": {
+            "FOCUS_MODE_DEEP_FOCUS": 245,
+            "FOCUS_MODE_EXECUTION": 50,
+            "FOCUS_MODE_SHALLOW": 55
+          }
+        }
+      },
+      {
+        "timeZone": "America/Los_Angeles",
+        "today": {
+          "start": "2026-11-01T07:00:00Z",
+          "end": "2026-11-02T08:00:00Z"
+        },
+        "week": {
+          "start": "2026-10-26T07:00:00Z",
+          "end": "2026-11-02T08:00:00Z"
+        },
+        "todayTotals": {
+          "minutes": 75,
+          "minutesByMode": {
+            "FOCUS_MODE_DEEP_FOCUS": 0,
+            "FOCUS_MODE_EXECUTION": 50,
+            "FOCUS_MODE_SHALLOW": 25
+          }
+        },
+        "weekTotals": {
+          "minutes": 240,
+          "minutesByMode": {
+            "FOCUS_MODE_DEEP_FOCUS": 135,
+            "FOCUS_MODE_EXECUTION": 50,
+            "FOCUS_MODE_SHALLOW": 55
+          }
+        }
+      }
+    ]
+  }
+}
