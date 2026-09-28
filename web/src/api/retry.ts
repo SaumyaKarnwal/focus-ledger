@@ -2,7 +2,14 @@ import { Code, ConnectError } from "@connectrpc/connect";
 
 export const RETRY_DELAYS_MS: readonly number[] = [500, 2000];
 
-const RETRYABLE_CODES = new Set([Code.Unavailable, Code.DeadlineExceeded]);
+// Connect reports a failed fetch (the network is down) as Unknown. A retry is
+// safe for every call: a create sends the same request_id, and an update sends
+// an absolute value.
+const RETRYABLE_CODES = new Set([
+  Code.Unknown,
+  Code.Unavailable,
+  Code.DeadlineExceeded,
+]);
 
 export function isRetryable(error: unknown): boolean {
   return RETRYABLE_CODES.has(ConnectError.from(error).code);

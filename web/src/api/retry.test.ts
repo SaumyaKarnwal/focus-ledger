@@ -21,6 +21,18 @@ describe("withRetry", () => {
     expect(calls).toHaveLength(2);
   });
 
+  test("withRetry_fetchTypeError_retries", async () => {
+    let calls = 0;
+    const call = async () => {
+      calls += 1;
+      if (calls === 1) throw new TypeError("Failed to fetch");
+      return "cycle";
+    };
+
+    expect(await withRetry(call, [0])).toBe("cycle");
+    expect(calls).toBe(2);
+  });
+
   test("withRetry_failedPrecondition_doesNotRetry", async () => {
     const { call, calls } = failingThen([Code.FailedPrecondition], "cycle");
 

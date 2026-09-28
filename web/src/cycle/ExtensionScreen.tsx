@@ -62,11 +62,7 @@ export function ExtensionScreen({
         {Math.floor(elapsed / MINUTE_MS)} of {extension.minutes} more min · ends
         at {formatClockTime(endsAt)}
       </p>
-      <button
-        type="button"
-        disabled={busy || remaining === 0}
-        onClick={() => onStop(total)}
-      >
+      <button type="button" disabled={busy} onClick={() => onStop(total)}>
         Stop and log {total} min
       </button>
     </section>

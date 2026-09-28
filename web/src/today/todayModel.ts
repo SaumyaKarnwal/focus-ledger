@@ -85,7 +85,7 @@ export function todayModel(
     unfiledCycles: inboxTotals(nodes).doneCycles,
     todayTotals: periodTotals(data.weekNodes, dayRange(now, timeZone)),
     weekTotals: periodTotals(data.weekNodes, data.week),
-    running: runningCycle(nodes),
+    running: runningCycle(knownNodes(data)),
   };
 }
 
@@ -118,8 +118,25 @@ export type CycleContext = {
   estimateLine: string;
 };
 
+/**
+ * The open nodes from the all-time call, plus the closed nodes from the week
+ * call. A closed node's cycles then cover this week only.
+ */
+export function knownNodes(data: TodayData): NodePb[] {
+  const openIds = new Set(data.allTimeNodes.map((node) => node.id));
+  return [
+    ...data.allTimeNodes,
+    ...data.weekNodes.filter((node) => !openIds.has(node.id)),
+  ];
+}
+
+export function knownCycles(data: TodayData): CyclePb[] {
+  return knownNodes(data).flatMap((node) => node.cycles);
+}
+
 export function cycleContext(data: TodayData, cycle: CyclePb): CycleContext {
-  const node = data.allTimeNodes.find(
+  const nodes = knownNodes(data);
+  const node = nodes.find(
     (listed) => !isInbox(listed) && listed.id === cycle.nodeId,
   );
   if (!node) {
@@ -128,7 +145,7 @@ export function cycleContext(data: TodayData, cycle: CyclePb): CycleContext {
   const counts = estimateProgress(node).byMode[cycle.mode as LoggedMode];
   return {
     nodeName: node.name,
-    path: pathOf(node, data.allTimeNodes),
+    path: pathOf(node, nodes),
     estimateLine:
       counts && counts.estimatedCycles > 0
         ? `Cycle ${counts.doneCycles + 1} of ${counts.estimatedCycles}`

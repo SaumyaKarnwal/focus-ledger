@@ -63,11 +63,7 @@ export function RunningScreen({
         {cycle.plannedMinutes} min · ends at {formatClockTime(endTime(cycle))}
       </p>
       <p>{estimateLine}</p>
-      <button
-        type="button"
-        disabled={busy || ended}
-        onClick={() => onStop(minutes)}
-      >
+      <button type="button" disabled={busy} onClick={() => onStop(minutes)}>
         Stop and log {minutes} min
       </button>
     </section>

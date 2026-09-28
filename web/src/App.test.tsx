@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { Code } from "@connectrpc/connect";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "./App";
@@ -481,5 +482,128 @@ describe("Reload", () => {
       (cycle) => cycle.id === "00000000-0000-4000-8000-0000000000d2",
     );
     expect(notesCycle?.minutes).toBe(50);
+  });
+});
+
+describe("Failures", () => {
+  async function startShallowOnBook(client: LedgerClient) {
+    renderApp(client);
+    await screen.findByRole("button", { name: "Start" });
+    fireEvent.click(screen.getByRole("radio", { name: "Shallow" }));
+    await startFromToday("Book");
+  }
+
+  test("running_automaticStopFails_userCanStopAgain", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await startShallowOnBook(recording.client);
+    recording.failNext("UpdateCycle", Code.Internal);
+
+    await advance(25 * MINUTE_MS + 1000);
+
+    expect(await screen.findByRole("alert")).toBeDefined();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Stop and log 25 min" }),
+    );
+    expect(await screen.findByText("25 min logged")).toBeDefined();
+  });
+
+  test("extension_automaticStopFails_userCanStopAgain", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await startShallowOnBook(recording.client);
+    await advance(25 * MINUTE_MS + 1000);
+    await screen.findByText("25 min logged");
+    fireEvent.change(
+      screen.getByRole("spinbutton", { name: "Keep going for more minutes" }),
+      { target: { value: "10" } },
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Keep going" }));
+    await screen.findByRole("timer", { name: "Time left" });
+    recording.failNext("UpdateCycle", Code.Internal);
+
+    await advance(10 * MINUTE_MS + 1000);
+
+    expect(await screen.findByRole("alert")).toBeDefined();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Stop and log 35 min" }),
+    );
+    expect(await screen.findByText("35 min logged")).toBeDefined();
+  });
+
+  test("running_manualStopOpenWhenTimerEnds_writesOnce", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await startShallowOnBook(recording.client);
+    await advance(24 * MINUTE_MS + 59_000);
+    const release = recording.holdNext("UpdateCycle");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Stop and log 24 min" }),
+    );
+    await advance(2000);
+    release();
+
+    expect(await screen.findByText("24 min logged")).toBeDefined();
+    expect(recording.updateCycleMinutes).toEqual([24]);
+  });
+
+  test("reload_runningCycleOnClosedNode_showsTheRunningCycle", async () => {
+    const { client } = recordingClient(exampleNodes());
+    await client.updateNode({
+      nodeId: "00000000-0000-4000-8000-00000000000d",
+      closed: true,
+      updateMask: { paths: ["closed"] },
+    });
+
+    renderApp(client);
+
+    const timer = await screen.findByRole("timer", { name: "Time left" });
+    expect(timer.textContent).toBe("20:00");
+    expect(screen.getByRole("heading", { name: "Notes" })).toBeDefined();
+  });
+
+  test("stop_refreshFailsAfterTheWrite_stillShowsTheBell", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await startShallowOnBook(recording.client);
+    recording.failNext("ListNodes", Code.Internal);
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop and log 1 min" }));
+
+    expect(await screen.findByText("1 min logged")).toBeDefined();
+    expect(await screen.findByRole("alert")).toBeDefined();
+  });
+
+  test("stop_refreshNetworkFailure_isRetried", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await startShallowOnBook(recording.client);
+    recording.failNext("ListNodes", Code.Unknown);
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop and log 1 min" }));
+
+    expect(await screen.findByText("1 min logged")).toBeDefined();
+    await advance(100);
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  test("start_networkFailure_isRetried", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    renderApp(recording.client);
+    await screen.findByRole("button", { name: "Start" });
+    recording.failNext("CreateCycle", Code.Unknown);
+
+    await startFromToday("Book");
+
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  test("firstLoadFails_tryAgain_loadsToday", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    // StrictMode runs the first-load effect twice, so both runs fail.
+    recording.failNext("GetSettings", Code.Internal, 2);
+
+    renderApp(recording.client);
+
+    expect(await screen.findByRole("alert")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(await screen.findByRole("button", { name: "Start" })).toBeDefined();
+    expect(screen.queryByRole("alert")).toBeNull();
   });
 });

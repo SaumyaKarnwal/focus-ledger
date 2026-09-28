@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { LedgerClient } from "./api/ledgerClient";
 import { newRequestId } from "./api/requestId";
 import { withRetry } from "./api/retry";
@@ -21,6 +21,7 @@ import { TodayScreen } from "./today/TodayScreen";
 import {
   cycleContext,
   INBOX_ID,
+  knownCycles,
   type TodayData,
   todayModel,
 } from "./today/todayModel";
@@ -39,9 +40,9 @@ function pendingExtensionFor(
 ): { cycle: CyclePb; extension: PendingExtension } | undefined {
   const extension = loadExtension();
   if (!extension) return undefined;
-  const cycle = loaded.allTimeNodes
-    .flatMap((node) => node.cycles)
-    .find((listed) => listed.id === extension.cycleId);
+  const cycle = knownCycles(loaded).find(
+    (listed) => listed.id === extension.cycleId,
+  );
   if (cycle?.minutes !== extension.loggedMinutes) {
     clearExtension();
     return undefined;
@@ -95,12 +96,16 @@ export function App({
 
   const showToday = () =>
     act(async () => {
-      setScreen(screenFor(await refresh()));
+      setScreen(screenFor(await refreshWithRetry()));
     });
 
+  const [loadAttempt, setLoadAttempt] = useState(0);
   useEffect(() => {
     let cancelled = false;
-    loadToday(client, new Date(), timeZone).then(
+    withRetry(
+      () => loadToday(client, new Date(), timeZone),
+      retryDelaysMs,
+    ).then(
       (loaded) => {
         if (cancelled) return;
         setData(loaded);
@@ -113,7 +118,17 @@ export function App({
     return () => {
       cancelled = true;
     };
-  }, [client, timeZone, screenFor]);
+  }, [client, timeZone, screenFor, retryDelaysMs, loadAttempt]);
+
+  const retryFirstLoad = () => {
+    setError(undefined);
+    setLoadAttempt((attempt) => attempt + 1);
+  };
+
+  const refreshWithRetry = useCallback(
+    () => withRetry(refresh, retryDelaysMs),
+    [refresh, retryDelaysMs],
+  );
 
   const start = (nodeId: string, mode: LoggedMode, plannedMinutes: number) =>
     act(async () => {
@@ -127,27 +142,39 @@ export function App({
         () => client.createCycle(request),
         retryDelaysMs,
       );
-      await refresh();
       if (cycle) setScreen({ kind: "running", cycle });
+      await refreshWithRetry();
     });
 
+  // A manual Stop and the end of the countdown can both call this. Only the
+  // first one writes, so the app never writes minutes that were not worked.
+  const writing = useRef(false);
   const writeMinutes = useCallback(
-    (cycle: CyclePb, minutes: number) =>
-      act(async () => {
-        const response = await withRetry(
-          () =>
-            client.updateCycle({
-              cycleId: cycle.id,
-              minutes,
-              updateMask: { paths: ["minutes"] },
-            }),
-          retryDelaysMs,
-        );
-        if (loadExtension()?.cycleId === cycle.id) clearExtension();
-        await refresh();
-        if (response.cycle) setScreen({ kind: "bell", cycle: response.cycle });
-      }),
-    [act, client, refresh, retryDelaysMs],
+    async (cycle: CyclePb, minutes: number) => {
+      if (writing.current) return;
+      writing.current = true;
+      try {
+        await act(async () => {
+          const response = await withRetry(
+            () =>
+              client.updateCycle({
+                cycleId: cycle.id,
+                minutes,
+                updateMask: { paths: ["minutes"] },
+              }),
+            retryDelaysMs,
+          );
+          if (loadExtension()?.cycleId === cycle.id) clearExtension();
+          if (response.cycle) {
+            setScreen({ kind: "bell", cycle: response.cycle });
+          }
+          await refreshWithRetry();
+        });
+      } finally {
+        writing.current = false;
+      }
+    },
+    [act, client, refreshWithRetry, retryDelaysMs],
   );
 
   const runningCycle = screen.kind === "running" ? screen.cycle : undefined;
@@ -187,7 +214,14 @@ export function App({
     <main>
       <h1>{PRODUCT_NAME}</h1>
       {error && <p role="alert">{error}</p>}
-      {screen.kind === "loading" && <p>Loading…</p>}
+      {screen.kind === "loading" &&
+        (error ? (
+          <button type="button" onClick={retryFirstLoad}>
+            Try again
+          </button>
+        ) : (
+          <p>Loading…</p>
+        ))}
       {screen.kind === "today" && data && (
         <TodayScreen
           data={data}
