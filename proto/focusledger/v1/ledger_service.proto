@@ -77,7 +77,7 @@ message UpdateSettingsResponse {
 // ---------------------------------------------------------------------------
 
 message CreateNodeRequest {
-  // Required UUID, made by the client per action. A repeat returns the existing node.
+  // Required UUID, made by the client per action. A repeat returns the existing row.
   string request_id = 1;
   optional string parent_id = 2;
   string name = 3;
@@ -100,7 +100,6 @@ message UpdateNodeRequest {
   google.protobuf.FieldMask update_mask = 6;
 }
 
-// The node carries no cycles here. Read cycles with ListNodes.
 message UpdateNodeResponse {
   NodePb node = 1;
 }
@@ -124,7 +123,7 @@ message ListNodesResponse {
 // Without minutes: starts a cycle now. The server rejects a second running cycle.
 // With minutes and started_at: writes a hand entry.
 message CreateCycleRequest {
-  // Required UUID, made by the client per action. A repeat returns the existing cycle.
+  // Required UUID, made by the client per action. A repeat returns the existing row.
   string request_id = 1;
   optional string node_id = 2;
   FocusMode mode = 3;
