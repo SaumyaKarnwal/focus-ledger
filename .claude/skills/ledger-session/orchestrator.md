@@ -27,16 +27,23 @@ Ask the owner before each step that changes the GitHub repository.
 
 ## Starting a worker
 
-You do not start sessions yourself. Print this for the owner, and wait:
+You start workers yourself, in one tmux session named `focus-ledger`, one window per worker. tmux is installed at `/opt/homebrew/bin/tmux`.
 
-```
-New terminal tab:
-  cd ~/projects/focus-ledger && claude -w ws-a --name ws-a
-First prompt:
-  /ledger-session ws-a — then start issue #<n>.
+1. Create the tmux session if it does not exist, then add a window for the worker:
+
+```bash
+cd ~/projects/focus-ledger
+tmux has-session -t focus-ledger 2>/dev/null \
+  || tmux new-session -d -s focus-ledger -n control -c ~/projects/focus-ledger
+tmux new-window -t focus-ledger -n ws-b -c ~/projects/focus-ledger \
+  'claude -w ws-b --name ws-b "/ledger-session ws-b"'
 ```
 
-After the worker confirms its role, send it `TASK — issue #<n>: …`, and subscribe with `notify_when_idle`.
+2. Check that it started: `tmux list-windows -t focus-ledger`, then `ListAgents` shows `ws-b` within a minute.
+3. Tell the owner in one line: which worker started, and that `tmux -CC attach -t focus-ledger` in iTerm2 shows every worker as a tab. A worker waits in its tab for the owner to answer any permission prompt, including a first-time folder trust prompt.
+4. After the worker confirms its role, send it `TASK — issue #<n>: …`, and subscribe with `notify_when_idle`.
+
+Start a worker only for a workstream that a `START` message named. Never start more than one session per name. To stop a worker after its workstream is done, ask the owner first, then `tmux kill-window -t focus-ledger:ws-b`.
 
 ## Merging
 

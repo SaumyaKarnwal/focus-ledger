@@ -100,7 +100,7 @@ flowchart TD
 
     The orchestrator does not merge a behavior change without tests. A PR that only changes docs or configuration needs none.
 6. **A design change reaches the build through a docs PR.** The design session updates the doc in a small PR. After it merges, the design session messages the orchestrator: a two-line summary, the affected workstreams, and the PR link. The orchestrator then updates the affected issues and tells the affected workers.
-7. **Workers are live sessions that the owner can see.** The orchestrator prints the exact start command, for example `cd ~/projects/focus-ledger && claude -w ws-a --name ws-a`, and the first prompt. The owner opens it in a new terminal tab. After the dry run, the orchestrator can open workers in panes with `--tmux` instead, if that works on the owner's terminal.
+7. **The orchestrator starts the workers itself, as live sessions the owner can see.** Each worker runs in its own window of one tmux session named `focus-ledger`, in its own git worktree. The owner opens all of them at once as native iTerm2 tabs with `tmux -CC attach -t focus-ledger`, and can watch or type into any worker. A worker still asks the owner for its own permissions. The orchestrator cannot approve anything for it.
 8. **Questions go to the design session two ways.** The worker messages `design`, and adds the `needs-design` label with the question on its issue. The message is the fast path. The issue is the permanent record.
 9. **The first orchestrator task is a dry run** with one small worker: open an issue, start the worker, message it, get a PR, merge it.
 
