@@ -11,6 +11,9 @@ buf = "1.73.0"
 protobuf = "4.36.2"
 grpc = "1.84.0"
 grpc-kotlin = "1.5.0"
+mcp-kotlin-sdk = "0.15.0"
+# Ktor must match the version that the MCP Kotlin SDK is built against.
+ktor = "3.5.1"
 
 [libraries]
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
@@ -25,6 +28,9 @@ protobuf-kotlin = { module = "com.google.protobuf:protobuf-kotlin", version.ref 
 grpc-protobuf = { module = "io.grpc:grpc-protobuf", version.ref = "grpc" }
 grpc-stub = { module = "io.grpc:grpc-stub", version.ref = "grpc" }
 grpc-kotlin-stub = { module = "io.grpc:grpc-kotlin-stub", version.ref = "grpc-kotlin" }
+mcp-kotlin-sdk-server = { module = "io.modelcontextprotocol:kotlin-sdk-server", version.ref = "mcp-kotlin-sdk" }
+ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
+ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
