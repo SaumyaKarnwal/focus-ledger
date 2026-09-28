@@ -30,6 +30,7 @@ type Props = {
   nav: ReactNode;
   /** Called after a save, or at once when nothing changed. */
   onDone: () => void;
+  onSignOut: () => void;
 };
 
 /** FR-12.1: the three mode lengths, the break length, sound, and notifications. */
@@ -39,6 +40,7 @@ export function SettingsScreen({
   retryDelaysMs,
   nav,
   onDone,
+  onSignOut,
 }: Props) {
   const saved = toForm(settings);
   const [form, setForm] = useState<SettingsForm>(saved);
@@ -191,6 +193,22 @@ export function SettingsScreen({
             )}
           </section>
         </div>
+        <section
+          className="report-block settings-account"
+          aria-labelledby="account"
+        >
+          <h3 id="account" className="label report-block-head">
+            Account
+          </h3>
+          <button
+            type="button"
+            className="button"
+            disabled={busy}
+            onClick={onSignOut}
+          >
+            Sign out
+          </button>
+        </section>
         <p className="note settings-foot">
           {paths.length === 0
             ? "No changes."

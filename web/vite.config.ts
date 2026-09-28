@@ -8,6 +8,9 @@ process.env.TZ = "UTC";
 
 export default defineConfig({
   plugins: [react(), productNameHtml()],
+  // The web app shares the repository .env. Only these prefixes reach the bundle.
+  envDir: "..",
+  envPrefix: ["VITE_", "GOOGLE_CLIENT_ID"],
   server: {
     // The fake backend imports the shared example data from ../testdata.
     fs: { allow: [searchForWorkspaceRoot(process.cwd()), "../testdata"] },

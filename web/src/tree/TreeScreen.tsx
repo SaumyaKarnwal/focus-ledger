@@ -2,6 +2,7 @@ import { timestampDate } from "@bufbuild/protobuf/wkt";
 import { create } from "@bufbuild/protobuf";
 import {
   type CSSProperties,
+  type DragEvent,
   type KeyboardEvent,
   type ReactNode,
   useState,
@@ -125,6 +126,9 @@ export function TreeScreen({
         busy={busy}
         onName={(name) => setDraft({ ...draft, name })}
         onSave={() => saveDraft()}
+        onSaveAndOpen={() => saveDraft(onOpenOnToday)}
+        onIndent={indentDraft}
+        onOutdent={outdentDraft}
         onClose={() => setDraft(undefined)}
       />
     );
@@ -150,6 +154,91 @@ export function TreeScreen({
   const selectedRow = [...flattenTree(rows), ...closedTops].find(
     (row) => row.node.id === selectedId,
   );
+
+  const rowById = (nodeId: string | undefined) =>
+    flattenTree(rows).find((row) => row.node.id === nodeId);
+
+  /** Tab: the draft becomes a child of the row above it (FR-7.2). */
+  const indentDraft = () => {
+    if (!draft) return;
+    const siblings =
+      draft.parentId === undefined
+        ? rows
+        : (rowById(draft.parentId)?.children ?? []);
+    const above = siblings.at(-1);
+    if (above) {
+      setDraft({
+        ...draft,
+        parentId: above.node.id,
+        parentName: above.node.name,
+      });
+    }
+  };
+
+  /** Shift+Tab: the draft moves out one level. */
+  const outdentDraft = () => {
+    if (!draft || draft.parentId === undefined) return;
+    const grandparent = rowById(rowById(draft.parentId)?.node.parentId);
+    setDraft({
+      ...draft,
+      parentId: grandparent?.node.id,
+      parentName: grandparent?.node.name,
+    });
+  };
+
+  const [draggingId, setDraggingId] = useState<string>();
+  const [dropTarget, setDropTarget] = useState<string | null>();
+  const [pendingMove, setPendingMove] = useState<{
+    row: TreeRow;
+    parentId: string | undefined;
+    parentName: string;
+  }>();
+  const dragged = rowById(draggingId);
+
+  /** A drop target is any open node outside the dragged subtree, or the top level. */
+  const canDropOn = (parentId: string | undefined) =>
+    dragged !== undefined &&
+    dragged.node.parentId !== parentId &&
+    !flattenTree([dragged]).some((row) => row.node.id === parentId);
+
+  const endDrag = () => {
+    setDraggingId(undefined);
+    setDropTarget(undefined);
+  };
+
+  const dropOn = (parentId: string | undefined) => {
+    const row = dragged;
+    endDrag();
+    if (!row || !canDropOn(parentId)) return;
+    if (moveSummary(row)) {
+      setPendingMove({
+        row,
+        parentId,
+        parentName:
+          parentId === undefined
+            ? "the top level"
+            : (rowById(parentId)?.node.name ?? ""),
+      });
+    } else {
+      void update(row.node.id, { parentId }, "parent_id");
+    }
+  };
+
+  const dropProps = (parentId: string | undefined) => ({
+    onDragOver: (event: DragEvent) => {
+      if (!canDropOn(parentId)) return;
+      event.preventDefault();
+      setDropTarget(parentId ?? null);
+    },
+    onDragLeave: () =>
+      setDropTarget((current) =>
+        current === (parentId ?? null) ? undefined : current,
+      ),
+    onDrop: (event: DragEvent) => {
+      event.preventDefault();
+      dropOn(parentId);
+    },
+  });
 
   const select = (nodeId: string) => {
     setSelectedId(nodeId);
@@ -204,7 +293,16 @@ export function TreeScreen({
           className="tree-row"
           data-selected={isSelected}
           data-root={depth === 0}
+          data-drop-target={dropTarget === node.id}
+          data-dragging={draggingId === node.id}
           style={{ "--depth": depth } as CSSProperties}
+          draggable={openIds.has(node.id) && renaming !== node.id}
+          onDragStart={(event) => {
+            event.dataTransfer?.setData("text/plain", node.id);
+            setDraggingId(node.id);
+          }}
+          onDragEnd={endDrag}
+          {...(openIds.has(node.id) ? dropProps(node.id) : {})}
         >
           <span className="tree-row-name">
             {renaming === node.id ? (
@@ -308,6 +406,50 @@ export function TreeScreen({
           </div>
           {nodes === undefined && !loadError && (
             <p className="note tree-note">Loading…</p>
+          )}
+          {pendingMove && (
+            <section className="move-confirm" aria-label="Confirm the move">
+              <p>
+                Move <strong>{pendingMove.row.node.name}</strong> under{" "}
+                <strong>{pendingMove.parentName}</strong>?{" "}
+                {moveSummary(pendingMove.row)}.
+              </p>
+              <span className="detail-actions">
+                <button
+                  type="button"
+                  className="button-primary button-small"
+                  disabled={busy}
+                  onClick={async () => {
+                    const move = pendingMove;
+                    setPendingMove(undefined);
+                    await update(
+                      move.row.node.id,
+                      { parentId: move.parentId },
+                      "parent_id",
+                    );
+                  }}
+                >
+                  Move
+                </button>
+                <button
+                  type="button"
+                  className="button button-small"
+                  onClick={() => setPendingMove(undefined)}
+                >
+                  Cancel
+                </button>
+              </span>
+            </section>
+          )}
+          {dragged && (
+            <div
+              className="tree-drop-root"
+              data-drop-target={dropTarget === null}
+              data-testid="top-level-drop"
+              {...dropProps(undefined)}
+            >
+              Drop here to make {dragged.node.name} a top-level node
+            </div>
           )}
           <ul className="tree-list" aria-label="Nodes">
             {rows.map((row) => renderRow(row, 0))}
@@ -758,13 +900,19 @@ type Draft = {
   estimate: ByMode<EstimateRow>;
 };
 
-/** Enter saves the node and keeps the input open for the next sibling. Escape closes it. */
+/**
+ * The outliner row (FR-7.2): Enter saves and opens a sibling, Tab indents,
+ * Shift+Tab outdents, Escape closes, and Cmd+Enter saves and opens the node on Today.
+ */
 function DraftRow({
   draft,
   depth,
   busy,
   onName,
   onSave,
+  onSaveAndOpen,
+  onIndent,
+  onOutdent,
   onClose,
 }: {
   draft: Draft;
@@ -772,11 +920,23 @@ function DraftRow({
   busy: boolean;
   onName: (name: string) => void;
   onSave: () => void;
+  onSaveAndOpen: () => void;
+  onIndent: () => void;
+  onOutdent: () => void;
   onClose: () => void;
 }) {
   const keyDown = (event: KeyboardEvent) => {
-    if (event.key === "Enter" && !busy) onSave();
-    if (event.key === "Escape") onClose();
+    if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
+      if (!busy) onSaveAndOpen();
+    } else if (event.key === "Enter") {
+      if (!busy) onSave();
+    } else if (event.key === "Tab") {
+      event.preventDefault();
+      if (event.shiftKey) onOutdent();
+      else onIndent();
+    } else if (event.key === "Escape") {
+      onClose();
+    }
   };
   return (
     <li>
@@ -802,7 +962,8 @@ function DraftRow({
             : "new top-level node"}
         </span>
         <span className="note">
-          Enter saves and opens a sibling · Esc closes
+          Enter saves and opens a sibling · Tab indents · ⇧Tab outdents · Esc
+          closes · ⌘↵ saves and opens it on Today
         </span>
       </div>
     </li>

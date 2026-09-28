@@ -34,8 +34,11 @@ export type RecordingClient = {
   holdNext: (method: string) => () => void;
 };
 
-export function recordingClient(nodes: readonly NodePb[]): RecordingClient {
-  const inner = createFakeLedgerTransport({ nodes });
+export function recordingClient(
+  nodes: readonly NodePb[],
+  fakeOptions: { signedIn?: boolean } = {},
+): RecordingClient {
+  const inner = createFakeLedgerTransport({ nodes, ...fakeOptions });
   const createCycleRequestIds: string[] = [];
   const updateCycleMinutes: (number | undefined)[] = [];
   const createNodeRequestIds: string[] = [];

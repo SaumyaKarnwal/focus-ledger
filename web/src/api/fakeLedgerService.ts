@@ -30,6 +30,8 @@ export type FakeLedgerOptions = {
   /** The initial rows, in the shape that ListNodes returns. */
   nodes?: readonly NodePb[];
   now?: () => Date;
+  /** False starts with no session, so every call but SignIn is UNAUTHENTICATED. */
+  signedIn?: boolean;
 };
 
 /** A transport that serves an in-memory LedgerService for one signed-in user. */
@@ -119,7 +121,7 @@ export function createFakeLedgerService(
     soundEnabled: true,
     notificationsEnabled: false,
   });
-  let signedIn = true;
+  let signedIn = options.signedIn ?? true;
 
   const requireSession = () => {
     if (!signedIn) throw new ConnectError("no session", Code.Unauthenticated);
