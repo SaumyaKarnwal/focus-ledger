@@ -1,3 +1,5 @@
+plugins { `java-test-fixtures` }
+
 val codegen: SourceSet = sourceSets.create("codegen")
 
 dependencies {
@@ -16,6 +18,14 @@ dependencies {
 
     testImplementation(libs.testcontainers.postgresql)
     testImplementation(libs.postgresql)
+
+    testFixturesApi(project(":backend:core"))
+    testFixturesApi(libs.testcontainers.postgresql)
+    testFixturesImplementation(libs.postgresql)
+    testFixturesApi(libs.flyway.core)
+    testFixturesImplementation(libs.jooq)
+    testFixturesImplementation(platform(libs.junit.bom))
+    testFixturesImplementation(libs.junit.jupiter)
 }
 
 val dockerPostgresDir = rootProject.file("docker/postgres")

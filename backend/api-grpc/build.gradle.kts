@@ -8,6 +8,19 @@ dependencies {
     api(libs.grpc.protobuf)
     api(libs.grpc.stub)
     api(libs.grpc.kotlin.stub)
+    api(libs.armeria.grpc)
+    implementation(libs.nimbus.jose.jwt)
+    implementation(libs.kotlinx.coroutines.core)
+
+    testImplementation(testFixtures(project(":backend:data")))
+    testImplementation(project(":backend:data"))
+}
+
+val dockerPostgresDir = rootProject.file("docker/postgres")
+
+tasks.test {
+    inputs.dir(dockerPostgresDir)
+    systemProperty("focusledger.dockerPostgresDir", dockerPostgresDir.path)
 }
 
 val bufExecutable: Configuration = configurations.create("bufExecutable")
