@@ -34,15 +34,23 @@ function renderApp(client: LedgerClient) {
   );
 }
 
-async function openView(client: LedgerClient, view: "Tree" | "Inbox") {
+async function openTree(client: LedgerClient) {
   renderApp(client);
   const nav = await screen.findByRole("navigation", { name: "Views" });
-  fireEvent.click(within(nav).getByRole("button", { name: view }));
+  fireEvent.click(within(nav).getByRole("button", { name: "Tree" }));
+  return screen.findByRole("listitem", { name: "Book" });
 }
 
-async function openTree(client: LedgerClient) {
-  await openView(client, "Tree");
-  return screen.findByRole("listitem", { name: "Book" });
+async function openInbox(client: LedgerClient) {
+  renderApp(client);
+  const rail = await screen.findByRole("list", { name: "Open nodes" });
+  const inbox = within(rail)
+    .getAllByRole("button")
+    .find(
+      (button) =>
+        button.querySelector('[data-part="name"]')?.textContent === "Inbox",
+    );
+  fireEvent.click(inbox!);
 }
 
 function row(name: string) {
@@ -51,16 +59,34 @@ function row(name: string) {
 
 /** The row's own figures, without its children's rows. */
 function rowText(name: string) {
-  return Array.from(row(name).children)
-    .filter((element) => element.tagName === "SPAN")
-    .map((element) => element.textContent)
-    .join("");
+  const own = row(name).querySelector(".tree-row")!;
+  const part = (key: string) =>
+    own.querySelector(`[data-part="${key}"]`)?.textContent ?? "";
+  const closed = part("closed") ? ` ${part("closed")}` : "";
+  return `${part("name")}${closed} · ${part("count")} · ${part("time")}`;
 }
 
+function detail() {
+  return screen.getByRole("complementary", { name: "Node detail" });
+}
+
+/** Selects the row, then clicks the button in the detail panel. */
 function clickInRow(name: string, button: string) {
-  fireEvent.click(
-    within(row(name)).getAllByRole("button", { name: button })[0],
-  );
+  if (button === "Add child") {
+    fireEvent.click(
+      within(row(name)).getAllByRole("button", {
+        name: `Add a child of ${name}`,
+      })[0],
+    );
+    return;
+  }
+  const nameButton = row(name).querySelector('[data-part="name"]')!;
+  fireEvent.click(nameButton);
+  fireEvent.click(within(detail()).getByRole("button", { name: button }));
+}
+
+function showClosed() {
+  fireEvent.click(screen.getByRole("button", { name: /^Closed ·/ }));
 }
 
 function isUnder(parent: string, child: string) {
@@ -90,17 +116,15 @@ describe("Tree", () => {
     expect(screen.queryByRole("listitem", { name: "Chapter 2" })).toBeNull();
   });
 
-  test("tree_showClosed_addsTheClosedNodeAndItsTime", async () => {
+  test("tree_closedSection_listsTheClosedNodeWithItsTime", async () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     await openTree(client);
 
-    fireEvent.click(
-      screen.getByRole("checkbox", { name: "Show closed nodes" }),
-    );
+    showClosed();
 
     await screen.findByRole("listitem", { name: "Chapter 2" });
     expect(rowText("Chapter 2")).toBe("Chapter 2 (closed) · 2 / 15 · 55m");
-    expect(rowText("Book")).toBe("Book · 8 / 40 · 8h 10m");
+    expect(rowText("Book")).toBe("Book · 6 / 25 · 7h 15m");
   });
 
   test("tree_addTopLevelNodes_createsEachWithItsOwnRequestId", async () => {
@@ -232,9 +256,7 @@ describe("Tree", () => {
   test("tree_movePicker_leavesOutTheSubtreeAndClosedNodes", async () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     await openTree(client);
-    fireEvent.click(
-      screen.getByRole("checkbox", { name: "Show closed nodes" }),
-    );
+    showClosed();
     await screen.findByRole("listitem", { name: "Chapter 2" });
 
     clickInRow("Chapter 1", "Move to…");
@@ -282,9 +304,7 @@ describe("Tree", () => {
     await vi.waitFor(() =>
       expect(screen.queryByRole("listitem", { name: "Admin" })).toBeNull(),
     );
-    fireEvent.click(
-      screen.getByRole("checkbox", { name: "Show closed nodes" }),
-    );
+    showClosed();
     await screen.findByRole("listitem", { name: "Admin" });
     expect(rowText("Admin")).toContain("(closed)");
     clickInRow("Admin", "Reopen");
@@ -299,8 +319,8 @@ describe("Estimates", () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     await openTree(recording.client);
 
-    clickInRow("Admin", "Estimate");
-    const editor = screen.getByRole("group", { name: "Estimate for Admin" });
+    clickInRow("Admin", "Edit estimate");
+    const editor = screen.getByRole("region", { name: "Estimate for Admin" });
     ["More", "More", "More"].forEach(() =>
       fireEvent.click(
         within(editor).getByRole("button", { name: "More Execution cycles" }),
@@ -327,8 +347,8 @@ describe("Estimates", () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     await openTree(client);
 
-    clickInRow("Book", "Estimate");
-    const editor = screen.getByRole("group", { name: "Estimate for Book" });
+    clickInRow("Book", "Edit estimate");
+    const editor = screen.getByRole("region", { name: "Estimate for Book" });
     [1, 2, 3].forEach(() =>
       fireEvent.click(
         within(editor).getByRole("button", { name: "Fewer Deep Focus cycles" }),
@@ -347,13 +367,13 @@ describe("Estimates", () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     await openTree(recording.client);
 
-    clickInRow("Book", "Estimate");
-    const editor = screen.getByRole("group", { name: "Estimate for Book" });
+    clickInRow("Book", "Edit estimate");
+    const editor = screen.getByRole("region", { name: "Estimate for Book" });
     fireEvent.click(
       within(editor).getByRole("button", { name: "More Deep Focus cycles" }),
     );
     fireEvent.click(within(editor).getByRole("button", { name: "Cancel" }));
-    clickInRow("Book", "Estimate");
+    clickInRow("Book", "Edit estimate");
 
     expect(recording.updateNodeMasks).toEqual([]);
     expect(
@@ -376,18 +396,18 @@ describe("Entries", () => {
     await openTree(recording.client);
     const before = (await allCycles(recording.client)).length;
 
-    clickInRow("Admin", "Add an entry");
+    clickInRow("Admin", "+ Add an entry");
     const dialog = screen.getByRole("dialog", { name: "Admin" });
     fireEvent.click(within(dialog).getByRole("radio", { name: "Execution" }));
     fillEntry(dialog, {
       Date: "2026-10-30",
-      "Start time": "16:00",
-      "Length in minutes": "40",
+      Started: "16:00",
+      Length: "40",
     });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Save entry" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Log it" }));
 
     await vi.waitFor(() =>
-      expect(rowText("Admin")).toBe("Admin · 1 / 0 · 40m"),
+      expect(rowText("Admin")).toBe("Admin · 1 / — · 40m"),
     );
     const cycles = await allCycles(recording.client);
     expect(cycles).toHaveLength(before + 1);
@@ -406,7 +426,7 @@ describe("Entries", () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     await openTree(client);
 
-    clickInRow("Admin", "Add an entry");
+    clickInRow("Admin", "+ Add an entry");
 
     const dialog = screen.getByRole("dialog", { name: "Admin" });
     expect(
@@ -425,12 +445,10 @@ describe("Entries", () => {
       await openTree(recording.client);
       const before = (await allCycles(recording.client)).length;
 
-      clickInRow("Admin", "Add an entry");
+      clickInRow("Admin", "+ Add an entry");
       const dialog = screen.getByRole("dialog", { name: "Admin" });
-      fillEntry(dialog, { "Length in minutes": length });
-      fireEvent.click(
-        within(dialog).getByRole("button", { name: "Save entry" }),
-      );
+      fillEntry(dialog, { Length: length });
+      fireEvent.click(within(dialog).getByRole("button", { name: "Log it" }));
 
       expect((await within(dialog).findByRole("alert")).textContent).toBe(
         "The length must be a whole number of minutes from 1 to 1440.",
@@ -440,7 +458,7 @@ describe("Entries", () => {
     },
   );
 
-  test("entry_closedNodeRows_haveNoAddEntryButton", async () => {
+  test("entry_closedNode_hasNoAddEntryButton", async () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     await client.updateNode({
       nodeId: "00000000-0000-4000-8000-00000000000b",
@@ -448,19 +466,21 @@ describe("Entries", () => {
       updateMask: { paths: ["closed"] },
     });
     await openTree(client);
-
-    fireEvent.click(
-      screen.getByRole("checkbox", { name: "Show closed nodes" }),
-    );
+    showClosed();
     await screen.findByRole("listitem", { name: "Chapter 1" });
 
-    const ownButtons = (name: string) =>
-      Array.from(row(name).children)
-        .filter((element) => element.tagName === "BUTTON")
-        .map((element) => element.textContent);
-    expect(ownButtons("Chapter 1")).not.toContain("Add an entry");
-    expect(ownButtons("Notes")).not.toContain("Add an entry");
-    expect(ownButtons("Book")).toContain("Add an entry");
+    fireEvent.click(row("Chapter 1").querySelector('[data-part="name"]')!);
+    const closedDetail = within(detail());
+    expect(
+      closedDetail.queryByRole("button", { name: "+ Add an entry" }),
+    ).toBeNull();
+    expect(closedDetail.getByRole("button", { name: "Reopen" })).toBeDefined();
+    expect(screen.queryByRole("listitem", { name: "Notes" })).toBeNull();
+
+    fireEvent.click(row("Book").querySelector('[data-part="name"]')!);
+    expect(
+      within(detail()).getByRole("button", { name: "+ Add an entry" }),
+    ).toBeDefined();
   });
 
   test("entry_responseLost_retriesWithTheSameRequestId", async () => {
@@ -468,10 +488,10 @@ describe("Entries", () => {
     await openTree(recording.client);
     const before = (await allCycles(recording.client)).length;
 
-    clickInRow("Admin", "Add an entry");
+    clickInRow("Admin", "+ Add an entry");
     const dialog = screen.getByRole("dialog", { name: "Admin" });
     recording.loseNextResponse();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Save entry" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Log it" }));
 
     await vi.waitFor(() =>
       expect(screen.queryByRole("dialog", { name: "Admin" })).toBeNull(),
@@ -485,7 +505,7 @@ describe("Entries", () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     await openTree(recording.client);
 
-    clickInRow("Admin", "Add an entry");
+    clickInRow("Admin", "+ Add an entry");
     fireEvent.click(
       within(screen.getByRole("dialog", { name: "Admin" })).getByRole(
         "button",
@@ -509,8 +529,8 @@ describe("Entries", () => {
       within(selected).getByRole("button", { name: "+ Add an entry" }),
     );
     const dialog = screen.getByRole("dialog", { name: "Notes" });
-    fillEntry(dialog, { "Start time": "12:00", "Length in minutes": "20" });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Save entry" }));
+    fillEntry(dialog, { Started: "12:00", Length: "20" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Log it" }));
 
     await vi.waitFor(() =>
       expect(
@@ -534,22 +554,22 @@ describe("Entries", () => {
     const dialog = screen.getByRole("dialog", { name: "Notes" });
     fillEntry(dialog, {
       Date: "2026-10-27",
-      "Start time": "10:00",
-      "Length in minutes": "50",
+      Started: "10:00",
+      Length: "50",
     });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Save entry" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Log it" }));
 
     await vi.waitFor(() =>
       expect(
-        within(screen.getByRole("group", { name: "This week" })).getByRole(
-          "heading",
+        within(screen.getByRole("region", { name: "This week" })).getByTestId(
+          "total",
         ).textContent,
-      ).toBe("This week: 6h 40m"),
+      ).toBe("6h 40m"),
     );
     expect(
-      within(screen.getByRole("group", { name: "Today" })).getByRole("heading")
+      within(screen.getByRole("region", { name: "Today" })).getByTestId("total")
         .textContent,
-    ).toBe("Today: 2h 30m");
+    ).toBe("2h 30m");
     expect(
       within(screen.getByRole("region", { name: "Notes" })).getAllByRole(
         "listitem",
@@ -562,14 +582,14 @@ describe("Inbox", () => {
   test("inbox_open_listsTheUnfiledCycles", async () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
 
-    await openView(client, "Inbox");
+    await openInbox(client);
 
     expect(await screen.findAllByTestId("inbox-row")).toHaveLength(2);
   });
 
   test("inbox_fileACycle_setsItsNodeWithTheNodeIdMask", async () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
-    await openView(recording.client, "Inbox");
+    await openInbox(recording.client);
     const [first] = await screen.findAllByTestId("inbox-row");
 
     fireEvent.change(within(first).getByRole("combobox", { name: "File to" }), {
@@ -589,7 +609,7 @@ describe("Inbox", () => {
 
   test("inbox_secondFiling_showsTheErrorAndKeepsTheFirstNode", async () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
-    await openView(recording.client, "Inbox");
+    await openInbox(recording.client);
     const [first] = await screen.findAllByTestId("inbox-row");
     await recording.client.updateCycle({
       cycleId: INBOX_SHALLOW,

@@ -1,17 +1,22 @@
 import { create } from "@bufbuild/protobuf";
 import { describe, expect, test } from "vitest";
-import { NodePbSchema, SettingsPbSchema } from "../gen/focusledger/v1/model_pb";
+import {
+  FocusMode,
+  NodePbSchema,
+  SettingsPbSchema,
+} from "../gen/focusledger/v1/model_pb";
 import { exampleNodes, exampleNow } from "../ledger/exampleData";
 import { weekRange } from "../ledger/period";
 import { runningCycle } from "../ledger/rollup";
 import {
   cycleContext,
   formatMinutes,
-  formatRelative,
   INBOX_ID,
+  nextCycleLine,
   selectedNode,
   type TodayData,
   todayModel,
+  todaySentence,
 } from "./todayModel";
 
 function exampleData(): TodayData {
@@ -67,7 +72,7 @@ describe("todayModel", () => {
     expect(book?.loggedToday).toEqual([]);
   });
 
-  test("cycleContext_runningCycleOnEstimatedNode_statesNextCycleNumber", () => {
+  test("cycleContext_runningCycleOnUnestimatedNode_saysSo", () => {
     const data = exampleData();
     const running = todayModel(data, exampleNow, "UTC").running!;
 
@@ -75,21 +80,70 @@ describe("todayModel", () => {
       nodeName: "Notes",
       path: ["Book", "Chapter 1"],
       estimateLine: "No estimate for this mode",
+      doneModes: [FocusMode.EXECUTION],
+      estimated: 0,
     });
+  });
+
+  test("cycleContext_pastTheEstimate_namesTheOrdinal", () => {
+    const data = exampleData();
+    const book = create(NodePbSchema, {
+      id: "book",
+      name: "Book",
+      estimates: [
+        { mode: FocusMode.EXECUTION, cycleMinutes: 50, cycleCount: 1 },
+      ],
+      cycles: [
+        {
+          nodeId: "book",
+          mode: FocusMode.EXECUTION,
+          plannedMinutes: 50,
+          minutes: 50,
+        },
+        { nodeId: "book", mode: FocusMode.EXECUTION, plannedMinutes: 50 },
+      ],
+    });
+
+    expect(
+      cycleContext({ ...data, allTimeNodes: [book] }, book.cycles[1])
+        .estimateLine,
+    ).toBe("2nd cycle on a task estimated at 1");
+  });
+
+  test.each([
+    [{ doneCycles: 3, estimatedCycles: 5 }, false, "Cycle 4 of 5"],
+    [
+      { doneCycles: 8, estimatedCycles: 8 },
+      false,
+      "The 9th here — one past the estimate",
+    ],
+    [{ doneCycles: 0, estimatedCycles: 0 }, false, "No estimate for this mode"],
+    [{ doneCycles: 0, estimatedCycles: 0 }, true, "Goes to the Inbox"],
+  ])("nextCycleLine_%j_inbox%s_is%s", (counts, inbox, expected) => {
+    expect(nextCycleLine(counts, inbox)).toBe(expected);
+  });
+
+  test.each([
+    [[], "Nothing logged yet today."],
+    [[FocusMode.DEEP_FOCUS], "Your one cycle today was deep."],
+    [
+      [FocusMode.DEEP_FOCUS, FocusMode.DEEP_FOCUS, FocusMode.SHALLOW],
+      "Two of your three cycles today were deep.",
+    ],
+    [
+      [FocusMode.SHALLOW, FocusMode.SHALLOW],
+      "All two of your cycles today were shallow.",
+    ],
+  ])("todaySentence_%j_is%s", (modes, expected) => {
+    expect(todaySentence(modes as never)).toBe(expected);
   });
 
   test("formatMinutes_values_useHoursAndMinutes", () => {
     expect([0, 45, 60, 150].map(formatMinutes)).toEqual([
       "0m",
       "45m",
-      "1h",
+      "1h 00m",
       "2h 30m",
     ]);
-  });
-
-  test("formatRelative_thirtyMinutesAgo_isInMinutes", () => {
-    expect(
-      formatRelative(new Date(exampleNow.getTime() - 30 * 60_000), exampleNow),
-    ).toBe("30 minutes ago");
   });
 });

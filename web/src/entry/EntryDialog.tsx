@@ -13,8 +13,9 @@ import {
   localTimeString,
   zonedDateTimeToInstant,
 } from "../ledger/period";
-import { LOGGED_MODES, type LoggedMode } from "../ledger/rollup";
-import { INBOX_ID, MODE_NAMES, plannedMinutesFor } from "../today/todayModel";
+import type { LoggedMode } from "../ledger/rollup";
+import { ModeRows } from "../modes/ModeRows";
+import { INBOX_ID, pathOf, plannedMinutesFor } from "../today/todayModel";
 import { useAction } from "../useAction";
 import { isEntryLength, LENGTH_MESSAGE } from "./entryLength";
 
@@ -84,14 +85,31 @@ export function EntryDialog({
     });
   };
 
+  const selectedNode = nodes.find((node) => node.id === nodeId);
+  const path = selectedNode ? pathOf(selectedNode, nodes) : [];
+
   return (
-    <section role="dialog" aria-labelledby={headingId}>
-      <h2 id={headingId}>{nodeName}</h2>
-      {(lengthError ?? error) && <p role="alert">{lengthError ?? error}</p>}
-      <form onSubmit={save}>
-        <p>
-          <label>
-            Node{" "}
+    <div className="backdrop">
+      <section
+        className="dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={headingId}
+      >
+        <div className="centre-title">
+          {path.length > 0 && <span className="crumb">{path.join(" / ")}</span>}
+          <h2 id={headingId} className="title title-m">
+            {nodeName}
+          </h2>
+        </div>
+        {(lengthError ?? error) && (
+          <p className="alert" role="alert">
+            {lengthError ?? error}
+          </p>
+        )}
+        <form onSubmit={save}>
+          <label className="field">
+            <span className="label">Node</span>
             <select
               value={nodeId}
               onChange={(event) => setNodeId(event.target.value)}
@@ -99,62 +117,62 @@ export function EntryDialog({
               <option value={INBOX_ID}>Inbox</option>
               {nodes.map((node) => (
                 <option key={node.id} value={node.id}>
-                  {node.name}
+                  {[...pathOf(node, nodes), node.name].join(" / ")}
                 </option>
               ))}
             </select>
           </label>
-        </p>
-        <fieldset>
-          <legend>Mode</legend>
-          {LOGGED_MODES.map((option) => (
-            <label key={option}>
+          <div className="dialog-block">
+            <span className="label">What kind of thinking</span>
+            <ModeRows
+              selected={mode}
+              onSelect={chooseMode}
+              groupName={modeName}
+              descriptions="short"
+            />
+          </div>
+          <div className="fields-3">
+            <label className="field">
+              <span className="label">Date</span>
               <input
-                type="radio"
-                name={modeName}
-                checked={mode === option}
-                onChange={() => chooseMode(option)}
+                className="text-input"
+                type="date"
+                value={date}
+                required
+                onChange={(event) => setDate(event.target.value)}
               />
-              {MODE_NAMES[option]}
             </label>
-          ))}
-        </fieldset>
-        <p>
-          <label>
-            Date{" "}
-            <input
-              type="date"
-              value={date}
-              required
-              onChange={(event) => setDate(event.target.value)}
-            />
-          </label>{" "}
-          <label>
-            Start time{" "}
-            <input
-              type="time"
-              value={time}
-              required
-              onChange={(event) => setTime(event.target.value)}
-            />
-          </label>{" "}
-          <label>
-            Length in minutes{" "}
-            <input
-              type="number"
-              inputMode="numeric"
-              value={minutes}
-              onChange={(event) => setMinutes(event.target.value)}
-            />
-          </label>
-        </p>
-        <button type="submit" disabled={busy}>
-          Save entry
-        </button>{" "}
-        <button type="button" onClick={onCancel}>
-          Cancel
-        </button>
-      </form>
-    </section>
+            <label className="field">
+              <span className="label">Started</span>
+              <input
+                className="text-input"
+                type="time"
+                value={time}
+                required
+                onChange={(event) => setTime(event.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span className="label">Length</span>
+              <input
+                className="text-input"
+                type="number"
+                inputMode="numeric"
+                value={minutes}
+                onChange={(event) => setMinutes(event.target.value)}
+              />
+            </label>
+          </div>
+          <div className="dialog-actions">
+            <button type="button" className="button" onClick={onCancel}>
+              Cancel
+            </button>
+            <button type="submit" className="button-primary" disabled={busy}>
+              Log it
+            </button>
+          </div>
+        </form>
+      </section>
+    </div>
   );
 }

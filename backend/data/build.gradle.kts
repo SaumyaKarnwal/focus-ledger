@@ -1,14 +1,46 @@
+val codegen: SourceSet = sourceSets.create("codegen")
+
 dependencies {
     implementation(project(":backend:core"))
     implementation(libs.flyway.core)
+    implementation(libs.jooq)
+    implementation(libs.hikari)
     runtimeOnly(libs.flyway.database.postgresql)
-    runtimeOnly(libs.postgresql)
+    implementation(libs.postgresql)
+
+    "codegenImplementation"(libs.jooq.codegen)
+    "codegenImplementation"(libs.flyway.core)
+    "codegenImplementation"(libs.testcontainers.postgresql)
+    "codegenRuntimeOnly"(libs.flyway.database.postgresql)
+    "codegenRuntimeOnly"(libs.postgresql)
 
     testImplementation(libs.testcontainers.postgresql)
     testImplementation(libs.postgresql)
 }
 
 val dockerPostgresDir = rootProject.file("docker/postgres")
+val migrationDir = file("src/main/resources/db/migration")
+val jooqOutputDir = layout.buildDirectory.dir("generated/jooq")
+
+val generateJooq =
+    tasks.register<JavaExec>("generateJooq") {
+        description = "Migrates a Postgres 18 container with V1 and generates the jOOQ classes."
+        group = "build"
+        classpath = codegen.runtimeClasspath
+        mainClass = "io.focusledger.data.codegen.GenerateJooqKt"
+        inputs.dir(dockerPostgresDir)
+        inputs.dir(migrationDir)
+        inputs.files(codegen.output)
+        outputs.dir(jooqOutputDir)
+        doFirst { delete(jooqOutputDir) }
+        argumentProviders.add(
+            CommandLineArgumentProvider {
+                listOf(dockerPostgresDir.path, migrationDir.path, jooqOutputDir.get().asFile.path)
+            }
+        )
+    }
+
+sourceSets.main { java.srcDir(generateJooq) }
 
 tasks.test {
     inputs.dir(dockerPostgresDir)

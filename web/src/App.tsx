@@ -13,12 +13,14 @@ import {
 } from "./cycle/extensionStore";
 import { RunningScreen } from "./cycle/RunningScreen";
 import { EntryDialog } from "./entry/EntryDialog";
-import { InboxScreen } from "./inbox/InboxScreen";
-import { TreeScreen } from "./tree/TreeScreen";
-import type { CyclePb } from "./gen/focusledger/v1/model_pb";
-import { browserTimeZone } from "./ledger/period";
+import { FirstRunScreen } from "./firstRun/FirstRunScreen";
+import type { CyclePb, NodePb } from "./gen/focusledger/v1/model_pb";
+import { browserTimeZone, formatHeaderTime } from "./ledger/period";
 import type { LoggedMode } from "./ledger/rollup";
-import { PRODUCT_NAME } from "./productName";
+import type { toEstimates } from "./tree/estimateModel";
+import { TreeScreen } from "./tree/TreeScreen";
+import { PageHeader } from "./ui/PageHeader";
+import { useNow } from "./useNow";
 import { loadToday } from "./today/loadToday";
 import { TodayScreen } from "./today/TodayScreen";
 import {
@@ -54,12 +56,11 @@ function pendingExtensionFor(
   return { cycle, extension };
 }
 
-type View = "today" | "tree" | "inbox";
+type View = "today" | "tree";
 
 const VIEWS: readonly [View, string][] = [
   ["today", "Today"],
   ["tree", "Tree"],
-  ["inbox", "Inbox"],
 ];
 
 type Props = {
@@ -117,6 +118,7 @@ export function App({
     setView(next);
     setEntryNodeId(undefined);
     if (next === "today") void showToday();
+    else setPreselectedNodeId(undefined);
   };
 
   const [loadAttempt, setLoadAttempt] = useState(0);
@@ -230,45 +232,132 @@ export function App({
     [extendedCycle, writeMinutes],
   );
 
+  const saveEstimate = async (
+    node: NodePb,
+    estimates: ReturnType<typeof toEstimates>,
+  ) => {
+    let saved = false;
+    await act(async () => {
+      await withRetry(
+        () =>
+          client.updateNode({
+            nodeId: node.id,
+            estimates,
+            updateMask: { paths: ["estimates"] },
+          }),
+        retryDelaysMs,
+      );
+      saved = true;
+      await refreshWithRetry();
+    });
+    return saved;
+  };
+
+  // The Inbox is read again after a failure too, so a cycle that was filed
+  // elsewhere leaves the list.
+  const fileCycle = (cycle: CyclePb, nodeId: string) =>
+    void act(async () => {
+      try {
+        await withRetry(
+          () =>
+            client.updateCycle({
+              cycleId: cycle.id,
+              nodeId,
+              updateMask: { paths: ["node_id"] },
+            }),
+          retryDelaysMs,
+        );
+      } finally {
+        await refreshWithRetry();
+      }
+    });
+
+  const [preselectedNodeId, setPreselectedNodeId] = useState<string>();
+  const openOnToday = (nodeId: string) => {
+    setPreselectedNodeId(nodeId);
+    openView("today");
+  };
+
+  const nav = (
+    <nav className="nav" aria-label="Views">
+      {VIEWS.map(([key, label]) => (
+        <button
+          key={key}
+          type="button"
+          aria-current={view === key ? "page" : undefined}
+          onClick={() => openView(key)}
+        >
+          {label}
+        </button>
+      ))}
+    </nav>
+  );
+  const alert = error && (
+    <p className="alert page-alert" role="alert">
+      {error}
+    </p>
+  );
+  const firstRun = screen.kind === "today" && data && isFirstRun(data);
+
   return (
-    <main>
-      <h1>{PRODUCT_NAME}</h1>
-      {error && <p role="alert">{error}</p>}
-      {screen.kind === "loading" &&
-        (error ? (
-          <button type="button" onClick={retryFirstLoad}>
-            Try again
-          </button>
-        ) : (
-          <p>Loading…</p>
-        ))}
-      {screen.kind === "today" && data && (
-        <nav aria-label="Views">
-          {VIEWS.map(([key, label]) => (
-            <button
-              key={key}
-              type="button"
-              aria-current={view === key ? "page" : undefined}
-              onClick={() => openView(key)}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
+    <div className="app">
+      {screen.kind === "loading" && (
+        <>
+          <PageHeader framed />
+          {alert}
+          {error ? (
+            <p className="page-alert">
+              <button type="button" className="button" onClick={retryFirstLoad}>
+                Try again
+              </button>
+            </p>
+          ) : (
+            <p className="note page-alert">Loading…</p>
+          )}
+        </>
       )}
-      {screen.kind === "today" && data && view === "today" && (
-        <TodayScreen
-          data={data}
-          timeZone={timeZone}
-          busy={busy}
-          onStart={(nodeId, mode, plannedMinutes) =>
-            void start(nodeId, mode, plannedMinutes)
-          }
-          onAddEntry={setEntryNodeId}
-          onOpenTree={() => openView("tree")}
-        />
+      {firstRun && (
+        <>
+          {alert}
+          <FirstRunScreen
+            client={client}
+            settings={data.settings}
+            retryDelaysMs={retryDelaysMs}
+            onStarted={(cycle) => {
+              setScreen({ kind: "running", cycle });
+              void refreshWithRetry().catch((reason: unknown) =>
+                setError(String(reason)),
+              );
+            }}
+          />
+        </>
       )}
-      {screen.kind === "today" &&
+      {!firstRun && screen.kind === "today" && data && view === "today" && (
+        <>
+          <PageHeader
+            framed
+            middle={nav}
+            end={<HeaderClock timeZone={timeZone} />}
+          />
+          {alert}
+          <TodayScreen
+            key={preselectedNodeId ?? "today"}
+            data={data}
+            timeZone={timeZone}
+            busy={busy}
+            initialNodeId={preselectedNodeId}
+            onStart={(nodeId, mode, plannedMinutes) =>
+              void start(nodeId, mode, plannedMinutes)
+            }
+            onAddEntry={setEntryNodeId}
+            onOpenTree={() => openView("tree")}
+            onSaveEstimate={saveEstimate}
+            onFile={fileCycle}
+          />
+        </>
+      )}
+      {!firstRun &&
+        screen.kind === "today" &&
         data &&
         view === "today" &&
         entryNodeId !== undefined && (
@@ -290,49 +379,62 @@ export function App({
             onCancel={() => setEntryNodeId(undefined)}
           />
         )}
-      {screen.kind === "today" && data && view === "tree" && (
-        <TreeScreen
-          client={client}
-          settings={data.settings}
-          timeZone={timeZone}
-          retryDelaysMs={retryDelaysMs}
-        />
-      )}
-      {screen.kind === "today" && data && view === "inbox" && (
-        <InboxScreen
-          client={client}
-          timeZone={timeZone}
-          retryDelaysMs={retryDelaysMs}
-        />
+      {!firstRun && screen.kind === "today" && data && view === "tree" && (
+        <>
+          {alert}
+          <TreeScreen
+            client={client}
+            settings={data.settings}
+            timeZone={timeZone}
+            retryDelaysMs={retryDelaysMs}
+            nav={nav}
+            onOpenOnToday={openOnToday}
+          />
+        </>
       )}
       {screen.kind === "running" && data && (
-        <RunningScreen
-          key={screen.cycle.id}
-          cycle={screen.cycle}
-          {...cycleContext(data, screen.cycle)}
-          busy={busy}
-          onStop={stop}
-        />
+        <>
+          {alert}
+          <RunningScreen
+            key={screen.cycle.id}
+            cycle={screen.cycle}
+            {...cycleContext(data, screen.cycle)}
+            timeZone={timeZone}
+            busy={busy}
+            onStop={stop}
+          />
+        </>
       )}
       {screen.kind === "bell" && data && (
-        <BellScreen
-          cycle={screen.cycle}
-          nodeName={cycleContext(data, screen.cycle).nodeName}
-          busy={busy}
-          onExtend={(moreMinutes) => startExtension(screen.cycle, moreMinutes)}
-          onBreak={() => setScreen({ kind: "break" })}
-          onNewCycle={() => void showToday()}
-        />
+        <>
+          {alert}
+          <BellScreen
+            cycle={screen.cycle}
+            nodeName={cycleContext(data, screen.cycle).nodeName}
+            path={cycleContext(data, screen.cycle).path}
+            busy={busy}
+            onExtend={(moreMinutes) =>
+              startExtension(screen.cycle, moreMinutes)
+            }
+            onBreak={() => setScreen({ kind: "break" })}
+            onNewCycle={() => void showToday()}
+          />
+        </>
       )}
       {screen.kind === "extension" && data && (
-        <ExtensionScreen
-          key={`${screen.cycle.id}-${screen.extension.startedAtMs}`}
-          cycle={screen.cycle}
-          extension={screen.extension}
-          nodeName={cycleContext(data, screen.cycle).nodeName}
-          busy={busy}
-          onStop={stopExtension}
-        />
+        <>
+          {alert}
+          <ExtensionScreen
+            key={`${screen.cycle.id}-${screen.extension.startedAtMs}`}
+            cycle={screen.cycle}
+            extension={screen.extension}
+            nodeName={cycleContext(data, screen.cycle).nodeName}
+            path={cycleContext(data, screen.cycle).path}
+            timeZone={timeZone}
+            busy={busy}
+            onStop={stopExtension}
+          />
+        </>
       )}
       {screen.kind === "break" && data && (
         <BreakScreen
@@ -340,6 +442,18 @@ export function App({
           onDone={() => void showToday()}
         />
       )}
-    </main>
+    </div>
   );
+}
+
+/** No node and no cycle yet: the first run (FR-1). */
+function isFirstRun(data: TodayData): boolean {
+  return data.allTimeNodes.every(
+    (node) => node.id === INBOX_ID && node.cycles.length === 0,
+  );
+}
+
+function HeaderClock({ timeZone }: { timeZone: string }) {
+  const now = useNow(30_000);
+  return <span className="topbar-meta">{formatHeaderTime(now, timeZone)}</span>;
 }

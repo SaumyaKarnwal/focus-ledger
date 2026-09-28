@@ -61,7 +61,7 @@ docker compose down -v && docker compose up -d --wait && ./gradlew :backend:data
 Check (run before every push):
 
 ```bash
-./gradlew build                             # includes spotlessCheck and the Testcontainers tests (Docker must run)
+./gradlew build                             # includes spotlessCheck and the Testcontainers tests; jOOQ code generation also starts a Postgres container, so Docker must run even to compile backend/data
 (cd web && corepack pnpm test && corepack pnpm lint && corepack pnpm build)
 ```
 

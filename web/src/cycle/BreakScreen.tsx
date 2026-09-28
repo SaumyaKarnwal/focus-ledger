@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { PageHeader } from "../ui/PageHeader";
 import { useNow } from "../useNow";
 import { formatCountdown } from "./timer";
 
@@ -10,6 +11,7 @@ type Props = {
   onDone: () => void;
 };
 
+/** A break is not written to the ledger (FR-5). */
 export function BreakScreen({ breakMinutes, onDone }: Props) {
   const now = useNow();
   const [startedAt] = useState(() => Date.now());
@@ -27,26 +29,40 @@ export function BreakScreen({ breakMinutes, onDone }: Props) {
   }, [remaining, onDone]);
 
   return (
-    <section aria-labelledby="break-heading">
-      <h2 id="break-heading">Break</h2>
-      <p aria-label="Break time left" role="timer">
-        {formatCountdown(remaining)}
-      </p>
-      <progress aria-label="Break progress" value={elapsedMs} max={totalMs} />
-      <p>
-        {Math.floor(elapsedMs / MINUTE_MS)} of {totalMinutes} min
-      </p>
-      <button
-        type="button"
-        onClick={() =>
-          setTotalMinutes((minutes) => minutes + EXTRA_BREAK_MINUTES)
-        }
-      >
-        +5 min
-      </button>{" "}
-      <button type="button" onClick={onDone}>
-        Skip and start
-      </button>
-    </section>
+    <div className="focus-page" data-page="break">
+      <PageHeader middle={<h2 className="label">Break</h2>} />
+      <section className="focus-body" aria-label="Break">
+        <p className="countdown" aria-label="Break time left" role="timer">
+          {formatCountdown(remaining)}
+        </p>
+        <div className="progress">
+          <progress
+            aria-label="Break progress"
+            value={elapsedMs}
+            max={totalMs}
+          />
+          <div className="progress-figures">
+            <span>
+              {Math.floor(elapsedMs / MINUTE_MS)} of {totalMinutes} min
+            </span>
+          </div>
+        </div>
+      </section>
+      <div className="focus-actions">
+        <button
+          type="button"
+          className="button"
+          onClick={() =>
+            setTotalMinutes((minutes) => minutes + EXTRA_BREAK_MINUTES)
+          }
+        >
+          +5 min
+        </button>
+        <button type="button" className="button-primary" onClick={onDone}>
+          Skip and start
+        </button>
+      </div>
+      <p className="break-note">Breaks are not logged. Only the work is.</p>
+    </div>
   );
 }
