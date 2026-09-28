@@ -62,6 +62,52 @@ export function zonedDateTimeToInstant(
   return new Date(exact ?? wallClock - offsetBefore);
 }
 
+/** "Tue 22 Sep · 16:11" in `timeZone`, for the header. */
+export function formatHeaderTime(instant: Date, timeZone: string): string {
+  const parts = dateParts(instant, timeZone);
+  return `${parts.weekday} ${parts.day} ${parts.month} · ${localTimeString(instant, timeZone)}`;
+}
+
+/** "2 Sep" in `timeZone`. */
+export function formatShortDate(instant: Date, timeZone: string): string {
+  const parts = dateParts(instant, timeZone);
+  return `${parts.day} ${parts.month}`;
+}
+
+/**
+ * How long ago, as in the Today rail: "12m ago", "2h ago", "yesterday", a
+ * weekday within the week, and "2 Sep" before that.
+ */
+export function formatSince(
+  instant: Date,
+  now: Date,
+  timeZone: string,
+): string {
+  const minutes = Math.floor((now.getTime() - instant.getTime()) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const days = Math.round(
+    (localDate(now, timeZone) - localDate(instant, timeZone)) / DAY_MS,
+  );
+  if (days <= 0) return `${Math.floor(minutes / 60)}h ago`;
+  if (days === 1) return "yesterday";
+  if (days < 7) return dateParts(instant, timeZone).weekday;
+  return formatShortDate(instant, timeZone);
+}
+
+function dateParts(instant: Date, timeZone: string): Record<string, string> {
+  return Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    })
+      .formatToParts(instant)
+      .map((part) => [part.type, part.value]),
+  );
+}
+
 /** "YYYY-MM-DD" in `timeZone`. */
 export function localDateString(instant: Date, timeZone: string): string {
   return new Date(wallClockMs(instant.getTime(), timeZone))

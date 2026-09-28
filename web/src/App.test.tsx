@@ -43,9 +43,32 @@ async function allCycles(client: LedgerClient): Promise<CyclePb[]> {
   return nodes.flatMap((node) => node.cycles);
 }
 
+/** The rail button whose name part is `name`. */
+async function railButton(name: string) {
+  const rail = await screen.findByRole("list", { name: "Open nodes" });
+  const button = within(rail)
+    .getAllByRole("button")
+    .find(
+      (candidate) =>
+        candidate.querySelector('[data-part="name"]')?.textContent === name,
+    );
+  if (!button) throw new Error(`no rail row named ${name}`);
+  return button;
+}
+
+function railNames(rows: HTMLElement[]) {
+  return rows.map(
+    (row) => row.querySelector('[data-part="name"]')?.textContent,
+  );
+}
+
+function glanceTotal(name: "Today" | "This week") {
+  return within(screen.getByRole("region", { name })).getByTestId("total")
+    .textContent;
+}
+
 async function startFromToday(nodeName: string) {
-  const rail = await screen.findByRole("region", { name: "Open nodes" });
-  fireEvent.click(within(rail).getByRole("button", { name: nodeName }));
+  fireEvent.click(await railButton(nodeName));
   fireEvent.click(screen.getByRole("button", { name: "Start" }));
   await screen.findByRole("timer", { name: "Time left" });
 }
@@ -65,11 +88,11 @@ describe("Today", () => {
 
     const rows = await screen.findAllByTestId("rail-row");
 
+    expect(railNames(rows)).toEqual(["Notes", "Book", "Chapter 1", "Admin"]);
     expect(
-      rows.map((row) => within(row).getByRole("button").textContent),
-    ).toEqual(["Notes", "Book", "Chapter 1", "Admin"]);
-    expect(
-      rows.every((row) => /worked|created/.test(row.textContent ?? "")),
+      rows.every(
+        (row) => row.querySelector(".rail-row-time")?.textContent !== "",
+      ),
     ).toBe(true);
     expect(screen.getByText("2 unfiled")).toBeDefined();
   });
@@ -77,16 +100,13 @@ describe("Today", () => {
   test("today_exampleData_showsTodayAndWeekTotals", async () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
 
-    const today = await screen.findByRole("group", { name: "Today" });
-    const week = screen.getByRole("group", { name: "This week" });
+    const today = await screen.findByRole("region", { name: "Today" });
 
-    expect(within(today).getByRole("heading").textContent).toBe(
-      "Today: 2h 30m",
+    expect(glanceTotal("Today")).toBe("2h 30m");
+    expect(within(today).getByRole("img").getAttribute("aria-label")).toContain(
+      "Deep Focus 1h 15m",
     );
-    expect(within(today).getByText("Deep Focus: 1h 15m")).toBeDefined();
-    expect(within(week).getByRole("heading").textContent).toBe(
-      "This week: 5h 50m",
-    );
+    expect(glanceTotal("This week")).toBe("5h 50m");
   });
 
   test("today_closeNode_leavesRailAndKeepsTotals", async () => {
@@ -100,26 +120,20 @@ describe("Today", () => {
     renderApp(client);
 
     const rows = await screen.findAllByTestId("rail-row");
-    expect(
-      rows.map((row) => within(row).getByRole("button").textContent),
-    ).toEqual(["Book", "Admin"]);
-    expect(
-      within(screen.getByRole("group", { name: "This week" })).getByRole(
-        "heading",
-      ).textContent,
-    ).toBe("This week: 5h 50m");
+    expect(railNames(rows)).toEqual(["Book", "Admin"]);
+    expect(glanceTotal("This week")).toBe("5h 50m");
   });
 
   test("today_selectRailRow_showsThatNodeWithItsProgress", async () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
-    const rail = await screen.findByRole("region", { name: "Open nodes" });
-
-    fireEvent.click(within(rail).getByRole("button", { name: "Book" }));
+    fireEvent.click(await railButton("Book"));
 
     const selected = screen.getByRole("region", { name: "Book" });
-    expect(within(selected).getByText("3 of 5 cycles")).toBeDefined();
+    expect(
+      within(selected).getByRole("heading", { name: /Estimate/ }).textContent,
+    ).toBe("Estimate · 3 of 5 cycles done");
     expect(screen.getByTestId("meta-line").textContent).toContain(
-      "cycle 4 of 5",
+      "Cycle 4 of 5",
     );
     expect(
       within(selected).getByRole("list", { name: "Logged today" }).children,
@@ -138,12 +152,12 @@ describe("Today", () => {
 
     fireEvent.click(screen.getByRole("radio", { name: "Shallow" }));
     expect(screen.getByRole("status", { name: "Length" }).textContent).toBe(
-      "25 min",
+      "25",
     );
-    fireEvent.click(screen.getByRole("button", { name: "Longer" }));
+    fireEvent.click(screen.getByRole("button", { name: "Five minutes more" }));
 
     expect(screen.getByRole("status", { name: "Length" }).textContent).toBe(
-      "30 min",
+      "30",
     );
     expect(screen.getByTestId("meta-line").textContent).not.toBe(endBefore);
   });
@@ -564,9 +578,7 @@ describe("Failures", () => {
       await screen.findByRole("button", { name: "Start a new cycle" }),
     );
     const rows = await screen.findAllByTestId("rail-row");
-    expect(
-      rows.map((row) => within(row).getByRole("button").textContent),
-    ).toEqual(["Book", "Chapter 1", "Admin"]);
+    expect(railNames(rows)).toEqual(["Book", "Chapter 1", "Admin"]);
   });
 
   test("today_runningCycleUnderClosedParent_railLeavesOutTheSubtree", async () => {
@@ -585,9 +597,7 @@ describe("Failures", () => {
     );
 
     const rows = await screen.findAllByTestId("rail-row");
-    expect(
-      rows.map((row) => within(row).getByRole("button").textContent),
-    ).toEqual(["Book", "Admin"]);
+    expect(railNames(rows)).toEqual(["Book", "Admin"]);
   });
 
   test("stop_refreshFailsAfterTheWrite_stillShowsTheBell", async () => {
