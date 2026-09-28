@@ -1,6 +1,8 @@
-# Ekagra
+# focus-ledger
 
-Ekagra is a personal time ledger. Its internal name, in the code and the repository, is `focus-ledger`. Each work cycle records its node (what you worked on) and its mode (Deep Focus, Execution, or Shallow). The report is a node × mode cross-tab.
+`focus-ledger` is the internal name of a personal time ledger. The product name is not final. The web app reads it from one constant, `web/src/productName.ts`.
+
+Each work cycle records its node (what you worked on) and its mode (Deep Focus, Execution, or Shallow). The report is a node × mode cross-tab.
 
 The design is in [`docs/`](docs/). Start with [`docs/prd.md`](docs/prd.md) and [`docs/architecture.md`](docs/architecture.md).
 
