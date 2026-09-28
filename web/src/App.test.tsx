@@ -14,6 +14,7 @@ import {
 const MINUTE_MS = 60_000;
 
 beforeEach(() => {
+  localStorage.clear();
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.setSystemTime(exampleNow);
 });
@@ -275,12 +276,13 @@ describe("Stop", () => {
 
 describe("Bell and extension", () => {
   async function ringAfterFullCycle(client: LedgerClient) {
-    renderApp(client);
+    const rendered = renderApp(client);
     await screen.findByRole("button", { name: "Start" });
     fireEvent.click(screen.getByRole("radio", { name: "Execution" }));
     await startFromToday("Book");
     await advance(50 * MINUTE_MS + 1000);
     await screen.findByText("50 min logged");
+    return rendered;
   }
 
   test("bell_onOpen_extensionFieldIsEmpty", async () => {
@@ -298,21 +300,95 @@ describe("Bell and extension", () => {
     ).toBe(true);
   });
 
-  test("bell_extendFifteenOnFifty_logsOneCycleOfSixtyFive", async () => {
-    const { client } = recordingClient(exampleNodesWithNothingRunning());
-    const cyclesBefore = (await allCycles(client)).length;
-    await ringAfterFullCycle(client);
-
+  function keepGoingFor(minutes: number) {
     fireEvent.change(
       screen.getByRole("spinbutton", { name: "Keep going for more minutes" }),
-      { target: { value: "15" } },
+      { target: { value: String(minutes) } },
     );
     fireEvent.click(screen.getByRole("button", { name: "Keep going" }));
+    return screen.findByRole("timer", { name: "Time left" });
+  }
+
+  async function loggedMinutesOfNewCycle(client: LedgerClient) {
+    const seeded = new Set(
+      exampleNodesWithNothingRunning()
+        .flatMap((node) => node.cycles)
+        .map((cycle) => cycle.id),
+    );
+    return (await allCycles(client))
+      .filter((cycle) => !seeded.has(cycle.id))
+      .map((cycle) => cycle.minutes);
+  }
+
+  test("bell_extendFifteenOnFifty_logsOneCycleOfSixtyFiveAtTheEnd", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    await ringAfterFullCycle(client);
+
+    const timer = await keepGoingFor(15);
+
+    expect(timer.textContent).toBe("15:00");
+    expect(await loggedMinutesOfNewCycle(client)).toEqual([50]);
+    await advance(15 * MINUTE_MS + 1000);
+    expect(await screen.findByText("65 min logged")).toBeDefined();
+    expect(await loggedMinutesOfNewCycle(client)).toEqual([65]);
+  });
+
+  test("extension_stopAfterSixAndAHalfMinutes_logsOnlyTheWorkedMinutes", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    await ringAfterFullCycle(client);
+    await keepGoingFor(15);
+
+    await advance(6.5 * MINUTE_MS);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Stop and log 56 min" }),
+    );
+
+    expect(await screen.findByText("56 min logged")).toBeDefined();
+    expect(await loggedMinutesOfNewCycle(client)).toEqual([56]);
+  });
+
+  test("extension_stopUnderOneMinute_keepsTheLoggedMinutes", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    await ringAfterFullCycle(client);
+    await keepGoingFor(15);
+
+    await advance(30_000);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Stop and log 50 min" }),
+    );
+
+    expect(await screen.findByText("50 min logged")).toBeDefined();
+    expect(await loggedMinutesOfNewCycle(client)).toEqual([50]);
+  });
+
+  test("extension_reloadMidway_resumesTheCountdown", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    const first = await ringAfterFullCycle(client);
+    await keepGoingFor(15);
+    await advance(5 * MINUTE_MS);
+    first.unmount();
+
+    renderApp(client);
+
+    const timer = await screen.findByRole("timer", { name: "Time left" });
+    expect(timer.textContent).toBe("10:00");
+    expect(
+      screen.getByRole("button", { name: "Stop and log 55 min" }),
+    ).toBeDefined();
+    expect(await loggedMinutesOfNewCycle(client)).toEqual([50]);
+  });
+
+  test("extension_reloadAfterItsEnd_logsTheFullExtension", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    const first = await ringAfterFullCycle(client);
+    await keepGoingFor(15);
+    first.unmount();
+    await advance(20 * MINUTE_MS);
+
+    renderApp(client);
 
     expect(await screen.findByText("65 min logged")).toBeDefined();
-    const cycles = await allCycles(client);
-    expect(cycles).toHaveLength(cyclesBefore + 1);
-    expect(cycles.filter((cycle) => cycle.minutes === 65)).toHaveLength(1);
+    expect(await loggedMinutesOfNewCycle(client)).toEqual([65]);
   });
 
   test("bell_startNewCycle_landsOnTodayWithModeSelection", async () => {

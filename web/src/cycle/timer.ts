@@ -29,6 +29,31 @@ export function minutesToLog(cycle: CyclePb, now: Date): number {
   return Math.max(1, Math.floor(workedMs / MINUTE_MS));
 }
 
+export type Extension = {
+  startedAtMs: number;
+  minutes: number;
+  loggedMinutes: number;
+};
+
+export function extensionElapsedMs(extension: Extension, now: Date): number {
+  return Math.min(
+    extension.minutes * MINUTE_MS,
+    Math.max(0, now.getTime() - extension.startedAtMs),
+  );
+}
+
+export function extensionRemainingMs(extension: Extension, now: Date): number {
+  return extension.minutes * MINUTE_MS - extensionElapsedMs(extension, now);
+}
+
+/** The cycle's new total: the logged minutes plus the whole extension minutes worked. */
+export function extensionTotalMinutes(extension: Extension, now: Date): number {
+  return (
+    extension.loggedMinutes +
+    Math.floor(extensionElapsedMs(extension, now) / MINUTE_MS)
+  );
+}
+
 /** "mm:ss", or "h:mm:ss" from one hour. */
 export function formatCountdown(ms: number): string {
   const totalSeconds = Math.ceil(ms / 1000);

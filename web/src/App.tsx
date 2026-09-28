@@ -4,6 +4,13 @@ import { newRequestId } from "./api/requestId";
 import { withRetry } from "./api/retry";
 import { BellScreen } from "./cycle/BellScreen";
 import { BreakScreen } from "./cycle/BreakScreen";
+import { ExtensionScreen } from "./cycle/ExtensionScreen";
+import {
+  clearExtension,
+  loadExtension,
+  type PendingExtension,
+  saveExtension,
+} from "./cycle/extensionStore";
 import { RunningScreen } from "./cycle/RunningScreen";
 import type { CyclePb } from "./gen/focusledger/v1/model_pb";
 import { browserTimeZone } from "./ledger/period";
@@ -23,7 +30,24 @@ type Screen =
   | { kind: "today" }
   | { kind: "running"; cycle: CyclePb }
   | { kind: "bell"; cycle: CyclePb }
+  | { kind: "extension"; cycle: CyclePb; extension: PendingExtension }
   | { kind: "break" };
+
+/** The extension to resume after a reload, if its cycle still has the minutes it started with. */
+function pendingExtensionFor(
+  loaded: TodayData,
+): { cycle: CyclePb; extension: PendingExtension } | undefined {
+  const extension = loadExtension();
+  if (!extension) return undefined;
+  const cycle = loaded.allTimeNodes
+    .flatMap((node) => node.cycles)
+    .find((listed) => listed.id === extension.cycleId);
+  if (cycle?.minutes !== extension.loggedMinutes) {
+    clearExtension();
+    return undefined;
+  }
+  return { cycle, extension };
+}
 
 type Props = {
   client: LedgerClient;
@@ -62,7 +86,9 @@ export function App({
   const screenFor = useCallback(
     (loaded: TodayData): Screen => {
       const running = todayModel(loaded, new Date(), timeZone).running;
-      return running ? { kind: "running", cycle: running } : { kind: "today" };
+      if (running) return { kind: "running", cycle: running };
+      const pending = pendingExtensionFor(loaded);
+      return pending ? { kind: "extension", ...pending } : { kind: "today" };
     },
     [timeZone],
   );
@@ -117,6 +143,7 @@ export function App({
             }),
           retryDelaysMs,
         );
+        if (loadExtension()?.cycleId === cycle.id) clearExtension();
         await refresh();
         if (response.cycle) setScreen({ kind: "bell", cycle: response.cycle });
       }),
@@ -129,6 +156,31 @@ export function App({
       if (runningCycle) void writeMinutes(runningCycle, minutes);
     },
     [runningCycle, writeMinutes],
+  );
+
+  const startExtension = (cycle: CyclePb, moreMinutes: number) => {
+    const extension: PendingExtension = {
+      cycleId: cycle.id,
+      startedAtMs: Date.now(),
+      minutes: moreMinutes,
+      loggedMinutes: cycle.minutes ?? 0,
+    };
+    saveExtension(extension);
+    setScreen({ kind: "extension", cycle, extension });
+  };
+
+  const extendedCycle = screen.kind === "extension" ? screen.cycle : undefined;
+  const stopExtension = useCallback(
+    (totalMinutes: number) => {
+      if (!extendedCycle) return;
+      if (totalMinutes > (extendedCycle.minutes ?? 0)) {
+        void writeMinutes(extendedCycle, totalMinutes);
+      } else {
+        clearExtension();
+        setScreen({ kind: "bell", cycle: extendedCycle });
+      }
+    },
+    [extendedCycle, writeMinutes],
   );
 
   return (
@@ -160,14 +212,19 @@ export function App({
           cycle={screen.cycle}
           nodeName={cycleContext(data, screen.cycle).nodeName}
           busy={busy}
-          onExtend={(moreMinutes) =>
-            void writeMinutes(
-              screen.cycle,
-              (screen.cycle.minutes ?? 0) + moreMinutes,
-            )
-          }
+          onExtend={(moreMinutes) => startExtension(screen.cycle, moreMinutes)}
           onBreak={() => setScreen({ kind: "break" })}
           onNewCycle={() => void showToday()}
+        />
+      )}
+      {screen.kind === "extension" && data && (
+        <ExtensionScreen
+          key={`${screen.cycle.id}-${screen.extension.startedAtMs}`}
+          cycle={screen.cycle}
+          extension={screen.extension}
+          nodeName={cycleContext(data, screen.cycle).nodeName}
+          busy={busy}
+          onStop={stopExtension}
         />
       )}
       {screen.kind === "break" && data && (

@@ -4,6 +4,8 @@ import { describe, expect, test } from "vitest";
 import { CyclePbSchema, FocusMode } from "../gen/focusledger/v1/model_pb";
 import {
   endTime,
+  extensionRemainingMs,
+  extensionTotalMinutes,
   formatCountdown,
   hasEnded,
   minutesToLog,
@@ -45,6 +47,37 @@ describe("timer", () => {
     [90, 50],
   ])("minutesToLog_after%sMinutes_logs%s", (elapsedMinutes, expected) => {
     expect(minutesToLog(running, at(elapsedMinutes))).toBe(expected);
+  });
+
+  test.each([
+    [0, 50],
+    [6.5, 56],
+    [15, 65],
+    [40, 65],
+  ])(
+    "extensionTotalMinutes_after%sMinutes_is%s",
+    (elapsedMinutes, expected) => {
+      const extension = {
+        startedAtMs: START.getTime(),
+        minutes: 15,
+        loggedMinutes: 50,
+      };
+
+      expect(extensionTotalMinutes(extension, at(elapsedMinutes))).toBe(
+        expected,
+      );
+    },
+  );
+
+  test("extensionRemainingMs_pastTheEnd_isZero", () => {
+    const extension = {
+      startedAtMs: START.getTime(),
+      minutes: 15,
+      loggedMinutes: 50,
+    };
+
+    expect(extensionRemainingMs(extension, at(5))).toBe(10 * MINUTE_MS);
+    expect(extensionRemainingMs(extension, at(20))).toBe(0);
   });
 
   test.each([
