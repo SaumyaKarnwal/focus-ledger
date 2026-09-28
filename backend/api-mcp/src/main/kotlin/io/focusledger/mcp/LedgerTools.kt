@@ -122,7 +122,8 @@ class LedgerTools(
         val node =
             ledger.createNode(userId, CreateNode(requestId, parent?.id, name, emptyList())).orFail()
         val path =
-            (parent?.let { NodePaths(summary).path(it.id) + NodePaths.SEPARATOR } ?: "") + node.name
+            (parent?.let { NodePaths(summary).path(it.id) + NodePaths.SEPARATOR } ?: "") +
+                NodePaths.escapeName(node.name)
         return "Created ${quoted(path)} (node_id ${node.id.value})."
     }
 

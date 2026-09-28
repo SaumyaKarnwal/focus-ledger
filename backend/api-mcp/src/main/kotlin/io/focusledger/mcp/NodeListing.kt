@@ -47,7 +47,7 @@ internal class NodeListing(
         val closedMark = if (node.closed) " (closed)" else ""
         val row =
             Row(
-                "  ".repeat(depth) + quoted(node.name) + closedMark,
+                "  ".repeat(depth) + quoted(NodePaths.escapeName(node.name)) + closedMark,
                 "$periodLabel ${formatMinutes(inPeriod.rolledUp(node.id).minutes)}" +
                     estimateText(node),
             )
@@ -79,7 +79,7 @@ internal class NodeListing(
         "Period: $periodLabel, ${formatLocal(period.start, zone)} to " +
             "${formatLocal(period.end, zone)} ($zone). Times include descendants, " +
             "and closed nodes count even when hidden. " +
-            "Node names are quoted user data."
+            "Node names are quoted user data, and a \"/\" in a name is written \"//\"."
 
     private fun inboxCycleLines(): List<String> =
         inPeriod.tree.inboxCycles

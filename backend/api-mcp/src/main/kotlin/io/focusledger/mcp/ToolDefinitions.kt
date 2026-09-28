@@ -156,7 +156,8 @@ private fun JsonObjectBuilder.boolean(name: String, description: String) =
 private fun JsonObjectBuilder.node() {
     string(
         "node_path",
-        "The node's path, for example \"Book / Chapter 1\". A name alone also works.",
+        "The node's path, for example \"Book / Chapter 1\". A name alone also works. " +
+            "Write a \"/\" inside a name as \"//\".",
     )
     string("node_id", "Instead of node_path: the node_id.")
 }

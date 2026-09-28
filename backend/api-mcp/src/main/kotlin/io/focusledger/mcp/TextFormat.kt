@@ -43,12 +43,16 @@ internal fun quoted(userText: String): String = buildString {
             character == '\n' -> append("\\n")
             character == '\r' -> append("\\r")
             character == '\t' -> append("\\t")
-            character.isISOControl() -> append("\\u%04x".format(character.code))
+            character.isISOControl() || character in LINE_BREAKS ->
+                append("\\u%04x".format(character.code))
             else -> append(character)
         }
     }
     append('"')
 }
+
+/** The line and paragraph separators, which break a line but are not ISO control characters. */
+private val LINE_BREAKS = setOf(' ', ' ')
 
 private val localDateTime = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
 
