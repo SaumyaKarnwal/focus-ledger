@@ -229,25 +229,47 @@ describe("Tree", () => {
     expect(screen.getByRole("listitem", { name: "Notes" })).toBeDefined();
   });
 
+  test("tree_movePicker_leavesOutTheSubtreeAndClosedNodes", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    await openTree(client);
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Show closed nodes" }),
+    );
+    await screen.findByRole("listitem", { name: "Chapter 2" });
+
+    clickInRow("Chapter 1", "Move to…");
+
+    const options = within(
+      screen.getByRole("combobox", { name: /Move Chapter 1 under/ }),
+    ).getAllByRole("option");
+    expect(options.map((option) => option.textContent)).toEqual([
+      "Top level",
+      "Book",
+      "Admin",
+    ]);
+  });
+
   test("tree_moveUnderOwnDescendant_showsTheErrorAndKeepsTheTree", async () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     await openTree(recording.client);
-    const notesId = "00000000-0000-4000-8000-00000000000d";
-
     clickInRow("Book", "Move to…");
     fireEvent.change(
       screen.getByRole("combobox", { name: /Move Book under/ }),
-      {
-        target: { value: notesId },
-      },
+      { target: { value: ADMIN } },
     );
+    // Another tab moves Admin under Book while this picker is open.
+    await recording.client.updateNode({
+      nodeId: ADMIN,
+      parentId: BOOK,
+      updateMask: { paths: ["parent_id"] },
+    });
+
     fireEvent.click(screen.getByRole("button", { name: "Move" }));
 
     expect((await screen.findByRole("alert")).textContent).toContain(
       "cannot move under itself or its descendant",
     );
-    expect(isUnder("Book", "Notes")).toBe(true);
-    expect(isUnder("Notes", "Book")).toBe(false);
+    expect(isUnder("Admin", "Book")).toBe(false);
     const { nodes } = await recording.client.listNodes({});
     expect(nodes.find((node) => node.id === BOOK)?.parentId).toBeUndefined();
   });
@@ -396,8 +418,8 @@ describe("Entries", () => {
     expect(screen.getByRole("dialog", { name: "Book" })).toBeDefined();
   });
 
-  test.each(["0", "1441"])(
-    "entry_length%s_isRejectedAndWritesNothing",
+  test.each(["0", "1441", "", "12.5", "-5", "abc"])(
+    "entry_length%j_isRejectedBeforeTheRequest",
     async (length) => {
       const recording = recordingClient(exampleNodesWithNothingRunning());
       await openTree(recording.client);
@@ -410,12 +432,36 @@ describe("Entries", () => {
         within(dialog).getByRole("button", { name: "Save entry" }),
       );
 
-      expect((await within(dialog).findByRole("alert")).textContent).toContain(
-        "minutes must be 1 to 1440",
+      expect((await within(dialog).findByRole("alert")).textContent).toBe(
+        "The length must be a whole number of minutes from 1 to 1440.",
       );
+      expect(recording.createCycleRequestIds).toEqual([]);
       expect(await allCycles(recording.client)).toHaveLength(before);
     },
   );
+
+  test("entry_closedNodeRows_haveNoAddEntryButton", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    await client.updateNode({
+      nodeId: "00000000-0000-4000-8000-00000000000b",
+      closed: true,
+      updateMask: { paths: ["closed"] },
+    });
+    await openTree(client);
+
+    fireEvent.click(
+      screen.getByRole("checkbox", { name: "Show closed nodes" }),
+    );
+    await screen.findByRole("listitem", { name: "Chapter 1" });
+
+    const ownButtons = (name: string) =>
+      Array.from(row(name).children)
+        .filter((element) => element.tagName === "BUTTON")
+        .map((element) => element.textContent);
+    expect(ownButtons("Chapter 1")).not.toContain("Add an entry");
+    expect(ownButtons("Notes")).not.toContain("Add an entry");
+    expect(ownButtons("Book")).toContain("Add an entry");
+  });
 
   test("entry_responseLost_retriesWithTheSameRequestId", async () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());

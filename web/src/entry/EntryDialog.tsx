@@ -16,6 +16,7 @@ import {
 import { LOGGED_MODES, type LoggedMode } from "../ledger/rollup";
 import { INBOX_ID, MODE_NAMES, plannedMinutesFor } from "../today/todayModel";
 import { useAction } from "../useAction";
+import { isEntryLength, LENGTH_MESSAGE } from "./entryLength";
 
 type Props = {
   client: LedgerClient;
@@ -42,6 +43,7 @@ export function EntryDialog({
   const headingId = useId();
   const modeName = useId();
   const { busy, error, run } = useAction();
+  const [lengthError, setLengthError] = useState<string>();
   const { requestIdFor, done } = useRequestId();
   const [nodeId, setNodeId] = useState(initialNodeId);
   const [mode, setMode] = useState<LoggedMode>(FocusMode.DEEP_FOCUS);
@@ -60,6 +62,11 @@ export function EntryDialog({
 
   const save = (event: FormEvent) => {
     event.preventDefault();
+    if (!isEntryLength(minutes)) {
+      setLengthError(LENGTH_MESSAGE);
+      return;
+    }
+    setLengthError(undefined);
     const content = {
       nodeId: nodeId === INBOX_ID ? undefined : nodeId,
       mode,
@@ -80,7 +87,7 @@ export function EntryDialog({
   return (
     <section role="dialog" aria-labelledby={headingId}>
       <h2 id={headingId}>{nodeName}</h2>
-      {error && <p role="alert">{error}</p>}
+      {(lengthError ?? error) && <p role="alert">{lengthError ?? error}</p>}
       <form onSubmit={save}>
         <p>
           <label>

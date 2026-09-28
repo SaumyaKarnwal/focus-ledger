@@ -68,6 +68,7 @@ export function TreeScreen({
   const openNodes = (nodes ?? []).filter(
     (node) => node.id !== "" && !isClosedOrUnderClosed(node, nodes ?? []),
   );
+  const openIds = new Set(openNodes.map((node) => node.id));
 
   const renderRow = (row: TreeRow) => {
     const { node, rollUp } = row;
@@ -114,12 +115,14 @@ export function TreeScreen({
         >
           Estimate
         </button>{" "}
-        <button
-          type="button"
-          onClick={() => setEditor({ kind: "entry", nodeId: node.id })}
-        >
-          Add an entry
-        </button>
+        {openIds.has(node.id) && (
+          <button
+            type="button"
+            onClick={() => setEditor({ kind: "entry", nodeId: node.id })}
+          >
+            Add an entry
+          </button>
+        )}
         {active && editor.kind === "rename" && (
           <NameInput
             label={`New name for ${node.name}`}
@@ -135,7 +138,9 @@ export function TreeScreen({
           <MovePicker
             row={row}
             nodes={flattenTree(rows).filter(
-              (other) => other.node.id !== node.id,
+              (other) =>
+                openIds.has(other.node.id) &&
+                !flattenTree([row]).includes(other),
             )}
             busy={busy}
             onMove={async (parentId) => {
