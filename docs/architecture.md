@@ -4,6 +4,13 @@ Status: draft for review. The schema is in [`schema.md`](schema.md). The API, se
 
 Focus Ledger is one Kotlin program, one Postgres database, and one domain. The browser and AI agents both reach the same program. The program holds the data and the rules. The browser computes the numbers.
 
+## Name and domain
+
+- **Brand name:** Ekagra (एकाग्र, "one-pointed focus"). **Domain:** `ekagra.app`. All user-facing text uses the brand name.
+- **Internal name:** `focus-ledger` stays in the repository, the proto package (`focusledger.v1`), the database roles, and the cloud resources. Renaming internals brings no benefit.
+- **Known risk:** other focus apps in India already use the name "Ekagra" (on Google Play, as a Firefox extension, and Ekagra OS). Search results and app stores will show them next to ours. The owner accepts this. Before investing in branding, check the trademark registries (India IP office, USPTO).
+- `.app` domains always use HTTPS, which the design uses anyway. Google ranks `.app` and `.com` the same.
+
 ## The big picture
 
 ```mermaid

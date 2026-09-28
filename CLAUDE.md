@@ -1,4 +1,6 @@
-# Focus Ledger
+# Focus Ledger (brand name: Ekagra)
+
+The product is called **Ekagra** (domain `ekagra.app`) in all user-facing text. `focus-ledger` stays the internal name in code, protos, database roles, and cloud resources.
 
 A personal time ledger. Every work cycle records its node (what you worked on) and its mode (Deep Focus, Execution, or Shallow). The report is a node × mode cross-tab.
 

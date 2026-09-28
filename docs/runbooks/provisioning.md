@@ -103,7 +103,7 @@ In the console, **APIs & Services**:
 
 1. **OAuth consent screen:** user type "External". App name "Focus Ledger", your support email. Scopes: `openid`, `email`, `profile` only. These are basic scopes.
 2. **Credentials → Create credentials → OAuth client ID:** type "Web application".
-   - Authorized JavaScript origins: `http://localhost:5173` (local web app) and `https://<your domain>` (after step 7).
+   - Authorized JavaScript origins: `http://localhost:5173` (local web app) and `https://ekagra.app` (after step 7).
 3. Copy the **client ID**. The sign-in design uses only the client ID; do not create or store a client secret.
 
 The client ID is not a secret (the browser sees it), but it goes into Secret Manager with the other configuration so that every setting lives in one place.
@@ -185,10 +185,10 @@ Never create a service-account key (`gcloud iam service-accounts keys create`). 
 
 ## 7. Domain
 
-1. In Cloudflare, **Domain Registration → Register domains**, and buy the domain (about $10.44 a year for `.com` at cost, rising to $11.15 from November 1, 2026).
+1. In Cloudflare, **Domain Registration → Register domains**, and buy **`ekagra.app`**. Check the price at checkout (`.app` usually costs a little more than `.com`). Optionally also buy `getekagra.com` and redirect it to `ekagra.app`.
 2. Cloudflare becomes the DNS for the domain automatically.
 3. How the domain reaches Cloud Run (a Cloud Run domain mapping, or a Cloudflare route to the service URL) is decided in workstream C.
-4. Add `https://<your domain>` to the authorized origins of the sign-in client (step 3).
+4. Add `https://ekagra.app` to the authorized origins of the sign-in client (step 3).
 
 ## 8. GitHub repository settings
 
