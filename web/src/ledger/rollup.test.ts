@@ -57,14 +57,14 @@ describe("rollUpTree", () => {
     expect(rollUpTree(exampleNodes()).has("")).toBe(false);
   });
 
-  test("rollUpTree_parentMissingFromList_countsNodeAsRoot", () => {
+  test("rollUpTree_parentMissingFromList_hasNoRow", () => {
     const orphan = create(NodePbSchema, {
       id: "orphan",
-      parentId: "closed-and-hidden",
+      parentId: "not-listed",
       cycles: [loggedCycle(FocusMode.SHALLOW, 25)],
     });
 
-    expect(rollUpTree([orphan]).get("orphan")?.rolledUp.minutes).toBe(25);
+    expect(rollUpTree([orphan]).has("orphan")).toBe(false);
   });
 
   test("rollUpTree_prdExample_rollsUpCyclesAndEstimates", () => {

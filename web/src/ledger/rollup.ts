@@ -94,14 +94,12 @@ export function inboxTotals(nodes: readonly NodePb[]): Totals & {
 }
 
 /**
- * The own and the rolled-up figures of every node, keyed by node ID. A node
- * whose parent is not in `nodes` counts as a root.
+ * The own and the rolled-up figures of every node that is reachable from a
+ * root, keyed by node ID. A node whose parent is not in `nodes` has no row.
  */
 export function rollUpTree(nodes: readonly NodePb[]): Map<string, NodeRollUp> {
   const treeNodes = nodes.filter((node) => !isInbox(node));
-  const ids = new Set(treeNodes.map((node) => node.id));
-  const isRoot = (node: NodePb) =>
-    node.parentId === undefined || !ids.has(node.parentId);
+  const isRoot = (node: NodePb) => node.parentId === undefined;
   const childrenByParent = treeNodes
     .filter((node) => !isRoot(node))
     .reduce((groups, node) => {

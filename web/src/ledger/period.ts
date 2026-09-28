@@ -44,23 +44,41 @@ export function isInRange(instant: Date, range: TimeRange): boolean {
 /** A calendar date as the UTC midnight of that date, in epoch milliseconds. */
 type LocalDate = number;
 
-const MINUTE_MS = 60_000;
-const DAY_MS = 24 * 60 * MINUTE_MS;
+const SECOND_MS = 1000;
+const DAY_MS = 24 * 60 * 60 * SECOND_MS;
 
 function addDays(day: LocalDate, days: number): LocalDate {
   return day + days * DAY_MS;
 }
 
 function localDate(instant: Date, timeZone: string): LocalDate {
-  const wallClock = instant.getTime() + zoneOffsetMs(instant, timeZone);
-  return Math.floor(wallClock / DAY_MS) * DAY_MS;
+  return Math.floor(wallClockMs(instant.getTime(), timeZone) / DAY_MS) * DAY_MS;
 }
 
+/** The first instant whose local date is `day`. */
 function startOfLocalDay(day: LocalDate, timeZone: string): Date {
-  // The offset at midnight can differ from the offset at the first guess when
-  // the zone changes its offset near midnight, so the second pass corrects it.
-  const firstGuess = day - zoneOffsetMs(new Date(day), timeZone);
-  return new Date(day - zoneOffsetMs(new Date(firstGuess), timeZone));
+  const [earlier, later] = [addDays(day, -1), addDays(day, 1)]
+    .map((nearby) => day - zoneOffsetMs(new Date(nearby), timeZone))
+    .sort((left, right) => left - right);
+  const midnight = [earlier, later].find(
+    (candidate) => wallClockMs(candidate, timeZone) === day,
+  );
+  if (midnight !== undefined) return new Date(midnight);
+
+  // The zone skips midnight on this day, so the day starts at the offset change.
+  let before = earlier;
+  let after = later;
+  while (after - before > SECOND_MS) {
+    const middle =
+      before + Math.floor((after - before) / 2 / SECOND_MS) * SECOND_MS;
+    if (wallClockMs(middle, timeZone) >= day) after = middle;
+    else before = middle;
+  }
+  return new Date(after);
+}
+
+function wallClockMs(instantMs: number, timeZone: string): number {
+  return instantMs + zoneOffsetMs(new Date(instantMs), timeZone);
 }
 
 function zoneOffsetMs(instant: Date, timeZone: string): number {

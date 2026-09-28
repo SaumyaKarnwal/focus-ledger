@@ -124,14 +124,36 @@ export function describeLedgerContract(
         expect(await treeNodeIds(client)).toEqual([first.node?.id]);
       });
 
-      test("createNode_sameRequestIdOtherContent_invalidArgument", async () => {
-        const requestId = newRequestId();
-        await client.createNode({ requestId, name: "Book" });
+      test("createNode_repeatAfterRename_returnsStoredRow", async () => {
+        const request = { requestId: newRequestId(), name: "Book" };
+        const { node: created } = await client.createNode(request);
+        await client.updateNode({
+          nodeId: created!.id,
+          name: "Novel",
+          updateMask: { paths: ["name"] },
+        });
 
-        await expectCode(
-          client.createNode({ requestId, name: "Other" }),
-          Code.InvalidArgument,
-        );
+        const { node: repeat } = await client.createNode(request);
+
+        expect(repeat?.id).toBe(created?.id);
+        expect(repeat?.name).toBe("Novel");
+      });
+
+      test("createNode_sameRequestIdOtherContent_returnsStoredRow", async () => {
+        const requestId = newRequestId();
+        const { node: created } = await client.createNode({
+          requestId,
+          name: "Book",
+        });
+
+        const { node: repeat } = await client.createNode({
+          requestId,
+          name: "Other",
+        });
+
+        expect(repeat?.id).toBe(created?.id);
+        expect(repeat?.name).toBe("Book");
+        expect(await treeNodeIds(client)).toEqual([created?.id]);
       });
 
       test.each(["", "not-a-uuid"])(
@@ -279,6 +301,37 @@ export function describeLedgerContract(
         expect(await treeNodeIds(client)).toEqual([]);
         expect(await treeNodeIds(client, true)).toEqual([node.id]);
       });
+
+      test("updateNode_closedParent_hidesTheSubtreeUnlessIncludeClosed", async () => {
+        const book = await createNode("Book");
+        const chapter = await createNode("Chapter", book.id);
+        const notes = await createNode("Notes", chapter.id);
+        const other = await createNode("Other");
+
+        await client.updateNode({
+          nodeId: book.id,
+          closed: true,
+          updateMask: { paths: ["closed"] },
+        });
+
+        expect(await treeNodeIds(client)).toEqual([other.id]);
+        expect((await treeNodeIds(client, true)).sort()).toEqual(
+          [book.id, chapter.id, notes.id, other.id].sort(),
+        );
+      });
+
+      test("updateNode_nodeWithCycles_responseCarriesNoCycles", async () => {
+        const node = await createNode("Book");
+        await logEntry(new Date("2026-10-20T09:00:00Z"), node.id);
+
+        const { node: updated } = await client.updateNode({
+          nodeId: node.id,
+          name: "Novel",
+          updateMask: { paths: ["name"] },
+        });
+
+        expect(updated?.cycles).toEqual([]);
+      });
     });
 
     describe("CreateCycle", () => {
@@ -334,6 +387,84 @@ export function describeLedgerContract(
             requestId,
             mode: FocusMode.SHALLOW,
             plannedMinutes: 90,
+          }),
+          Code.InvalidArgument,
+        );
+      });
+
+      test("createCycle_sameKeyOtherPlannedMinutes_invalidArgument", async () => {
+        const requestId = newRequestId();
+        await client.createCycle({
+          requestId,
+          mode: FocusMode.DEEP_FOCUS,
+          plannedMinutes: 90,
+        });
+
+        await expectCode(
+          client.createCycle({
+            requestId,
+            mode: FocusMode.DEEP_FOCUS,
+            plannedMinutes: 60,
+          }),
+          Code.InvalidArgument,
+        );
+      });
+
+      test("createCycle_repeatStartAfterStopAndFiling_returnsStoredRow", async () => {
+        const book = await createNode("Book");
+        const request = {
+          requestId: newRequestId(),
+          mode: FocusMode.DEEP_FOCUS,
+          plannedMinutes: 90,
+        };
+        const { cycle: started } = await client.createCycle(request);
+        await client.updateCycle({
+          cycleId: started!.id,
+          minutes: 80,
+          nodeId: book.id,
+          updateMask: { paths: ["minutes", "node_id"] },
+        });
+
+        const { cycle: repeat } = await client.createCycle(request);
+
+        expect(repeat?.id).toBe(started?.id);
+        expect(repeat?.minutes).toBe(80);
+        expect(repeat?.nodeId).toBe(book.id);
+      });
+
+      test("createCycle_repeatHandEntryAfterExtension_returnsStoredRow", async () => {
+        const request = {
+          requestId: newRequestId(),
+          mode: FocusMode.SHALLOW,
+          minutes: 25,
+          startedAt: timestampFromDate(new Date("2026-10-30T16:00:00Z")),
+        };
+        const { cycle: logged } = await client.createCycle(request);
+        await client.updateCycle({
+          cycleId: logged!.id,
+          minutes: 40,
+          updateMask: { paths: ["minutes"] },
+        });
+
+        const { cycle: repeat } = await client.createCycle(request);
+
+        expect(repeat?.id).toBe(logged?.id);
+        expect(repeat?.minutes).toBe(40);
+      });
+
+      test("createCycle_sameKeyOtherStartedAt_invalidArgument", async () => {
+        const request = {
+          requestId: newRequestId(),
+          mode: FocusMode.SHALLOW,
+          minutes: 25,
+          startedAt: timestampFromDate(new Date("2026-10-30T16:00:00Z")),
+        };
+        await client.createCycle(request);
+
+        await expectCode(
+          client.createCycle({
+            ...request,
+            startedAt: timestampFromDate(new Date("2026-10-30T17:00:00Z")),
           }),
           Code.InvalidArgument,
         );

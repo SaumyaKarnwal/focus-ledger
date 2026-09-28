@@ -45,6 +45,43 @@ describe("dayRange and weekRange", () => {
     expect(hours(dayRange(exampleNow, "America/Los_Angeles"))).toBe(25);
   });
 
+  test("dayRange_zoneSkipsMidnight_startsAtTheOffsetChange", () => {
+    const range = dayRange(
+      new Date("2026-09-06T12:00:00Z"),
+      "America/Santiago",
+    );
+
+    expect(iso(range)).toEqual({
+      start: "2026-09-06T04:00:00.000Z",
+      end: "2026-09-07T03:00:00.000Z",
+    });
+    expect(hours(range)).toBe(23);
+  });
+
+  test("dayRange_beforeSkippedMidnight_staysOnThePreviousDay", () => {
+    const cycleStart = new Date("2026-09-06T03:30:00Z");
+
+    const range = dayRange(cycleStart, "America/Santiago");
+
+    expect(iso(range)).toEqual({
+      start: "2026-09-05T04:00:00.000Z",
+      end: "2026-09-06T04:00:00.000Z",
+    });
+    expect(isInRange(cycleStart, range)).toBe(true);
+  });
+
+  test("weekRange_weekWithSkippedMidnight_endsAtTheNextMonday", () => {
+    const range = weekRange(
+      new Date("2026-09-06T12:00:00Z"),
+      "America/Santiago",
+    );
+
+    expect(iso(range)).toEqual({
+      start: "2026-08-31T04:00:00.000Z",
+      end: "2026-09-07T03:00:00.000Z",
+    });
+  });
+
   test("dayRange_justBeforeLocalMidnight_staysOnThatDay", () => {
     const range = dayRange(
       new Date("2026-11-02T07:59:59Z"),

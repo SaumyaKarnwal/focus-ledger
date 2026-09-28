@@ -27,6 +27,18 @@ describe("fake LedgerService", () => {
     expect(runningCycle(nodes)?.id).toBe(runningCycle(exampleNodes())?.id);
   });
 
+  test("listNodes_seededWithoutIncludeClosed_leavesOutClosedNode", async () => {
+    const { nodes } = await seededClient().listNodes({});
+
+    expect(nodes.map((node) => node.name)).toEqual([
+      "",
+      "Book",
+      "Chapter 1",
+      "Notes",
+      "Admin",
+    ]);
+  });
+
   test("createCycle_startWhileSeededCycleRuns_failedPrecondition", async () => {
     const error = await seededClient()
       .createCycle({

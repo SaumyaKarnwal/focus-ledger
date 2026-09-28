@@ -59,9 +59,6 @@ type StoredCycle = {
   minutes?: number;
 };
 
-/** The first request's content, so that a repeat with other content is rejected. */
-type Created<T> = { row: T; content: string };
-
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const NAME_MAX_LENGTH = 200;
 const CYCLE_MINUTES = { min: 1, max: 1440 };
@@ -111,8 +108,8 @@ export function createFakeLedgerService(
         },
       ]),
   );
-  const nodesByRequest = new Map<string, Created<StoredNode>>();
-  const cyclesByRequest = new Map<string, Created<StoredCycle>>();
+  const nodesByRequest = new Map<string, StoredNode>();
+  const cyclesByRequest = new Map<string, StoredCycle>();
   let settings: SettingsPb = create(SettingsPbSchema, {
     deepFocusMinutes: 90,
     executionMinutes: 50,
@@ -145,14 +142,22 @@ export function createFakeLedgerService(
     return ancestors(candidateId).includes(nodeId);
   };
 
-  const nodeResponse = (node: StoredNode, period?: TimeWindow): NodePb =>
+  const isClosedOrUnderClosed = (node: StoredNode): boolean => {
+    const parent =
+      node.parentId === undefined ? undefined : nodes.get(node.parentId);
+    return (
+      node.closed || (parent !== undefined && isClosedOrUnderClosed(parent))
+    );
+  };
+
+  const nodeResponse = (node: StoredNode, nodeCycles: CyclePb[] = []): NodePb =>
     create(NodePbSchema, {
       id: node.id,
       parentId: node.parentId,
       name: node.name,
       closed: node.closed,
       estimates: node.estimates,
-      cycles: cyclesOf(node.id, period),
+      cycles: nodeCycles,
       createdAt: timestampFromDate(node.createdAt),
     });
 
@@ -226,17 +231,9 @@ export function createFakeLedgerService(
       const name = requireName(request.name);
       const estimates = requireEstimates(request.estimates);
       if (request.parentId !== undefined) findNode(request.parentId);
-      const content = JSON.stringify({
-        parentId: request.parentId,
-        name,
-        estimates: estimates.map(estimateKey),
-      });
 
       const existing = nodesByRequest.get(request.requestId);
-      if (existing) {
-        requireSameContent(existing, content);
-        return { node: nodeResponse(existing.row) };
-      }
+      if (existing) return { node: nodeResponse(existing) };
 
       const node: StoredNode = {
         id: crypto.randomUUID(),
@@ -247,7 +244,7 @@ export function createFakeLedgerService(
         createdAt: now(),
       };
       nodes.set(node.id, node);
-      nodesByRequest.set(request.requestId, { row: node, content });
+      nodesByRequest.set(request.requestId, node);
       return { node: nodeResponse(node) };
     },
 
@@ -289,13 +286,13 @@ export function createFakeLedgerService(
         cycles: cyclesOf(undefined, period),
       });
       const tree = [...nodes.values()]
-        .filter((node) => request.includeClosed || !node.closed)
+        .filter((node) => request.includeClosed || !isClosedOrUnderClosed(node))
         .sort(
           (left, right) =>
             left.createdAt.getTime() - right.createdAt.getTime() ||
             left.id.localeCompare(right.id),
         )
-        .map((node) => nodeResponse(node, period));
+        .map((node) => nodeResponse(node, cyclesOf(node.id, period)));
       return { nodes: [inbox, ...tree] };
     },
 
@@ -315,25 +312,22 @@ export function createFakeLedgerService(
         requireInRange(request.minutes ?? 0, CYCLE_MINUTES, "minutes");
         if (!request.startedAt) throw invalid("a hand entry needs started_at");
       }
-      const content = JSON.stringify(
-        isStart
-          ? {
-              nodeId: request.nodeId,
-              mode: request.mode,
-              plannedMinutes: request.plannedMinutes,
-            }
-          : {
-              nodeId: request.nodeId,
-              mode: request.mode,
-              minutes: request.minutes,
-              startedAt: dateOf(request.startedAt).getTime(),
-            },
-      );
+      const plannedMinutes = isStart
+        ? request.plannedMinutes
+        : (request.minutes ?? 0);
 
       const existing = cyclesByRequest.get(request.requestId);
       if (existing) {
-        requireSameContent(existing, content);
-        return { cycle: cycleResponse(existing.row) };
+        const sameCycle =
+          existing.mode === request.mode &&
+          existing.plannedMinutes === plannedMinutes &&
+          (isStart ||
+            existing.startedAt.getTime() ===
+              dateOf(request.startedAt).getTime());
+        if (!sameCycle) {
+          throw invalid("request_id was already used for a different request");
+        }
+        return { cycle: cycleResponse(existing) };
       }
       if (
         isStart &&
@@ -351,18 +345,18 @@ export function createFakeLedgerService(
             nodeId: request.nodeId,
             mode: request.mode,
             startedAt: now(),
-            plannedMinutes: request.plannedMinutes,
+            plannedMinutes,
           }
         : {
             id: crypto.randomUUID(),
             nodeId: request.nodeId,
             mode: request.mode,
             startedAt: dateOf(request.startedAt),
-            plannedMinutes: request.minutes ?? 0,
+            plannedMinutes,
             minutes: request.minutes,
           };
       cycles.set(cycle.id, cycle);
-      cyclesByRequest.set(request.requestId, { row: cycle, content });
+      cyclesByRequest.set(request.requestId, cycle);
       return { cycle: cycleResponse(cycle) };
     },
 
@@ -461,12 +455,6 @@ function requireRequestId(requestId: string) {
   if (!UUID.test(requestId)) throw invalid("request_id must be a UUID");
 }
 
-function requireSameContent(existing: Created<unknown>, content: string) {
-  if (existing.content !== content) {
-    throw invalid("request_id was already used for a different request");
-  }
-}
-
 function requireName(name: string): string {
   const trimmed = name.trim();
   if (trimmed.length === 0 || trimmed.length > NAME_MAX_LENGTH) {
@@ -502,10 +490,6 @@ function requireInRange(value: number, range: Range, fieldName: string) {
   if (!Number.isInteger(value) || value < range.min || value > range.max) {
     throw invalid(`${fieldName} must be ${range.min} to ${range.max}`);
   }
-}
-
-function estimateKey(estimate: EstimatePb) {
-  return [estimate.mode, estimate.cycleMinutes, estimate.cycleCount];
 }
 
 function dateOf(timestamp: Timestamp | undefined): Date {
