@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Running — browser</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Newsreader:opsz,wght@6..72,400;6..72,500&amp;display=swap">
+<style>
+body{margin:0;background:#F2F0E8;color:#1A1A17;font-family:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif}
+a{color:#8A3324}a:hover{color:#6B2619}
+button{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #F2F0E8; color: #1A1A17; font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; display: flex; flex-direction: column;">
+
+  <header style="display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 18px 32px;">
+    <span style="font-family: Newsreader, Georgia, serif; font-size: 22px;">Time Ledger</span>
+    <a href="C-Desk-Today.dc.html" style="font-size: 13.5px;">Back to Today</a>
+  </header>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 34px;">
+
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 12px;">
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: #5E5A51;">Harbour / Backend</span>
+      <span style="font-family: Newsreader, Georgia, serif; font-size: 36px; line-height: 1;">Data model</span>
+      <span style="display: inline-flex; align-items: center; gap: 9px;">
+        <span aria-hidden="true" style="width: 6px; height: 15px; background: #7E5908;"></span>
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;">Execution</span>
+      </span>
+    </div>
+
+    <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 208px; letter-spacing: -0.045em; font-variant-numeric: tabular-nums; line-height: 0.9;">31:12</span>
+
+    <div style="width: 620px; display: flex; flex-direction: column; gap: 11px;">
+      <div style="display: flex; height: 3px; background: #E4E0D4;">
+        <span style="width: 38%; background: #1A1A17;"></span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #5E5A51; font-variant-numeric: tabular-nums;">
+        <span>19 of 50 min</span>
+        <span>ends 16:42</span>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 12px; font-size: 13.5px; color: #5E5A51;">
+      <span style="display: flex; align-items: center; gap: 4px;">
+        <span style="width: 9px; height: 9px; border-radius: 5px; background: #7E5908;"></span>
+        <span style="width: 9px; height: 9px; border-radius: 5px; background: #7E5908;"></span>
+        <span style="width: 9px; height: 9px; border-radius: 5px; background: #7E5908;"></span>
+        <span style="width: 9px; height: 9px; border-radius: 5px; background: #7E5908;"></span>
+        <span style="width: 9px; height: 9px; border-radius: 5px; background: #7E5908;"></span>
+        <span style="width: 9px; height: 9px; border-radius: 5px; background: #7E5908;"></span>
+        <span style="width: 9px; height: 9px; border-radius: 5px; background: #7E5908;"></span>
+        <span style="width: 9px; height: 9px; border-radius: 5px; background: #7E5908;"></span>
+        <span aria-hidden="true" style="width: 1px; height: 15px; background: #B7B1A2; margin-inline: 4px;"></span>
+        <span style="width: 9px; height: 9px; border-radius: 5px; box-sizing: border-box; border: 1.5px solid #7E5908;"></span>
+      </span>
+      <span>9th cycle on a task estimated at 8</span>
+    </div>
+
+  </div>
+
+  <div style="display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 0 44px 44px;">
+    <button type="button" style="display: flex; align-items: center; gap: 9px; min-height: 46px; padding: 0 20px; background: none; border: 1px solid #C8C3B4; border-radius: 3px; color: #3E3B34; font-size: 14.5px; cursor: pointer;">
+      <svg width="13" height="13" viewBox="0 0 12 12" fill="none" stroke="#3E3B34" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 2v8M8 2v8"></path></svg>
+      Pause
+    </button>
+    <a href="C-Desk-Bell.dc.html" style="display: flex; align-items: center; min-height: 46px; padding: 0 20px; border: 1px solid #C8C3B4; border-radius: 3px; text-decoration: none; color: #3E3B34; font-size: 14.5px;">Stop and log 19 min</a>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

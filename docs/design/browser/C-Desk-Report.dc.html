@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Report — browser</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Newsreader:opsz,wght@6..72,400;6..72,500&amp;display=swap">
+<style>
+body{margin:0;background:#F2F0E8;color:#1A1A17;font-family:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif}
+a{color:#8A3324}a:hover{color:#6B2619}
+button{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #F2F0E8; color: #1A1A17; font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; display: flex; flex-direction: column;">
+
+  <header style="display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 18px 32px; border-bottom: 1px solid #DFDBCF; background: #FBFAF5;">
+    <span style="font-family: Newsreader, Georgia, serif; font-size: 22px;">Cycle Journal</span>
+    <nav style="display: flex; gap: 4px;">
+      <a href="C-Desk-Today.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 18px; text-decoration: none; color: #5E5A51; font-size: 14.5px;">Today</a>
+      <a href="C-Desk-Tree.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 18px; text-decoration: none; color: #5E5A51; font-size: 14.5px;">Tree</a>
+      <a href="C-Desk-Report.dc.html" aria-current="page" style="display: flex; align-items: center; min-height: 40px; padding: 0 18px; text-decoration: none; color: #1A1A17; font-size: 14.5px; font-weight: 600; border-bottom: 2px solid #1A1A17;">Report</a>
+    </nav>
+    <button type="button" style="min-height: 40px; padding: 0 16px; background: none; border: 1px solid #DFDBCF; border-radius: 3px; font-size: 13.5px; cursor: pointer;">Export CSV</button>
+  </header>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 24px; padding: 26px 40px 28px; overflow: hidden;">
+
+    <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 30px;">
+      <div style="display: flex; align-items: baseline; gap: 22px;">
+        <span style="font-family: Newsreader, Georgia, serif; font-size: 40px; line-height: 1;">All of it</span>
+        <span style="font-size: 14px; color: #5E5A51;">2 – 22 September 2026 · 28 cycles</span>
+      </div>
+      <div style="display: flex; border: 1px solid #DFDBCF; border-radius: 3px; overflow: hidden;">
+        <button type="button" aria-pressed="false" style="min-height: 40px; padding: 0 24px; background: none; border: 0; font-size: 13.5px; cursor: pointer;">Week</button>
+        <button type="button" aria-pressed="false" style="min-height: 40px; padding: 0 24px; background: none; border: 0; border-left: 1px solid #DFDBCF; font-size: 13.5px; cursor: pointer;">Month</button>
+        <button type="button" aria-pressed="true" style="min-height: 40px; padding: 0 24px; background: #1A1A17; color: #F2F0E8; border: 0; border-left: 1px solid #DFDBCF; font-size: 13.5px; font-weight: 600; cursor: pointer;">All</button>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 34px;">
+
+      <section style="display: flex; flex-direction: column; gap: 14px;">
+        <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #5E5A51; font-weight: 400; border-bottom: 1px solid #DFDBCF; padding-bottom: 10px;">By mode</h2>
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 44px; line-height: 1; font-variant-numeric: tabular-nums;">25h 05m</span>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between;"><span style="font-size: 14.5px; font-weight: 600;">Deep Focus</span><span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 13.5px; font-variant-numeric: tabular-nums;">10h 30m · 42%</span></div>
+            <div style="height: 18px; background: #E4E0D4;"><span style="display: block; width: 42%; height: 100%; background: #C24518;"></span></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between;"><span style="font-size: 14.5px; font-weight: 600;">Execution</span><span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 13.5px; font-variant-numeric: tabular-nums;">11h 40m · 46%</span></div>
+            <div style="height: 14px; background: #E4E0D4;"><span style="display: block; width: 46%; height: 100%; background: #7E5908;"></span></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <div style="display: flex; align-items: baseline; justify-content: space-between;"><span style="font-size: 14.5px; font-weight: 600;">Shallow</span><span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 13.5px; font-variant-numeric: tabular-nums;">2h 55m · 12%</span></div>
+            <div style="height: 10px; background: #E4E0D4;"><span style="display: block; width: 12%; height: 100%; background: #2C6580;"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <section style="display: flex; flex-direction: column;">
+        <h2 style="margin: 0 0 6px; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #5E5A51; font-weight: 400; border-bottom: 1px solid #DFDBCF; padding-bottom: 10px;">By project</h2>
+        <table style="border-collapse: collapse; width: 100%; font-size: 14.5px;">
+          <tbody>
+            <tr><th scope="row" style="text-align: left; font-weight: 600; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">Cycle Journal</th><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">24h 15m</td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 9px 0 9px 18px; border-bottom: 1px solid #E9E6DC; color: #3E3B34;">the project itself</th><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC; color: #3E3B34;">2h 05m</td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 9px 0 9px 18px; border-bottom: 1px solid #E9E6DC;">Design</th><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">11h 40m</td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 9px 0 9px 18px; border-bottom: 1px solid #E9E6DC;">Backend</th><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">8h 00m</td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 9px 0 9px 38px; border-bottom: 1px solid #E9E6DC; color: #3E3B34;">Data model</th><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC; color: #3E3B34;">8h 00m</td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 9px 0 9px 18px; border-bottom: 1px solid #E9E6DC;">Research</th><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">2h 30m</td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 600; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">Inbox</th><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">50m</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 10px;">
+        <h2 style="margin: 0 0 4px; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #5E5A51; font-weight: 400; border-bottom: 1px solid #DFDBCF; padding-bottom: 10px;">Estimated against actual · Cycle Journal</h2>
+        <table style="border-collapse: collapse; width: 100%; font-size: 14.5px;">
+          <thead>
+            <tr>
+              <th scope="col" style="text-align: left; padding: 0 0 8px; font-size: 11px; color: #5E5A51; font-weight: 400;">Mode</th>
+              <th scope="col" style="text-align: right; padding: 0 0 8px; font-size: 11px; color: #5E5A51; font-weight: 400;">Est</th>
+              <th scope="col" style="text-align: right; padding: 0 0 8px; font-size: 11px; color: #5E5A51; font-weight: 400;">Actual</th>
+              <th scope="col" style="text-align: right; padding: 0 0 8px; font-size: 11px; color: #5E5A51; font-weight: 400;">Diff</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">Deep Focus</th><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">4</td><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">7</td><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC; font-weight: 500;">+75%</td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">Execution</th><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">10</td><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">14</td><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC; font-weight: 500;">+40%</td></tr>
+            <tr><th scope="row" style="text-align: left; font-weight: 400; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">Shallow</th><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">2</td><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">5</td><td style="text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; padding: 9px 0; border-bottom: 1px solid #E9E6DC; font-weight: 500;">+150%</td></tr>
+          </tbody>
+        </table>
+        <p style="margin: 0; font-size: 13px; color: #3E3B34; line-height: 1.5;">Your execution estimates run 40% light. Next time, multiply by 1.4.</p>
+      </section>
+
+    </div>
+
+    <section style="flex-grow: 1; display: flex; flex-direction: column; gap: 14px; background: #FBFAF5; border: 1px solid #DFDBCF; border-radius: 3px; padding: 22px 26px 22px;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px;">
+        <h2 style="margin: 0; font-family: Newsreader, Georgia, serif; font-size: 25px; font-weight: 400;">Node &times; mode</h2>
+        <span style="font-size: 12.5px; color: #5E5A51;">Minutes. The one table nobody else has.</span>
+      </div>
+      <table style="border-collapse: collapse; width: 100%; font-size: 15px;">
+        <thead>
+          <tr>
+            <th scope="col" style="text-align: left; padding: 0 0 11px; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #5E5A51; font-weight: 400; border-bottom: 1px solid #DFDBCF;">Node</th>
+            <th scope="col" style="width: 150px; padding: 0 0 11px 12px; border-bottom: 1px solid #DFDBCF;"><span style="display: block; height: 5px; background: #C24518;"></span><span style="display: block; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #3E3B34; font-weight: 400; padding-top: 6px;">Deep Focus</span></th>
+            <th scope="col" style="width: 150px; padding: 0 0 11px 12px; border-bottom: 1px solid #DFDBCF;"><span style="display: block; height: 5px; background: #7E5908;"></span><span style="display: block; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #3E3B34; font-weight: 400; padding-top: 6px;">Execution</span></th>
+            <th scope="col" style="width: 150px; padding: 0 0 11px 12px; border-bottom: 1px solid #DFDBCF;"><span style="display: block; height: 5px; background: #2C6580;"></span><span style="display: block; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #3E3B34; font-weight: 400; padding-top: 6px;">Shallow</span></th>
+            <th scope="col" style="width: 120px; text-align: right; padding: 0 0 11px 12px; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #5E5A51; font-weight: 400; border-bottom: 1px solid #DFDBCF;">Total</th>
+            <th scope="col" style="width: 110px; text-align: right; padding: 0 0 11px 12px; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #5E5A51; font-weight: 400; border-bottom: 1px solid #DFDBCF;">Share</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th scope="row" style="text-align: left; font-weight: 400; padding: 11px 0; border-bottom: 1px solid #E9E6DC;">Cycle Journal <span style="color: #5E5A51;">— the project itself</span></th>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: #8B857A;">&mdash;</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums;">100</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums;">25</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums;">125</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: #3E3B34;">8%</td>
+          </tr>
+          <tr>
+            <th scope="row" style="text-align: left; font-weight: 400; padding: 11px 0; border-bottom: 1px solid #E9E6DC;">Cycle Journal / Design</th>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-weight: 500;">450</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums;">250</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: #8B857A;">&mdash;</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums;">700</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: #3E3B34;">47%</td>
+          </tr>
+          <tr>
+            <th scope="row" style="text-align: left; font-weight: 400; padding: 11px 0; border-bottom: 1px solid #E9E6DC;">Cycle Journal / Backend / Data model</th>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-weight: 500;">180</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums;">300</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: #8B857A;">&mdash;</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums;">480</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: #3E3B34;">32%</td>
+          </tr>
+          <tr>
+            <th scope="row" style="text-align: left; font-weight: 400; padding: 11px 0; border-bottom: 1px solid #E9E6DC;">Cycle Journal / Research</th>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: #8B857A;">&mdash;</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums;">50</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums;">100</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums;">150</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: #3E3B34;">10%</td>
+          </tr>
+          <tr>
+            <th scope="row" style="text-align: left; font-weight: 400; padding: 11px 0; border-bottom: 1px solid #E9E6DC;">Inbox</th>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: #8B857A;">&mdash;</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: #8B857A;">&mdash;</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums;">50</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums;">50</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; border-bottom: 1px solid #E9E6DC; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; color: #3E3B34;">3%</td>
+          </tr>
+          <tr>
+            <th scope="row" style="text-align: left; font-weight: 600; padding: 11px 0;">All</th>
+            <td style="text-align: right; padding: 11px 0 11px 12px; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-weight: 500;">630</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-weight: 500;">700</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-weight: 500;">175</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-weight: 500;">1505</td>
+            <td style="text-align: right; padding: 11px 0 11px 12px; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-variant-numeric: tabular-nums; font-weight: 500;">100%</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin: auto 0 0; font-size: 15px; line-height: 1.5; border-top: 1px solid #DFDBCF; padding-top: 14px;">Design took <strong style="font-weight: 600;">47%</strong> of everything you have logged and <strong style="font-weight: 600;">71%</strong> of your deep focus. The Inbox took every shallow minute you did not plan.</p>
+    </section>
+
+    <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 20px;">
+      <span style="font-size: 12.5px; color: #5E5A51;">Free while in beta. Stored in this browser — export keeps it yours.</span>
+      <span style="font-size: 12.5px; color: #5E5A51;">Closed nodes are included. Deleted ones are not.</span>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

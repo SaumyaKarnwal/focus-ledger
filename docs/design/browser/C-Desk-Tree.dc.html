@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Tree — outliner and node detail</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Newsreader:opsz,wght@6..72,400;6..72,500&amp;display=swap">
+<style>
+body{margin:0;background:#F2F0E8;color:#1A1A17;font-family:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif}
+a{color:#8A3324}a:hover{color:#6B2619}
+button{font:inherit;color:inherit}
+input{font:inherit;color:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; background: #F2F0E8; color: #1A1A17; font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; display: flex; flex-direction: column;">
+
+  <header style="display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 18px 32px; border-bottom: 1px solid #DFDBCF; background: #FBFAF5;">
+    <span style="font-family: Newsreader, Georgia, serif; font-size: 22px;">Cycle Journal</span>
+    <nav style="display: flex; gap: 4px;">
+      <a href="C-Desk-Today.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 18px; text-decoration: none; color: #5E5A51; font-size: 14.5px;">Today</a>
+      <a href="C-Desk-Tree.dc.html" aria-current="page" style="display: flex; align-items: center; min-height: 40px; padding: 0 18px; text-decoration: none; color: #1A1A17; font-size: 14.5px; font-weight: 600; border-bottom: 2px solid #1A1A17;">Tree</a>
+      <a href="C-Desk-Report.dc.html" style="display: flex; align-items: center; min-height: 40px; padding: 0 18px; text-decoration: none; color: #5E5A51; font-size: 14.5px;">Report</a>
+    </nav>
+    <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #5E5A51;">28 cycles · 25h 05m</span>
+  </header>
+
+  <div style="flex-grow: 1; display: flex; overflow: hidden;">
+
+    <section style="flex-grow: 1; box-sizing: border-box; border-right: 1px solid #DFDBCF; display: flex; flex-direction: column;">
+
+      <div style="display: flex; align-items: center; gap: 16px; padding: 18px 28px 12px;">
+        <h2 style="margin: 0; flex-grow: 1; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #5E5A51; font-weight: 400;">Open</h2>
+        <span style="width: 96px; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #5E5A51;">done / est</span>
+        <span style="width: 92px; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #5E5A51;">time</span>
+        <span style="width: 92px;"></span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 16px; padding: 10px 28px; background: #FBFAF5; box-shadow: inset 3px 0 0 0 #1A1A17; border-bottom: 1px solid #E9E6DC;">
+        <span style="display: flex; align-items: center; gap: 10px; flex-grow: 1;">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="#5E5A51" stroke-width="1.6" aria-hidden="true"><path d="M1.5 3.5l4 4 4-4"></path></svg>
+          <span style="font-size: 16.5px; font-weight: 600;">Cycle Journal</span>
+          <span style="display: inline-flex; align-items: center; height: 22px; padding: 0 8px; background: #E9E6DC; border-radius: 3px; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 11px; color: #3E3B34;">2h 05m here</span>
+        </span>
+        <span style="width: 96px; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 14px; font-variant-numeric: tabular-nums;">26<span style="color: #5E5A51;"> / 16</span></span>
+        <span style="width: 92px; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 14px; font-variant-numeric: tabular-nums;">24h 15m</span>
+        <span style="display: flex; gap: 4px; width: 92px; justify-content: flex-end;">
+          <a href="C-Desk-Running.dc.html" aria-label="Start a cycle on Cycle Journal itself" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid #DFDBCF; border-radius: 3px;">
+            <svg width="10" height="11" viewBox="0 0 10 11" fill="#1A1A17" aria-hidden="true"><path d="M0 0l10 5.5L0 11z"></path></svg>
+          </a>
+          <button type="button" aria-label="Add a child of Cycle Journal" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; background: none; border: 1px solid #DFDBCF; border-radius: 3px; cursor: pointer;">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#1A1A17" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9"></path></svg>
+          </button>
+        </span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 16px; padding: 10px 28px 10px 58px; border-bottom: 1px solid #E9E6DC;">
+        <span style="flex-grow: 1; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 15.5px;">Design</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 11.5px; color: #5E5A51;">usually Deep Focus</span>
+        </span>
+        <span style="width: 96px; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 14px; font-variant-numeric: tabular-nums;">10<span style="color: #5E5A51;"> / 6</span></span>
+        <span style="width: 92px; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 14px; font-variant-numeric: tabular-nums;">11h 40m</span>
+        <span style="display: flex; gap: 4px; width: 92px; justify-content: flex-end;">
+          <a href="C-Desk-Running.dc.html" aria-label="Start a cycle on Design" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 1px solid #DFDBCF; border-radius: 3px;">
+            <svg width="10" height="11" viewBox="0 0 10 11" fill="#1A1A17" aria-hidden="true"><path d="M0 0l10 5.5L0 11z"></path></svg>
+          </a>
+          <button type="button" aria-label="Add a child of Design" style="display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; background: none; border: 1px solid #DFDBCF; border-radius: 3px; cursor: pointer;">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#1A1A17" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M6 1.5v9M1.5 6h9"></path></svg>
+          </button>
+        </span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 16px; padding: 10px 28px 10px 44px; border-bottom: 1px solid #E9E6DC;">
+        <span style="display: flex; align-items: center; gap: 10px; flex-grow: 1;">
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="#5E5A51" stroke-width="1.6" aria-hidden="true"><path d="M1.5 3.5l4 4 4-4"></path></svg>
+          <span style="font-size: 15.5px;">Backend</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 11.5px; color: #8A857A;">no time of its own</span>
+        </span>
+        <span style="width: 96px; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 14px; font-variant-numeric: tabular-nums;">8<span style="color: #5E5A51;"> / 8</span></span>
+        <span style="width: 92px; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 14px; font-variant-numeric: tabular-nums;">8h 00m</span>
+        <span style="width: 92px;"></span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 16px; padding: 10px 28px 10px 74px; border-bottom: 1px solid #E9E6DC; background: #FBFAF5;">
+        <span style="flex-grow: 1; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 15.5px; font-weight: 600;">Data model</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px;">
+            <span aria-hidden="true" style="width: 7px; height: 7px; border-radius: 4px; background: #7E5908;"></span>
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 11.5px;">Running · 31:12 left</span>
+          </span>
+        </span>
+        <span style="width: 96px; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 14px; font-variant-numeric: tabular-nums;">8<span style="color: #5E5A51;"> / 8</span></span>
+        <span style="width: 92px; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 14px; font-variant-numeric: tabular-nums;">8h 00m</span>
+        <span style="width: 92px;"></span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 16px; padding: 8px 28px 8px 58px; border-bottom: 1px solid #E9E6DC;">
+        <span style="flex-grow: 1; display: flex; align-items: center; gap: 12px;">
+          <input type="text" value="Research" aria-label="Node name" style="width: 260px; height: 40px; box-sizing: border-box; padding: 0 11px; background: #FBFAF5; border: 2px solid #1A1A17; border-radius: 3px; font-size: 15.5px;">
+          <span style="font-size: 12.5px; color: #5E5A51;">Enter saves and opens a sibling · Tab indents · Esc cancels</span>
+        </span>
+        <span style="width: 96px; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 14px; font-variant-numeric: tabular-nums;">5<span style="color: #8A857A;"> / —</span></span>
+        <span style="width: 92px; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 14px; font-variant-numeric: tabular-nums;">2h 30m</span>
+        <span style="width: 92px;"></span>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 16px; padding: 10px 28px; border-bottom: 1px solid #E9E6DC;">
+        <span style="flex-grow: 1; display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 16.5px; font-weight: 600;">Inbox</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 11.5px; color: #5E5A51;">cycles started without a task</span>
+        </span>
+        <span style="width: 96px; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 14px; font-variant-numeric: tabular-nums;">2<span style="color: #8A857A;"> / —</span></span>
+        <span style="width: 92px; text-align: right; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 14px; font-variant-numeric: tabular-nums;">50m</span>
+        <span style="display: flex; gap: 4px; width: 92px; justify-content: flex-end;">
+          <button type="button" style="min-height: 40px; padding: 0 11px; background: none; border: 1px solid #DFDBCF; border-radius: 3px; font-size: 12.5px; cursor: pointer;">Re-file</button>
+        </span>
+      </div>
+
+      <button type="button" aria-expanded="false" style="display: flex; align-items: center; gap: 12px; width: 100%; box-sizing: border-box; min-height: 52px; padding: 0 28px; margin-top: 18px; background: none; border: 0; border-top: 1px solid #DFDBCF; border-bottom: 1px solid #DFDBCF; text-align: left; cursor: pointer;">
+        <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="#5E5A51" stroke-width="1.6" aria-hidden="true"><path d="M3.5 1.5l4 4-4 4"></path></svg>
+        <span style="flex-grow: 1; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #5E5A51;">Closed · 3</span>
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 13px; color: #5E5A51;">14h 10m kept in the report</span>
+      </button>
+
+      <p style="margin: 18px 28px 0; max-width: 620px; font-size: 13px; color: #5E5A51; line-height: 1.6;">Time attaches to any node, the root included — the 2h 05m on Cycle Journal is work that belongs to the project but to none of its parts. A node&rsquo;s total is always its own cycles plus everything beneath it, so nothing is counted twice.</p>
+
+    </section>
+
+    <aside style="width: 520px; flex-shrink: 0; box-sizing: border-box; background: #FBFAF5; padding: 26px 30px; display: flex; flex-direction: column; gap: 24px; overflow: hidden;">
+
+      <div style="display: flex; flex-direction: column; gap: 6px; border-bottom: 1px solid #DFDBCF; padding-bottom: 18px;">
+        <span style="font-size: 12.5px; color: #5E5A51;">Project · 3 children · since 2 Sep</span>
+        <span style="font-family: Newsreader, Georgia, serif; font-size: 36px; line-height: 1.05;">Cycle Journal</span>
+        <div style="display: flex; align-items: baseline; gap: 18px; padding-top: 6px;">
+          <span style="display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 22px; font-variant-numeric: tabular-nums;">2h 05m</span>
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #5E5A51;">here</span>
+          </span>
+          <span style="width: 1px; height: 34px; background: #DFDBCF;"></span>
+          <span style="display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 22px; font-variant-numeric: tabular-nums;">24h 15m</span>
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: #5E5A51;">with children</span>
+          </span>
+        </div>
+      </div>
+
+      <section style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+          <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #5E5A51; font-weight: 400;">Estimate · 16 cycles</h2>
+          <a href="C-Desk-Edit.dc.html" style="font-size: 13px;">Edit</a>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">
+          <span aria-hidden="true" style="width: 6px; height: 34px; flex-shrink: 0; background: #C24518;"></span>
+          <span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 15px; font-weight: 600;">Deep Focus</span>
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #5E5A51;">4 est · 7 done · <span style="color: #1A1A17;">+75%</span></span>
+          </span>
+          <a href="C-Desk-Running.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid #C8C3B4; border-radius: 3px; text-decoration: none; color: #1A1A17; font-size: 13.5px;">
+            <svg width="9" height="10" viewBox="0 0 10 11" fill="#1A1A17" aria-hidden="true"><path d="M0 0l10 5.5L0 11z"></path></svg>
+            90
+          </a>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">
+          <span aria-hidden="true" style="width: 6px; height: 34px; flex-shrink: 0; background: #7E5908;"></span>
+          <span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 15px; font-weight: 600;">Execution</span>
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #5E5A51;">10 est · 14 done · <span style="color: #1A1A17;">+40%</span></span>
+          </span>
+          <a href="C-Desk-Running.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid #C8C3B4; border-radius: 3px; text-decoration: none; color: #1A1A17; font-size: 13.5px;">
+            <svg width="9" height="10" viewBox="0 0 10 11" fill="#1A1A17" aria-hidden="true"><path d="M0 0l10 5.5L0 11z"></path></svg>
+            50
+          </a>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #E9E6DC;">
+          <span aria-hidden="true" style="width: 6px; height: 34px; flex-shrink: 0; background: #2C6580;"></span>
+          <span style="flex-grow: 1; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 15px; font-weight: 600;">Shallow</span>
+            <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #5E5A51;">2 est · 5 done · <span style="color: #1A1A17;">+150%</span></span>
+          </span>
+          <a href="C-Desk-Running.dc.html" style="display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 14px; border: 1px solid #C8C3B4; border-radius: 3px; text-decoration: none; color: #1A1A17; font-size: 13.5px;">
+            <svg width="9" height="10" viewBox="0 0 10 11" fill="#1A1A17" aria-hidden="true"><path d="M0 0l10 5.5L0 11z"></path></svg>
+            25
+          </a>
+        </div>
+
+        <p style="margin: 0; font-size: 12.5px; color: #5E5A51; line-height: 1.55;">A start button here tags the cycle before it begins, so the bell only confirms it. The estimate counts every cycle below this node, including its own.</p>
+      </section>
+
+      <section style="display: flex; flex-direction: column; gap: 10px;">
+        <h2 style="margin: 0; font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.12em; text-transform: uppercase; color: #5E5A51; font-weight: 400;">Its own cycles · 3</h2>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #E9E6DC; font-size: 14px;">
+          <span aria-hidden="true" style="width: 6px; height: 18px; flex-shrink: 0; background: #7E5908;"></span>
+          <span style="flex-grow: 1;">Kickoff and scoping</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #5E5A51;">2 Sep</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 13px; font-variant-numeric: tabular-nums; width: 36px; text-align: right;">50</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #E9E6DC; font-size: 14px;">
+          <span aria-hidden="true" style="width: 6px; height: 18px; flex-shrink: 0; background: #7E5908;"></span>
+          <span style="flex-grow: 1;">Kickoff and scoping</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #5E5A51;">3 Sep</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 13px; font-variant-numeric: tabular-nums; width: 36px; text-align: right;">50</span>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #E9E6DC; font-size: 14px;">
+          <span aria-hidden="true" style="width: 6px; height: 13px; flex-shrink: 0; background: #2C6580;"></span>
+          <span style="flex-grow: 1;">Tidying the backlog</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 12px; color: #5E5A51;">9 Sep</span>
+          <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 13px; font-variant-numeric: tabular-nums; width: 36px; text-align: right;">25</span>
+        </div>
+      </section>
+
+      <div style="margin-top: auto; display: flex; gap: 8px;">
+        <button type="button" style="flex-grow: 1; min-height: 46px; background: none; border: 1px solid #C8C3B4; border-radius: 3px; font-size: 14.5px; cursor: pointer;">Mark done</button>
+        <button type="button" style="flex-grow: 1; min-height: 46px; background: none; border: 1px solid #C8C3B4; border-radius: 3px; font-size: 14.5px; cursor: pointer;">Move</button>
+        <button type="button" style="min-height: 46px; padding: 0 16px; background: none; border: 1px solid #C8C3B4; border-radius: 3px; color: #8A3324; font-size: 14.5px; cursor: pointer;">Delete</button>
+      </div>
+
+    </aside>
+
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -304,7 +304,7 @@ I wrote a draft DDL for this design, loaded it into Postgres 15, and ran these c
 | 12 | Filing an Inbox cycle, then re-filing it | first accepted, second rejected |
 | 13 | A delete of a logged cycle (as the table owner) | rejected by the trigger. As `focusledger_app`: rejected with `42501`. |
 | 14 | A delete of a running cycle (as the table owner) | rejected by the trigger. As `focusledger_app`: rejected with `42501`. |
-| 15 | Stop under 1 minute sets minutes to 1 | a server rule, not a schema rule: tested in the `UpdateCycle` tests. The schema only rejects 0 (check 16). |
+| 15 | Stop under 1 minute sets minutes to 1 | the client rounds up and sends 1. The server accepts 1 and rejects 0 with `INVALID_ARGUMENT` (tested in the `UpdateCycle` tests). The schema also rejects 0 (check 16). |
 | 16 | A cycle of 0 minutes | rejected |
 | 17 | Day of 02:00 UTC in a zone | 2026-09-24 in `America/Los_Angeles`, 2026-09-25 in `Asia/Kolkata`. A SQL expression check for the MCP layer, not a schema check. |
 | 18 | Account delete (as the table owner) | the cascade removes all rows in all tables. As `focusledger_app`: rejected with `42501`. |
