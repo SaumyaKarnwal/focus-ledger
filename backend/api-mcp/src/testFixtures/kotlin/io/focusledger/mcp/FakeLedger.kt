@@ -114,7 +114,10 @@ class FakeLedger(private val clock: Clock) : LedgerService {
 
     override fun listNodes(userId: UserId, query: ListNodesQuery): ServiceResult<NodeTree> {
         val userCycles =
-            cyclesOf(userId).filter { cycle -> query.period?.let { cycle.startedAt in it } ?: true }
+            cyclesOf(userId).filter { cycle ->
+                val period = query.period
+                period == null || (cycle.startedAt >= period.start && cycle.startedAt < period.end)
+            }
         val userNodes = nodesOf(userId)
         val byId = userNodes.associateBy { it.id }
         fun hidden(node: Node): Boolean =
