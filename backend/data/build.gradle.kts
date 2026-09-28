@@ -6,7 +6,7 @@ dependencies {
     implementation(libs.jooq)
     implementation(libs.hikari)
     runtimeOnly(libs.flyway.database.postgresql)
-    runtimeOnly(libs.postgresql)
+    implementation(libs.postgresql)
 
     "codegenImplementation"(libs.jooq.codegen)
     "codegenImplementation"(libs.flyway.core)
