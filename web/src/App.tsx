@@ -1,7 +1,7 @@
 export function App() {
   return (
     <main>
-      <h1>Focus Ledger</h1>
+      <h1>Ekagra</h1>
     </main>
   );
 }
