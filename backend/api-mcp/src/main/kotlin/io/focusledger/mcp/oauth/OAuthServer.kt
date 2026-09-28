@@ -170,7 +170,7 @@ class OAuthServer(
                 ),
             )
         return AuthorizationCheck.Redirect(
-            redirectWith(redirectUri, "code" to code, "state" to state, "iss" to config.issuer)
+            redirectWith(redirectUri, "code" to code, "state" to state)
         )
     }
 
@@ -192,11 +192,12 @@ class OAuthServer(
         val code =
             tokens.verify(parameters.getValue("code"), TokenKind.LOGIN_CODE, config.tokenEndpoint)
                 ?: return failed("invalid_grant", "The code is not valid or has expired.")
-        if (!redeemedCodes.markRedeemed(code.tokenId, code.expiresAt)) {
-            redeemedCodes.connectionOf(code.tokenId)?.let { (userId, connectionId) ->
+        val redemption = redeemedCodes.redeem(code.tokenId, code.expiresAt)
+        if (redemption is RedeemedCodes.Redemption.Reused) {
+            redemption.connection?.let { (userId, connectionId) ->
                 connections.revoke(userId, connectionId)
             }
-            return failed("invalid_grant", "The code was already used.")
+            return codeReused
         }
         return when {
             parameters["client_id"] != code.string(CLIENT_ID) ->
@@ -215,7 +216,10 @@ class OAuthServer(
                 val secret = RefreshToken.newSecret()
                 val connection =
                     connections.insert(code.userId, clientId, RefreshToken.sha256(secret))
-                redeemedCodes.recordConnection(code.tokenId, code.userId, connection.id)
+                if (!redeemedCodes.recordConnection(code.tokenId, code.userId, connection.id)) {
+                    connections.revoke(code.userId, connection.id)
+                    return codeReused
+                }
                 issue(code.userId, clientId, RefreshToken(code.userId, connection.id, secret))
             }
         }
@@ -289,7 +293,16 @@ class OAuthServer(
             )
             .toMap()
 
+    /**
+     * A redirect to the client. It always carries `iss`, also on an error, so the client can reject
+     * an answer from another server (RFC 9207).
+     */
+    private fun redirectWith(redirectUri: String, vararg parameters: Pair<String, String?>) =
+        withQuery(redirectUri, parameters.toList() + ("iss" to config.issuer))
+
     private fun failed(error: String, description: String) = TokenResult.Failed(error, description)
+
+    private val codeReused = failed("invalid_grant", "The code was already used.")
 
     private companion object {
         const val AUTHORIZATION_CODE = "authorization_code"
@@ -311,7 +324,7 @@ class OAuthServer(
         }
 
         /** [base] with the non-null [parameters] added to its query. */
-        fun redirectWith(base: String, vararg parameters: Pair<String, String?>): String {
+        fun withQuery(base: String, parameters: List<Pair<String, String?>>): String {
             val query =
                 parameters
                     .filter { it.second != null }

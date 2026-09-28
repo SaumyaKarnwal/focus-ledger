@@ -60,6 +60,7 @@ internal object ClientMetadataRules {
             uri.host.startsWith("[") || ipv4Literal.matches(uri.host) ->
                 "The client_id must use a host name, not an IP address."
             uri.rawUserInfo != null -> "The client_id must not hold a user name or password."
+            uri.port != -1 && uri.port !in 1..65535 -> "The client_id has a port that is not valid."
             uri.rawPath.isNullOrEmpty() || uri.rawPath == "/" -> "The client_id must have a path."
             uri.rawFragment != null || uri.rawQuery != null ->
                 "The client_id must not have a query or a fragment."
@@ -182,8 +183,9 @@ class HttpClientMetadataSource(
         ClientMetadataRules.clientIdProblem(clientId)?.let {
             return ClientLookup.Invalid(it)
         }
-        val request = Request.Builder().url(clientId).header("Accept", "application/json").build()
         return try {
+            val request =
+                Request.Builder().url(clientId).header("Accept", "application/json").build()
             client.newCall(request).execute().use { response ->
                 val source = response.body.source()
                 when {
@@ -200,6 +202,8 @@ class HttpClientMetadataSource(
             ClientLookup.Invalid("The client metadata URL points to an address that is not public.")
         } catch (_: IOException) {
             ClientLookup.Invalid("The client metadata could not be fetched.")
+        } catch (_: IllegalArgumentException) {
+            ClientLookup.Invalid("The client_id is not a URL that can be fetched.")
         }
     }
 

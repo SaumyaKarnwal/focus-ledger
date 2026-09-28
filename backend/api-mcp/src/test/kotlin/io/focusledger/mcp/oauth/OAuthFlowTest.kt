@@ -348,6 +348,7 @@ class OAuthFlowTest {
             redirectQuery(client.decide(userA, client.consentToken(userA), decision = "deny"))
 
         assertEquals("access_denied", redirect["error"])
+        assertEquals(config.issuer, redirect["iss"])
         assertEquals("state-1", redirect["state"])
         assertNull(redirect["code"])
         assertTrue(connections.all().isEmpty())
@@ -427,6 +428,7 @@ class OAuthFlowTest {
             redirectQuery(client.consentPage(userA, authorizeUrl("code_challenge" to null)))
 
         assertEquals("invalid_request", redirect["error"])
+        assertEquals(config.issuer, redirect["iss"])
         assertEquals("state-1", redirect["state"])
     }
 
@@ -550,6 +552,7 @@ class OAuthFlowTest {
             )
 
         assertEquals("invalid_target", redirect["error"])
+        assertEquals(config.issuer, redirect["iss"])
     }
 
     @Test

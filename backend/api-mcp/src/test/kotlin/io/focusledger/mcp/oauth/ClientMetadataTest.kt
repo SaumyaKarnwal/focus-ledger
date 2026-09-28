@@ -50,6 +50,8 @@ class ClientMetadataTest {
                     "https://2130706433/client.json",
                     "https://[::1]/client.json",
                     "https://agent.example/a/../client.json",
+                    "https://agent.example:99999/client.json",
+                    "https://agent.example:0/client.json",
                     "not a url",
                 ]
         )
@@ -219,6 +221,16 @@ class ClientMetadataTest {
                 lookup.reason(),
             )
             assertEquals(0, server.requestCount)
+        }
+
+        @Test
+        fun portAbove65535_isInvalidAndDoesNotThrow() {
+            assertEquals(
+                "The client_id has a port that is not valid.",
+                HttpClientMetadataSource()
+                    .lookUp("https://agent.example:99999/client.json")
+                    .reason(),
+            )
         }
 
         @Test

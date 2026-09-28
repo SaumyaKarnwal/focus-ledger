@@ -65,24 +65,44 @@ internal class RedeemedCodes(private val clock: Clock) {
     private data class Redeemed(
         val expiresAt: Instant,
         val connection: Pair<UserId, AgentConnectionId>?,
+        val reused: Boolean,
     )
+
+    sealed interface Redemption {
+        data object First : Redemption
+
+        /** [connection] is the one that the first redemption created, if it got that far. */
+        data class Reused(val connection: Pair<UserId, AgentConnectionId>?) : Redemption
+    }
 
     private val redeemed = ConcurrentHashMap<String, Redeemed>()
 
-    /** True the first time for [codeId]. A later call means the code is used again. */
-    fun markRedeemed(codeId: String, expiresAt: Instant): Boolean {
+    /** [Redemption.First] the first time for [codeId]. Every later call marks the code reused. */
+    fun redeem(codeId: String, expiresAt: Instant): Redemption {
         val now = clock.instant()
         redeemed.entries.removeIf { it.value.expiresAt.isBefore(now) }
-        return redeemed.putIfAbsent(codeId, Redeemed(expiresAt, null)) == null
+        var redemption: Redemption = Redemption.First
+        redeemed.compute(codeId) { _, entry ->
+            if (entry == null) {
+                Redeemed(expiresAt, connection = null, reused = false)
+            } else {
+                redemption = Redemption.Reused(entry.connection)
+                entry.copy(reused = true)
+            }
+        }
+        return redemption
     }
 
-    /** Records the connection that the code created, so a reuse of the code can revoke it. */
-    fun recordConnection(codeId: String, userId: UserId, connectionId: AgentConnectionId) {
+    /**
+     * Records the connection that the first redemption created, so a later reuse can revoke it.
+     * False when a reuse came first: then the caller revokes the connection itself.
+     */
+    fun recordConnection(codeId: String, userId: UserId, connectionId: AgentConnectionId): Boolean {
+        var recorded = false
         redeemed.computeIfPresent(codeId) { _, entry ->
+            recorded = !entry.reused
             entry.copy(connection = userId to connectionId)
         }
+        return recorded
     }
-
-    fun connectionOf(codeId: String): Pair<UserId, AgentConnectionId>? =
-        redeemed[codeId]?.connection
 }
