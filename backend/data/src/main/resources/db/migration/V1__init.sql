@@ -70,16 +70,24 @@ CREATE TABLE ledger.node (
 
 CREATE INDEX node_children ON ledger.node (user_id, parent_id, created_at);
 
-CREATE FUNCTION ledger.node_reject_cycle() RETURNS trigger LANGUAGE plpgsql AS $$
+-- Two crossed moves (A under B, B under A) in parallel each see only committed rows, so each finds
+-- no loop. The per-user lock makes one move wait until the other commits. The ancestor query is a
+-- new statement, so under READ COMMITTED it then sees that move. The function must stay VOLATILE,
+-- because a STABLE function reuses the snapshot from before the lock.
+CREATE FUNCTION ledger.node_reject_cycle() RETURNS trigger LANGUAGE plpgsql VOLATILE AS $$
 BEGIN
-  IF NEW.parent_id IS NOT NULL AND EXISTS (
+  IF NEW.parent_id IS NULL THEN
+    RETURN NEW;
+  END IF;
+  PERFORM pg_advisory_xact_lock(hashtext('ledger.node_reject_cycle'), hashtext(NEW.user_id::text));
+  IF EXISTS (
     WITH RECURSIVE ancestors AS (
       SELECT n.id, n.parent_id FROM ledger.node n
       WHERE n.user_id = NEW.user_id AND n.id = NEW.parent_id
       UNION ALL
       SELECT n.id, n.parent_id FROM ledger.node n
       JOIN ancestors a ON n.user_id = NEW.user_id AND n.id = a.parent_id
-    )
+    ) CYCLE id SET is_loop USING path
     SELECT 1 FROM ancestors WHERE id = NEW.id
   ) THEN
     RAISE EXCEPTION 'node % cannot move under its own descendant', NEW.id
