@@ -20,7 +20,7 @@ data class NodeUpdate(
     val name: String? = null,
     val parent: ParentChange? = null,
     val closed: Boolean? = null,
-    /** Replaces all of the node's estimate rows. */
+    /** Replaces all of the node's estimate rows. An empty list clears the estimate. */
     val estimates: List<Estimate>? = null,
 )
 
@@ -37,14 +37,21 @@ data class ListNodesQuery(
     val period: Period?,
 )
 
-/** The two ways to create a cycle. */
+/**
+ * The two ways to create a cycle. The adapter returns INVALID_ARGUMENT for a proto request that
+ * fits neither shape: a Start with `started_at`, a hand entry with no `started_at`, or a hand entry
+ * whose `planned_minutes` differs from its `minutes`.
+ */
 sealed interface CreateCycle {
     val requestId: RequestId
     /** Null puts the cycle in the Inbox. */
     val nodeId: NodeId?
     val mode: FocusMode
 
-    /** Starts a running cycle now, by the server clock. */
+    /**
+     * Starts a running cycle now, by the server clock. A repeat compares the node, the mode, and
+     * the planned minutes, not the start time.
+     */
     data class Start(
         override val requestId: RequestId,
         override val nodeId: NodeId?,
