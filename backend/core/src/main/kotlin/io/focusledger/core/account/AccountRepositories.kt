@@ -17,8 +17,6 @@ interface SettingsRepository {
     /** The user's settings, or null when the user has no account. */
     fun find(userId: UserId): Settings?
 
-    /**
-     * Changes the fields that [update] holds, and returns the settings, or null with no account.
-     */
+    /** Changes the fields in the update mask, and returns the settings, or null with no account. */
     fun update(userId: UserId, update: SettingsUpdate): Settings?
 }

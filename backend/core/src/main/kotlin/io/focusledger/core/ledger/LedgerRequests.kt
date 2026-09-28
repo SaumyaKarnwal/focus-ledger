@@ -12,24 +12,27 @@ data class CreateNode(
     val estimates: List<Estimate>,
 )
 
+enum class NodeField {
+    NAME,
+    PARENT_ID,
+    CLOSED,
+    ESTIMATES,
+}
+
 /**
- * The fields of one node update. A null field is not in the update mask. An update with no field
- * returns [io.focusledger.core.ServiceError.InvalidArgument].
+ * One node update: the fields in [mask] change to the values here, and the service ignores the
+ * values of the other fields. An empty mask returns
+ * [io.focusledger.core.ServiceError.InvalidArgument].
  */
 data class NodeUpdate(
-    val name: String? = null,
-    val parent: ParentChange? = null,
-    val closed: Boolean? = null,
+    val mask: Set<NodeField>,
+    val name: String = "",
+    /** With [NodeField.PARENT_ID] in the mask, null moves the node to the root. */
+    val parentId: NodeId? = null,
+    val closed: Boolean = false,
     /** Replaces all of the node's estimate rows. An empty list clears the estimate. */
-    val estimates: List<Estimate>? = null,
+    val estimates: List<Estimate> = emptyList(),
 )
-
-/** A move. `parent_id` in the mask with no value moves the node to the root. */
-sealed interface ParentChange {
-    data object ToRoot : ParentChange
-
-    data class Under(val parentId: NodeId) : ParentChange
-}
 
 data class ListNodesQuery(
     val includeClosed: Boolean,
@@ -72,16 +75,24 @@ sealed interface CreateCycle {
     ) : CreateCycle
 }
 
+/** The cycle fields that can change. Mode, start, and planned minutes never change. */
+enum class CycleField {
+    MINUTES,
+    NODE_ID,
+}
+
 /**
- * The allowed cycle changes. A null field is not in the update mask. The type has no mode, start,
- * or planned minutes, because those never change.
+ * One cycle update: the fields in [mask] change to the values here, and the service ignores the
+ * values of the other fields. An empty mask, or a field in the mask with a null value, returns
+ * [io.focusledger.core.ServiceError.InvalidArgument].
  */
 data class CycleUpdate(
+    val mask: Set<CycleField>,
     /**
      * The new total. On a running cycle it is the Stop, and on a logged cycle it is an extension.
      * It can never go down.
      */
     val minutes: Int? = null,
     /** Files an Inbox cycle. A cycle is filed once. */
-    val fileTo: NodeId? = null,
+    val nodeId: NodeId? = null,
 )

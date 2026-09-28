@@ -14,15 +14,21 @@ data class Settings(
     val notificationsEnabled: Boolean,
 )
 
-/** The fields of one settings update. A null field is not in the update mask. */
-data class SettingsUpdate(
-    val deepFocusMinutes: Int? = null,
-    val executionMinutes: Int? = null,
-    val shallowMinutes: Int? = null,
-    val breakMinutes: Int? = null,
-    val soundEnabled: Boolean? = null,
-    val notificationsEnabled: Boolean? = null,
-)
+enum class SettingsField {
+    DEEP_FOCUS_MINUTES,
+    EXECUTION_MINUTES,
+    SHALLOW_MINUTES,
+    BREAK_MINUTES,
+    SOUND_ENABLED,
+    NOTIFICATIONS_ENABLED,
+}
+
+/**
+ * One settings update: the fields in [mask] change to their values in [settings], and the service
+ * ignores the other values. An empty mask returns
+ * [io.focusledger.core.ServiceError.InvalidArgument].
+ */
+data class SettingsUpdate(val mask: Set<SettingsField>, val settings: Settings)
 
 /** A sign-in credential. A new provider adds a subtype. */
 sealed interface SignInCredential {
