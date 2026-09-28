@@ -39,14 +39,8 @@ jobs:
         with:
           version: 1.65.0
           setup_only: true
-      # buf lint fails when no module exists, and the proto contract is not on main yet.
       - name: buf lint
-        run: |
-          if [ -f buf.yaml ]; then
-            buf lint
-          else
-            echo "No buf.yaml, so buf lint is skipped."
-          fi
+        run: buf lint
 
   web:
     runs-on: ubuntu-24.04
