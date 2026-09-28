@@ -276,6 +276,12 @@ If the all-time download becomes noticeable:
 2. **`planned_minutes` for a hand entry equals the entered length.** Hand entries show zero difference in the planned-vs-actual analysis.
 3. **The week starts on Monday.** There is no setting in v1.
 
+## Where the database objects live
+
+- The `focus_mode` enum and every trigger function (`set_updated_at`, `node_reject_cycle`, `cycle_guard`, `cycle_reject_delete`) live in the `ledger` schema. The trigger on `account.user_settings` calls `ledger.set_updated_at()`. `focusledger_migrate` has no `CREATE` on `public`, so nothing of ours lives there.
+- The Flyway history table is `ledger.flyway_schema_history`. Flyway creates it before `V1__init.sql` runs, so the default privileges do not reach it, and `focusledger_app` has no rights on it. A test asserts this.
+- `ON DELETE CASCADE` from `app_user` stays in v1, and `cycle_reject_delete` lets a delete through only when it comes from that cascade (`pg_trigger_depth() > 1`). It prepares account deletion. In v1 no code path deletes anything: the app role has no `DELETE`, so any delete by the app fails with `42501` before a cascade or a trigger runs.
+
 ## Verification
 
 I wrote a draft DDL for this design, loaded it into Postgres 15, and ran these checks. The DDL is not in this PR. It follows after the design is agreed.
@@ -294,12 +300,12 @@ I wrote a draft DDL for this design, loaded it into Postgres 15, and ran these c
 | 10 | A mode change | rejected |
 | 11 | A `planned_minutes` change | rejected |
 | 12 | Filing an Inbox cycle, then re-filing it | first accepted, second rejected |
-| 13 | A delete of a logged cycle | rejected |
-| 14 | A delete of a running cycle | rejected |
-| 15 | Stop under 1 minute sets minutes to 1 | accepted |
+| 13 | A delete of a logged cycle (as the table owner) | rejected by the trigger. As `focusledger_app`: rejected with `42501`. |
+| 14 | A delete of a running cycle (as the table owner) | rejected by the trigger. As `focusledger_app`: rejected with `42501`. |
+| 15 | Stop under 1 minute sets minutes to 1 | a server rule, not a schema rule: tested in the `UpdateCycle` tests. The schema only rejects 0 (check 16). |
 | 16 | A cycle of 0 minutes | rejected |
-| 17 | Day of 02:00 UTC with the zone from the request | 2026-09-24 in `America/Los_Angeles`, 2026-09-25 in `Asia/Kolkata` |
-| 18 | Account delete | removes all rows in all tables |
+| 17 | Day of 02:00 UTC in a zone | 2026-09-24 in `America/Los_Angeles`, 2026-09-25 in `Asia/Kolkata`. A SQL expression check for the MCP layer, not a schema check. |
+| 18 | Account delete (as the table owner) | the cascade removes all rows in all tables. As `focusledger_app`: rejected with `42501`. |
 | 19 | A second account with the same email in a different case (`A@Example.com`) | rejected by `UNIQUE (email)` (`citext`) |
 | 20 | An account without an email | rejected by `NOT NULL` |
 | 21 | A second `CreateCycle` with the same key | inserts nothing; one row exists for the key |
