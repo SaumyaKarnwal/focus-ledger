@@ -1,0 +1,124 @@
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { StrictMode } from "react";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { App } from "../App";
+import type { LedgerClient } from "../api/ledgerClient";
+import { exampleNow } from "../ledger/exampleData";
+import {
+  exampleNodesWithNothingRunning,
+  recordingClient,
+} from "../testing/appHarness";
+import { FAKE_ID_TOKEN, type SignInMethod } from "./signInMethod";
+
+beforeEach(() => {
+  localStorage.clear();
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(exampleNow);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+function renderApp(client: LedgerClient, signInMethod?: SignInMethod) {
+  return render(
+    <StrictMode>
+      <App
+        client={client}
+        timeZone="UTC"
+        retryDelaysMs={[0]}
+        signInMethod={signInMethod}
+      />
+    </StrictMode>,
+  );
+}
+
+function signedOutClient(nodes = exampleNodesWithNothingRunning()) {
+  return recordingClient(nodes, { signedIn: false });
+}
+
+describe("Sign-in", () => {
+  test("signIn_noSession_showsOnlyTheGoogleAction", async () => {
+    renderApp(signedOutClient().client);
+
+    expect(
+      await screen.findByRole("heading", { name: "Sign in" }),
+    ).toBeDefined();
+    expect(
+      screen.getAllByRole("button").map((button) => button.textContent),
+    ).toEqual(["Sign in with Google"]);
+    expect(screen.queryByRole("navigation")).toBeNull();
+    expect(screen.queryByRole("textbox")).toBeNull();
+  });
+
+  test("signIn_google_sendsTheIdTokenAndOpensToday", async () => {
+    const { client } = signedOutClient();
+    const signIn = vi.spyOn(client, "signIn");
+    renderApp(client);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Sign in with Google" }),
+    );
+
+    expect(await screen.findByRole("button", { name: "Start" })).toBeDefined();
+    expect(signIn).toHaveBeenCalledTimes(1);
+    expect(signIn.mock.calls[0][0].credential).toEqual({
+      case: "googleIdToken",
+      value: FAKE_ID_TOKEN,
+    });
+  });
+
+  test("signIn_newAccountWithNoData_opensTheFirstRun", async () => {
+    renderApp(signedOutClient([]).client);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Sign in with Google" }),
+    );
+
+    expect(
+      await screen.findByRole("button", { name: /Start the first cycle/ }),
+    ).toBeDefined();
+  });
+
+  test("signIn_googleWithoutAClientId_saysSignInIsNotSetUp", async () => {
+    renderApp(signedOutClient().client, {
+      kind: "google",
+      clientId: undefined,
+    });
+
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "GOOGLE_CLIENT_ID",
+    );
+    expect(
+      screen.queryByRole("button", { name: "Sign in with Google" }),
+    ).toBeNull();
+  });
+
+  test("signOut_fromSettings_returnsToSignIn", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    renderApp(client);
+    const nav = await screen.findByRole("navigation", { name: "Views" });
+    fireEvent.click(within(nav).getByRole("button", { name: "Settings" }));
+
+    fireEvent.click(await screen.findByRole("button", { name: "Sign out" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Sign in" }),
+    ).toBeDefined();
+    await expect(client.getAccount({})).rejects.toThrow(/no session/);
+  });
+
+  test("session_endsDuringUse_nextActionOpensSignIn", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    renderApp(client);
+    await screen.findByRole("button", { name: "Start" });
+    await client.signOut({});
+
+    fireEvent.click(screen.getByRole("button", { name: "Start" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Sign in" }),
+    ).toBeDefined();
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+});

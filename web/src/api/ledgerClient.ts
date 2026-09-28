@@ -1,7 +1,11 @@
 import { type Client, createClient, type Transport } from "@connectrpc/connect";
 import { createGrpcWebTransport } from "@connectrpc/connect-web";
 import { LedgerService } from "../gen/focusledger/v1/ledger_service_pb";
-import { fixtureNodes, selectFixture } from "../ledger/fixtures";
+import {
+  type FixtureName,
+  fixtureNodes,
+  selectFixture,
+} from "../ledger/fixtures";
 import { createFakeLedgerTransport } from "./fakeLedgerService";
 
 export type LedgerClient = Client<typeof LedgerService>;
@@ -23,10 +27,17 @@ export function selectBackend(
 
 export function createLedgerTransport(backend: Backend): Transport {
   return backend === "fake"
-    ? createFakeLedgerTransport({
-        nodes: fixtureNodes(selectFixture(window.location.search), new Date()),
-      })
+    ? createFakeLedgerTransport(
+        fakeOptions(selectFixture(window.location.search)),
+      )
     : createGrpcWebTransport({ baseUrl: window.location.origin });
+}
+
+function fakeOptions(fixture: FixtureName) {
+  return {
+    nodes: fixtureNodes(fixture, new Date()),
+    signedIn: fixture !== "signed-out",
+  };
 }
 
 export function createLedgerClient(transport: Transport): LedgerClient {

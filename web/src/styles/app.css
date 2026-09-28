@@ -1222,6 +1222,38 @@ button:disabled {
 .tree-new-row {
   background: var(--surface);
 }
+.tree-row[draggable="true"] {
+  cursor: grab;
+}
+.tree-row[data-dragging="true"] {
+  opacity: 0.5;
+}
+.tree-row[data-drop-target="true"],
+.tree-drop-root[data-drop-target="true"] {
+  background: var(--mode-tint, #f5eedc);
+  box-shadow: inset 0 0 0 2px var(--ink);
+}
+.tree-drop-root {
+  margin: 0 28px 8px;
+  padding: 14px;
+  border: 1.5px dashed var(--line-strong);
+  border-radius: var(--radius);
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+.move-confirm {
+  margin: 0 28px 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: var(--surface);
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius);
+  font-size: 14px;
+}
 .closed-toggle {
   display: flex;
   align-items: center;
@@ -1632,4 +1664,72 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 16px;
+}
+
+/* Sign-in */
+
+.sign-in {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 48px 96px;
+  padding: 0 44px;
+}
+.sign-in-story {
+  width: 560px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.sign-in-title {
+  font-size: 44px;
+  line-height: 1.05;
+}
+.sign-in-lead {
+  max-width: 480px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+.sign-in-points {
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  font-size: 14.5px;
+  line-height: 1.5;
+}
+.sign-in-points li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.sign-in-points svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.sign-in-card {
+  width: 430px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 32px 36px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+}
+.sign-in-button {
+  min-height: 54px;
+}
+.google-button {
+  min-height: 44px;
+}
+.sign-in-foot {
+  padding: 0 44px 32px;
+  text-align: center;
 }

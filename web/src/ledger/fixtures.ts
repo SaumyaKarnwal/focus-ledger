@@ -12,9 +12,16 @@ import {
 import { exampleNodes, exampleNow } from "./exampleData";
 
 /** The seed for the fake backend in the browser, from `?fixture=`. */
-export type FixtureName = "today" | "running" | "ended" | "empty";
+export type FixtureName =
+  "today" | "running" | "ended" | "empty" | "signed-out";
 
-const FIXTURES: readonly FixtureName[] = ["today", "running", "ended", "empty"];
+const FIXTURES: readonly FixtureName[] = [
+  "today",
+  "running",
+  "ended",
+  "empty",
+  "signed-out",
+];
 const MINUTE_MS = 60_000;
 
 export function selectFixture(search: string): FixtureName {
@@ -28,12 +35,14 @@ export function selectFixture(search: string): FixtureName {
  * - running: the example's running cycle has 20 minutes left.
  * - ended: the running cycle's end time passed 10 minutes ago.
  * - empty: no nodes and no cycles, for the first run.
+ * - signed-out: the today rows, behind the sign-in screen.
  */
 export function fixtureNodes(name: FixtureName, now: Date): NodePb[] {
   switch (name) {
     case "empty":
       return [];
     case "today":
+    case "signed-out":
       return withoutRunning(shiftToNow(exampleNodes(), exampleNow, now));
     case "running":
       return shiftToNow(exampleNodes(), exampleNow, now);

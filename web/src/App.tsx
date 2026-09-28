@@ -1,3 +1,4 @@
+import { Code, ConnectError } from "@connectrpc/connect";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LedgerClient } from "./api/ledgerClient";
 import { newRequestId } from "./api/requestId";
@@ -20,6 +21,8 @@ import type { LoggedMode } from "./ledger/rollup";
 import type { toEstimates } from "./tree/estimateModel";
 import { ReportScreen } from "./report/ReportScreen";
 import { SettingsScreen } from "./settings/SettingsScreen";
+import { SignInScreen } from "./signIn/SignInScreen";
+import type { SignInMethod } from "./signIn/signInMethod";
 import { TreeScreen } from "./tree/TreeScreen";
 import { PageHeader } from "./ui/PageHeader";
 import { useNow } from "./useNow";
@@ -36,6 +39,7 @@ import {
 
 type Screen =
   | { kind: "loading" }
+  | { kind: "signIn" }
   | { kind: "today" }
   | { kind: "running"; cycle: CyclePb }
   | { kind: "bell"; cycle: CyclePb }
@@ -71,12 +75,19 @@ type Props = {
   client: LedgerClient;
   timeZone?: string;
   retryDelaysMs?: readonly number[];
+  /** main.tsx passes Google for the real backend. The default suits the fake. */
+  signInMethod?: SignInMethod;
 };
+
+function isUnauthenticated(reason: unknown): boolean {
+  return ConnectError.from(reason).code === Code.Unauthenticated;
+}
 
 export function App({
   client,
   timeZone = browserTimeZone(),
   retryDelaysMs,
+  signInMethod = { kind: "fake" },
 }: Props) {
   const [data, setData] = useState<TodayData>();
   const [screen, setScreen] = useState<Screen>({ kind: "loading" });
@@ -95,7 +106,9 @@ export function App({
     try {
       await action();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : String(reason));
+      // A session can end at any time, for example when the cookie expires.
+      if (isUnauthenticated(reason)) setScreen({ kind: "signIn" });
+      else setError(reason instanceof Error ? reason.message : String(reason));
     } finally {
       setBusy(false);
     }
@@ -154,13 +167,36 @@ export function App({
         setScreen(screenFor(loaded));
       },
       (reason: unknown) => {
-        if (!cancelled) setError(String(reason));
+        if (cancelled) return;
+        if (isUnauthenticated(reason)) setScreen({ kind: "signIn" });
+        else setError(String(reason));
       },
     );
     return () => {
       cancelled = true;
     };
   }, [client, timeZone, screenFor, retryDelaysMs, loadAttempt]);
+
+  const signIn = (idToken: string) =>
+    void act(async () => {
+      await withRetry(
+        () =>
+          client.signIn({
+            credential: { case: "googleIdToken", value: idToken },
+          }),
+        retryDelaysMs,
+      );
+      setScreen({ kind: "loading" });
+      setView("today");
+      setLoadAttempt((attempt) => attempt + 1);
+    });
+
+  const signOut = () =>
+    void act(async () => {
+      await withRetry(() => client.signOut({}), retryDelaysMs);
+      setData(undefined);
+      setScreen({ kind: "signIn" });
+    });
 
   const retryFirstLoad = () => {
     setError(undefined);
@@ -321,6 +357,14 @@ export function App({
 
   return (
     <div className="app">
+      {screen.kind === "signIn" && (
+        <SignInScreen
+          method={signInMethod}
+          busy={busy}
+          error={error}
+          onIdToken={signIn}
+        />
+      )}
       {screen.kind === "loading" && (
         <>
           <PageHeader framed />
@@ -433,6 +477,7 @@ export function App({
             retryDelaysMs={retryDelaysMs}
             nav={nav}
             onDone={closeSettings}
+            onSignOut={signOut}
           />
         </>
       )}
