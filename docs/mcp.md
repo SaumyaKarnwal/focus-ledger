@@ -11,8 +11,8 @@ The MCP server lets a user's AI agent read and log their work. Examples: "log 50
 | 1 | The MCP server is an adapter inside the backend. It calls the same core ledger service as the gRPC handlers. No backend rule or RPC changes for MCP. | Agreed |
 | 2 | The `list_nodes` tool returns the tree with totals for a period, computed on top of the `ListNodes` logic. | Agreed |
 | 3 | Times are UTC by default. A tool call can pass a `time_zone`, and the MCP layer converts. | Agreed |
-| 4 | Agents sign in with personal access tokens first, then OAuth 2.1 built into our backend. | Agreed |
-| 5 | MCP (with personal access tokens) is built in parallel with the web app after Phase 0. OAuth follows it. See `execution-plan.md`. | Agreed |
+| 4 | Agents sign in with OAuth 2.1 only, built into our backend. No personal access tokens. | Agreed |
+| 5 | ws-d builds the MCP tools and the OAuth sign-in together. The security review follows. See `execution-plan.md`. | Agreed |
 
 ## Architecture
 
@@ -94,22 +94,23 @@ What the backend builds:
 | Client identity | Client ID Metadata Documents: the client ID is an HTTPS URL to a JSON file. The fetch must block internal addresses. |
 | Token check at `/mcp` | Signature, expiry, and audience (the token must be issued for our `/mcp`). Invalid tokens get `401`. Missing scopes get `403`. |
 
-Scopes:
-- `ledger:read`: `list_nodes`, `get_running_cycle`.
-- `ledger:write`: all other tools.
+There are no scopes: a connection has full access to its user's own data.
 
-Schema consequence: one new table for agent grants, so a user can see connected agents and disconnect one:
+Schema: one new table, one row per connected agent app:
 
 ```
-agent_grant(user_id, client_id, client_name, scopes, refresh_token_hash, created_at, last_used_at, revoked_at)
+account.agent_connection(id, user_id, client_id, refresh_token_hash, created_at, revoked_at)
 ```
 
-Access tokens are signed and short-lived, so they need no table.
+- The agent app refreshes its tokens itself. The server runs nothing in the background; it answers `/oauth/token` when the app asks.
+- The access token is signed and short-lived (about 1 hour), so it needs no table and no lookup per call.
+- `refresh_token_hash` holds the hash of the current refresh token only. Each refresh replaces it, so an old refresh token matches nothing and is rejected. A refresh must come from the same `client_id`.
+- The one-time login code is signed, lives 60 seconds, is bound to the PKCE challenge, and is single-use through an in-memory set (the service runs one instance).
+- A "connected apps" screen with names and revoke comes later, with its own RPCs.
 
 Effort: a few focused days, plus tests for each attack case: a reused code, a wrong redirect URI, a missing PKCE verifier, a token for another audience, and a reused refresh token. The token and JWT work uses a maintained library.
 
 Other options that were considered:
-- **Personal access tokens:** the user creates a key in Settings and pastes it into the agent's configuration. It is the simplest, and it works with developer agents that accept a custom header. Chat apps' remote connectors generally expect OAuth.
 - **A hosted auth provider** as the authorization server: less code, but a third-party dependency, which is awkward for self-hosting.
 
 ## Rules for writing the tools
