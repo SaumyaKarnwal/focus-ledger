@@ -11,7 +11,5 @@ test("App_render_showsTitle", () => {
 test("App_secondRender_startsFromCleanDocument", () => {
   render(<App />);
 
-  expect(screen.getAllByRole("heading", { name: "Ekagra" })).toHaveLength(
-    1,
-  );
+  expect(screen.getAllByRole("heading", { name: "Ekagra" })).toHaveLength(1);
 });
