@@ -45,6 +45,19 @@ class UserIsolationTest {
                 CreateCycle.Start(RequestId(UUID.randomUUID()), nodeA.id, FocusMode.DEEP_FOCUS, 90),
             )
             .value()
+    private val filedA =
+        ledger
+            .createCycle(
+                userA,
+                CreateCycle.HandEntry(
+                    RequestId(UUID.randomUUID()),
+                    nodeA.id,
+                    FocusMode.SHALLOW,
+                    START,
+                    10,
+                ),
+            )
+            .value()
     private val treeBefore = treeOfA()
     private val settingsBefore = services.account.getSettings(userA).value()
 
@@ -141,6 +154,41 @@ class UserIsolationTest {
             )
 
         assertFailure(ServiceError.NotFound(Resource.CYCLE, "cycle_id"), result)
+    }
+
+    /** A rule error here would tell B that A's cycle exists. */
+    @Test
+    fun updateCycle_lowerMinutesOnCycleOfA_isNotFoundNotARuleError() {
+        val result =
+            ledger.updateCycle(
+                userB,
+                loggedA.id,
+                CycleUpdate(setOf(CycleField.MINUTES), minutes = 1),
+            )
+
+        assertFailure(ServiceError.NotFound(Resource.CYCLE, "cycle_id"), result)
+    }
+
+    @Test
+    fun updateCycle_refileFiledCycleOfA_isNotFoundNotARuleError() {
+        val nodeB = services.newNode(userB)
+
+        val result =
+            ledger.updateCycle(
+                userB,
+                filedA.id,
+                CycleUpdate(setOf(CycleField.NODE_ID), nodeId = nodeB.id),
+            )
+
+        assertFailure(ServiceError.NotFound(Resource.CYCLE, "cycle_id"), result)
+    }
+
+    @Test
+    fun repositoryReads_ofBWithIdsOfA_findNothing() {
+        assertNull(services.nodes.find(userB, nodeA.id))
+        assertNull(services.cycles.find(userB, loggedA.id))
+        assertNull(services.cycles.find(userB, runningA.id))
+        assertNull(services.accounts.find(io.focusledger.core.UserId(UUID.randomUUID())))
     }
 
     @Test
