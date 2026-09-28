@@ -18,10 +18,13 @@ Run these commands from the repository root:
 
 1. Copy the local settings: `cp -n .env.example .env`
 2. Start the local database: `docker compose up -d --wait`
-3. Build and check the backend: `./gradlew build`
-4. Check the web app: `(cd web && corepack pnpm install && corepack pnpm test && corepack pnpm lint && corepack pnpm build)`
+3. Apply the migrations: `./gradlew :backend:data:migrateLocal`
+4. Build and check the backend: `./gradlew build`
+5. Check the web app: `(cd web && corepack pnpm install && corepack pnpm test && corepack pnpm lint && corepack pnpm build)`
 
-The database runs its init scripts only on an empty volume. After a change to `docker/postgres/`, reset the database with `docker compose down -v && docker compose up -d --wait`.
+The builds generate the code for the `.proto` files in `proto/`. Git does not track the generated code.
+
+The database runs its init scripts only on an empty volume. After a change to `docker/postgres/`, reset the database with `docker compose down -v && docker compose up -d --wait`, then apply the migrations again.
 
 ## License
 
