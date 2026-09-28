@@ -1,0 +1,2 @@
+# Fake value for the CI gitleaks test. Not a real credential.
+probe_api_key = "AAGJp7lETVrMY0o9BWFes6FkzwLo6RZKbBlRbB9W"
