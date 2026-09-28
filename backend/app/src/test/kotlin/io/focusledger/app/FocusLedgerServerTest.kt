@@ -3,6 +3,7 @@ package io.focusledger.app
 import com.linecorp.armeria.client.BlockingWebClient
 import com.linecorp.armeria.client.WebClient
 import com.linecorp.armeria.common.AggregatedHttpResponse
+import com.linecorp.armeria.common.HttpData
 import com.linecorp.armeria.common.HttpHeaderNames
 import com.linecorp.armeria.common.HttpMethod
 import com.linecorp.armeria.common.HttpStatus
@@ -10,6 +11,7 @@ import com.linecorp.armeria.common.MediaType
 import com.linecorp.armeria.common.QueryParams
 import com.linecorp.armeria.common.RequestHeaders
 import io.focusledger.core.UserId
+import io.focusledger.grpc.SessionCookies
 import io.focusledger.mcp.FakeAccounts
 import io.focusledger.mcp.FakeLedger
 import io.focusledger.mcp.oauth.BrowserSessions
@@ -72,6 +74,8 @@ class FocusLedgerServerTest {
                 AppConfig.DB_URL_APP to "jdbc:postgresql://unused.invalid/focusledger",
                 AppConfig.MCP_TOKEN_SIGNING_KEY to TestKeys.signingKey(),
                 AppConfig.PUBLIC_BASE_URL to "https://$PUBLIC_HOST",
+                AppConfig.SESSION_SIGNING_KEY to TestKeys.signingKey(),
+                AppConfig.GOOGLE_CLIENT_ID to "test-client.apps.googleusercontent.com",
             )
         )
 
@@ -84,6 +88,7 @@ class FocusLedgerServerTest {
                 agentConnections = InMemoryAgentConnections(clock),
                 clientMetadata = clients,
                 browserSessions = sessions,
+                sessionCookies = SessionCookies(config.sessionSigningKey, clock),
                 clock = clock,
             ),
         ) {
@@ -206,6 +211,27 @@ class FocusLedgerServerTest {
             )
         assertEquals(HttpStatus.OK, tokens.status(), tokens.contentUtf8())
         return json(tokens).getValue("access_token").jsonPrimitive.content
+    }
+
+    /**
+     * Spike check 1 (#31) in the real program: a browser-shaped gRPC-Web call to LedgerService is
+     * served by Armeria itself, next to the Ktor forward. With no session it is UNAUTHENTICATED
+     * (16).
+     */
+    @Test
+    fun grpcWebCall_isServedByArmeriaNextToTheForward() {
+        val headers =
+            RequestHeaders.builder(HttpMethod.POST, "/focusledger.v1.LedgerService/GetAccount")
+                .contentType(MediaType.parse("application/grpc-web+proto"))
+                .add("x-grpc-web", "1")
+                .build()
+
+        val response = armeria.execute(headers, HttpData.wrap(byteArrayOf(0, 0, 0, 0, 0)))
+
+        assertEquals(HttpStatus.OK, response.status())
+        assertEquals("application/grpc-web+proto", response.headers().contentType()?.toString())
+        assertEquals("16", response.headers().get("grpc-status"))
+        assertEquals(0, probeHits.get())
     }
 
     @Test

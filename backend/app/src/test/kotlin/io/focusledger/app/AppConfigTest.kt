@@ -12,12 +12,15 @@ import org.junit.jupiter.params.provider.ValueSource
 
 class AppConfigTest {
     private val signingKey = TestKeys.signingKey()
+    private val sessionKey = TestKeys.signingKey()
     private val environment =
         mapOf(
             AppConfig.PORT to "8080",
             AppConfig.DB_URL_APP to "jdbc:postgresql://localhost:5432/focusledger?user=test",
             AppConfig.MCP_TOKEN_SIGNING_KEY to signingKey,
             AppConfig.PUBLIC_BASE_URL to "https://ledger.example",
+            AppConfig.SESSION_SIGNING_KEY to sessionKey,
+            AppConfig.GOOGLE_CLIENT_ID to "test-client.apps.googleusercontent.com",
         )
 
     @Test
@@ -29,6 +32,18 @@ class AppConfigTest {
         assertTrue(config.oauth.signingKey.contentEquals(signingKey.toByteArray()))
     }
 
+    @Test
+    fun shortSessionSigningKey_isRejected() {
+        val error =
+            assertThrows<ConfigException> {
+                AppConfig.fromEnvironment(
+                    environment + (AppConfig.SESSION_SIGNING_KEY to "too-short")
+                )
+            }
+
+        assertEquals("SESSION_SIGNING_KEY must be at least 32 bytes.", error.message)
+    }
+
     @ParameterizedTest
     @ValueSource(
         strings =
@@ -37,6 +52,8 @@ class AppConfigTest {
                 AppConfig.DB_URL_APP,
                 AppConfig.MCP_TOKEN_SIGNING_KEY,
                 AppConfig.PUBLIC_BASE_URL,
+                AppConfig.SESSION_SIGNING_KEY,
+                AppConfig.GOOGLE_CLIENT_ID,
             ]
     )
     fun missingVariable_namesIt(name: String) {

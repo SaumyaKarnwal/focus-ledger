@@ -12,16 +12,23 @@ class AppConfig(
     val databaseUrl: String,
     /** Its signing key is the UTF-8 bytes of `MCP_TOKEN_SIGNING_KEY`, as `.env.example` shows. */
     val oauth: OAuthConfig,
+    /** The UTF-8 bytes of `SESSION_SIGNING_KEY`, which signs the browser session cookie. */
+    val sessionSigningKey: ByteArray,
+    /** The OAuth client ID that a Google ID token must name as its audience. */
+    val googleClientId: String,
 ) {
     override fun toString(): String =
         "AppConfig(port=$port, publicBaseUrl=${oauth.issuer}, databaseUrl=<hidden>, " +
-            "mcpTokenSigningKey=<hidden>)"
+            "mcpTokenSigningKey=<hidden>, sessionSigningKey=<hidden>, googleClientId=$googleClientId)"
 
     companion object {
         const val PORT = "PORT"
         const val DB_URL_APP = "DB_URL_APP"
         const val MCP_TOKEN_SIGNING_KEY = "MCP_TOKEN_SIGNING_KEY"
         const val PUBLIC_BASE_URL = "PUBLIC_BASE_URL"
+        const val SESSION_SIGNING_KEY = "SESSION_SIGNING_KEY"
+        const val GOOGLE_CLIENT_ID = "GOOGLE_CLIENT_ID"
+        private const val MIN_SESSION_KEY_BYTES = 32
 
         fun fromEnvironment(environment: Map<String, String>): AppConfig {
             fun required(name: String): String =
@@ -40,7 +47,19 @@ class AppConfig(
                 } catch (invalid: IllegalArgumentException) {
                     throw ConfigException(invalid.message ?: "An OAuth setting is not valid.")
                 }
-            return AppConfig(port, databaseUrl, oauth)
+            val sessionSigningKey = required(SESSION_SIGNING_KEY).toByteArray(Charsets.UTF_8)
+            if (sessionSigningKey.size < MIN_SESSION_KEY_BYTES) {
+                throw ConfigException(
+                    "$SESSION_SIGNING_KEY must be at least $MIN_SESSION_KEY_BYTES bytes."
+                )
+            }
+            return AppConfig(
+                port,
+                databaseUrl,
+                oauth,
+                sessionSigningKey,
+                required(GOOGLE_CLIENT_ID),
+            )
         }
     }
 }

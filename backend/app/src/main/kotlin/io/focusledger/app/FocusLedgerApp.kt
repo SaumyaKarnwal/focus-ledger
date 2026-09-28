@@ -3,6 +3,8 @@ package io.focusledger.app
 import io.focusledger.core.account.AccountService
 import io.focusledger.core.account.AgentConnectionRepository
 import io.focusledger.core.ledger.LedgerService
+import io.focusledger.grpc.LedgerGrpc
+import io.focusledger.grpc.SessionCookies
 import io.focusledger.mcp.LedgerTools
 import io.focusledger.mcp.focusLedgerMcp
 import io.focusledger.mcp.oauth.BrowserSessions
@@ -18,6 +20,7 @@ class AppServices(
     val agentConnections: AgentConnectionRepository,
     val clientMetadata: ClientMetadataSource,
     val browserSessions: BrowserSessions,
+    val sessionCookies: SessionCookies,
     val clock: Clock,
 )
 
@@ -38,7 +41,8 @@ object FocusLedgerApp {
                 services.clock,
             )
         val tools = LedgerTools(services.ledger, services.account, services.clock)
-        return FocusLedgerServer.start(config.port) {
+        val grpc = LedgerGrpc.service(services.ledger, services.account, services.sessionCookies)
+        return FocusLedgerServer.start(config.port, grpc) {
             focusLedgerMcp(tools, oauth)
             extraKtorModule()
         }

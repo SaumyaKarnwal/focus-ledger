@@ -4,6 +4,7 @@ import com.linecorp.armeria.client.WebClient
 import com.linecorp.armeria.common.HttpRequest
 import com.linecorp.armeria.common.HttpResponse
 import com.linecorp.armeria.server.HttpService
+import com.linecorp.armeria.server.HttpServiceWithRoutes
 import com.linecorp.armeria.server.Server
 import com.linecorp.armeria.server.ServiceRequestContext
 import io.ktor.server.application.Application
@@ -38,7 +39,12 @@ private constructor(
         val forwardedRoutes =
             listOf("/mcp", "prefix:/oauth/", "regex:^/\\.well-known/oauth-[^/]*(/.*)?$")
 
-        fun start(port: Int, ktorModule: Application.() -> Unit): FocusLedgerServer {
+        /** [grpc] serves LedgerService for gRPC and gRPC-Web on the public port. */
+        fun start(
+            port: Int,
+            grpc: HttpServiceWithRoutes,
+            ktorModule: Application.() -> Unit,
+        ): FocusLedgerServer {
             val ktor =
                 embeddedServer(Netty, port = 0, host = LOOPBACK, module = ktorModule)
                     .start(wait = false)
@@ -46,7 +52,7 @@ private constructor(
             val forward = KtorForward(ktorPort)
             val armeria =
                 forwardedRoutes
-                    .fold(Server.builder().http(port)) { builder, route ->
+                    .fold(Server.builder().http(port).service(grpc)) { builder, route ->
                         builder.service(route, forward)
                     }
                     .build()
