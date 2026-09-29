@@ -62,11 +62,21 @@ class OAuthFlowTest {
     private val clientId = "https://agent.example/client.json"
     private val redirectUri = "http://localhost:33418/callback"
     private var clientName = "Example Agent"
+    /** Registers a loopback URI without a port, as Claude Code does. */
+    private val loopbackClientId = "https://agent.example/loopback.json"
     private val clients = ClientMetadataSource { id ->
-        if (id == clientId) {
-            ClientLookup.Found(ClientMetadata(clientId, clientName, listOf(redirectUri)))
-        } else {
-            ClientLookup.Invalid("The client metadata could not be fetched.")
+        when (id) {
+            clientId ->
+                ClientLookup.Found(ClientMetadata(clientId, clientName, listOf(redirectUri)))
+            loopbackClientId ->
+                ClientLookup.Found(
+                    ClientMetadata(
+                        loopbackClientId,
+                        clientName,
+                        listOf("http://localhost/callback"),
+                    )
+                )
+            else -> ClientLookup.Invalid("The client metadata could not be fetched.")
         }
     }
 
@@ -384,6 +394,44 @@ class OAuthFlowTest {
         assertTrue(
             response.bodyAsText().contains("not one of the client&#39;s registered redirect URIs")
         )
+    }
+
+    private suspend fun HttpClient.loopbackCode(redirect: String): String {
+        val page =
+            consentPage(
+                userA,
+                authorizeUrl("client_id" to loopbackClientId, "redirect_uri" to redirect),
+            )
+        assertEquals(HttpStatusCode.OK, page.status, page.bodyAsText())
+        val decision = decide(userA, consentField.find(page.bodyAsText())!!.groupValues[1])
+        assertEquals(HttpStatusCode.Found, decision.status)
+        val location = Url(decision.headers[HttpHeaders.Location]!!)
+        assertEquals(redirect, location.toString().substringBefore('?'))
+        return location.parameters["code"]!!
+    }
+
+    @Test
+    fun loopbackRedirect_withARandomPort_completesTheFlow() = oauthTest { client ->
+        val redirect = "http://localhost:52017/callback"
+
+        val tokens =
+            client.redeem(
+                client.loopbackCode(redirect),
+                redirect = redirect,
+                client = loopbackClientId,
+            )
+
+        assertEquals(HttpStatusCode.OK, tokens.status, tokens.bodyAsText())
+    }
+
+    @Test
+    fun attack_loopbackTokenStepWithAnotherPort_isRejected() = oauthTest { client ->
+        val code = client.loopbackCode("http://localhost:52017/callback")
+
+        client
+            .redeem(code, redirect = "http://localhost:52018/callback", client = loopbackClientId)
+            .assertTokenError("invalid_grant")
+        assertTrue(connections.all().isEmpty())
     }
 
     @Test
