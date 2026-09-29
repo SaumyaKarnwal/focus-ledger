@@ -89,7 +89,7 @@ What the backend builds:
 | `/.well-known/oauth-protected-resource` | Required (RFC 9728). Names our authorization server and the scopes. |
 | `/.well-known/oauth-authorization-server` | Lists the endpoints. Declares PKCE `S256` and Client ID Metadata Document support. |
 | `/oauth/authorize` + consent page | The user approves one client and picks scopes. Shows the client name and redirect host. Protected against forged form posts. |
-| `/oauth/token` | Swaps a code for tokens. Verifies PKCE. Codes are single-use and expire quickly. Redirect URIs must match exactly. |
+| `/oauth/token` | Swaps a code for tokens. Verifies PKCE. Codes are single-use and expire quickly. Redirect URIs must match exactly, with one exception: for a registered `http` loopback URI (`localhost`, `127.0.0.1`, `[::1]`), any port is accepted when the scheme, host, path, and query match (RFC 8252 §7.3). The token step compares against the `redirect_uri` of the authorization request. |
 | Refresh tokens | Rotated on every use. A reused old refresh token revokes the whole grant. |
 | Client identity | Client ID Metadata Documents: the client ID is an HTTPS URL to a JSON file. The fetch must block internal addresses. |
 | Token check at `/mcp` | Signature, expiry, and audience (the token must be issued for our `/mcp`). Invalid tokens get `401`. Missing scopes get `403`. |
