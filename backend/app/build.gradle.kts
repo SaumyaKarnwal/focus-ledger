@@ -16,3 +16,16 @@ dependencies {
 }
 
 application { mainClass = "io.focusledger.app.MainKt" }
+
+@Suppress("UNCHECKED_CAST")
+val localEnvironment = rootProject.extra["localEnvironment"] as () -> Map<String, String>
+
+tasks.register<JavaExec>("runLocal") {
+    description = "Runs the program with the settings in .env, and serves web/dist when it exists."
+    group = "application"
+    classpath = sourceSets.main.get().runtimeClasspath
+    mainClass = application.mainClass
+    doFirst {
+        environment(mapOf("WEB_DIR" to rootProject.file("web/dist").path) + localEnvironment())
+    }
+}

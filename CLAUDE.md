@@ -58,6 +58,15 @@ Reset the local database (the init scripts run only on an empty volume, so run t
 docker compose down -v && docker compose up -d --wait && ./gradlew :backend:data:migrateLocal
 ```
 
+Run locally (after the setup; two terminals):
+
+```bash
+./gradlew :backend:app:runLocal             # the backend on PORT, with the settings in .env
+(cd web && corepack pnpm dev)               # the web app on http://localhost:5173; it sends the API calls to the backend
+```
+
+Open http://localhost:5173 and sign in with Google. `.env` needs the real, public `GOOGLE_CLIENT_ID`, and the OAuth client allows the `http://localhost:5173` origin. To test the web build as the image serves it, run `(cd web && corepack pnpm build)` first and open http://localhost:8080. For an agent, connect it to `http://localhost:8080/mcp`.
+
 Check (run before every push):
 
 ```bash
@@ -106,6 +115,7 @@ After `corepack enable`, plain `pnpm` works in place of `corepack pnpm`. Each wo
 - Run the module checks and the formatter before every push.
 - Do not merge a test that fails even once in repeated runs.
 - Never deploy without asking the owner.
+- Test a change locally before it is deployed (see "Run locally"). The owner does not deploy a change that nobody ran on localhost.
 - Deploy only with `./gradlew deploy`, from a clean checkout of `origin/main`. It builds, pushes, and deploys, then keeps only two images in Artifact Registry: the current one and the previous one. The reason: a rollback goes to the previous version, and two images fit in the free storage (0.5 GB). A third image would cost money. `infra/deploy.sh --dry-run` shows what the cleanup would delete.
 - The PR description states what was verified and how. Say "I read this but did not run it" when that is the case.
 
