@@ -8,6 +8,35 @@ plugins {
 
 val ktfmtVersion = libs.versions.ktfmt.get()
 
+/**
+ * The variables from the repository's .env file, with `${NAME}` references expanded from earlier
+ * lines. For each name, a variable set in the process environment wins over the file. Module build
+ * files read it as `rootProject.extra["localEnvironment"]`.
+ */
+val localEnvironment: () -> Map<String, String> = {
+    val envFile = rootProject.file(".env")
+    check(envFile.exists()) { "Copy .env.example to .env first (see CLAUDE.md, Commands)." }
+    val reference = Regex("""\$\{(\w+)}""")
+    envFile
+        .readLines()
+        .map { it.trim() }
+        .filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
+        .fold(mapOf()) { resolved, line ->
+            val name = line.substringBefore("=").trim()
+            val rawValue = System.getenv(name) ?: line.substringAfter("=").trim()
+            val value =
+                reference.replace(rawValue) { match ->
+                    val referenced = match.groupValues[1]
+                    System.getenv(referenced)
+                        ?: resolved[referenced]
+                        ?: error("$name uses \${$referenced}, which .env does not set.")
+                }
+            resolved + (name to value)
+        }
+}
+
+extra["localEnvironment"] = localEnvironment
+
 spotless {
     kotlinGradle {
         target("*.gradle.kts")
