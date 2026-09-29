@@ -6,8 +6,8 @@ Focus Ledger is one Kotlin program, one Postgres database, and one domain. The b
 
 ## Name and domain
 
-- **Brand name: tentative.** The working choice is Ekagra (एकाग्र, "one-pointed focus"), but the owner is still looking for a better name. No domain is bought yet.
-- **Until the domain exists,** the app runs on the free Cloud Run address (`https://<service>-<id>.<region>.run.app`), which has HTTPS. Adding the domain later: buy it, point DNS at the Cloud Run service, and add it to the sign-in client's allowed origins. Users sign in once more after the switch, because cookies belong to one address. Search ranking starts with the final domain, so the `run.app` address is not marketed.
+- **Brand name: tentative.** The working choice is Ekagra (एकाग्र, "one-pointed focus"), but the owner may still look for a better name. The owner bought `ekagra.app` at Cloudflare Registrar on 2026-09-29.
+- **Until the domain is connected,** the app runs on the free Cloud Run address (`https://<service>-<id>.<region>.run.app`), which has HTTPS. Adding the domain later: buy it, point DNS at the Cloud Run service, and add it to the sign-in client's allowed origins. Users sign in once more after the switch, because cookies belong to one address. Search ranking starts with the final domain, so the `run.app` address is not marketed.
 - **In code, the product name lives in one constant** (one per client), so a rename is a one-line change.
 - **Internal name:** `focus-ledger` stays in the repository, the proto package (`focusledger.v1`), the database roles, and the cloud resources. Renaming internals brings no benefit.
 - **Known risk:** other focus apps in India already use the name "Ekagra" (on Google Play, as a Firefox extension, and Ekagra OS). Search results and app stores will show them next to ours. The owner accepts this. Before investing in branding, check the trademark registries (India IP office, USPTO).
@@ -31,7 +31,7 @@ flowchart LR
 
 | Part | What it is | Where it runs |
 |---|---|---|
-| Domain, DNS, TLS | `focusledger.com` | Cloudflare (registrar and DNS) |
+| Domain, DNS, TLS | `ekagra.app` | Cloudflare (registrar and DNS) |
 | Public pages | Landing page, blog, pricing. Pre-rendered HTML, so search engines can read them. | Static files, served by Armeria |
 | Web app | React + TypeScript, under `/app` | Static files, served by Armeria |
 | Backend | One Kotlin program: Armeria + Ktor + the core | Cloud Run, one container, scales to zero |
@@ -139,7 +139,7 @@ sequenceDiagram
 
 | Part | Service | Cost now | Paid when |
 |---|---|---|---|
-| Domain | Cloudflare Registrar | about $10.44 a year for .com ($11.15 from Nov 1, 2026) | always |
+| Domain | Cloudflare Registrar | `ekagra.app`, at cost; the renewal price is on the Cloudflare invoice | always |
 | DNS, TLS, caching | Cloudflare free plan | $0 | not expected |
 | Backend | Cloud Run | $0 up to 2M requests, 180,000 vCPU-seconds, and 360,000 GB-seconds a month | about 1,600 daily active users (estimate: about 40 requests per user per day) |
 | Database | Neon free plan | $0 up to 0.5 GB and 100 compute-hours a month | about 1,000 or more user-years of data |
