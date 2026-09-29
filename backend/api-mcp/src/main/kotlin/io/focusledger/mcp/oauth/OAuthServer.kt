@@ -92,7 +92,7 @@ class OAuthServer(
                 is ClientLookup.Found -> lookup.metadata
             }
         val redirectUri =
-            parameters["redirect_uri"]?.takeIf { it in client.redirectUris }
+            parameters["redirect_uri"]?.takeIf(client::allowsRedirectUri)
                 ?: return AuthorizationCheck.ShowError(
                     "The redirect_uri is not one of the client's registered redirect URIs."
                 )
