@@ -1,16 +1,17 @@
 import react from "@vitejs/plugin-react";
 import { searchForWorkspaceRoot } from "vite";
 import { defineConfig } from "vitest/config";
+import { googleClientIdHtml } from "./googleClientIdHtml.ts";
 import { productNameHtml } from "./productNameHtml.ts";
 
 // Set here, not in a package script, so that every Vitest runner (CLI, watch, IDE) uses UTC.
 process.env.TZ = "UTC";
 
 export default defineConfig({
-  plugins: [react(), productNameHtml()],
-  // The web app shares the repository .env. Only these prefixes reach the bundle.
+  plugins: [react(), productNameHtml(), googleClientIdHtml()],
+  // The web app shares the repository .env. Only this prefix reaches the bundle.
   envDir: "..",
-  envPrefix: ["VITE_", "GOOGLE_CLIENT_ID"],
+  envPrefix: ["VITE_"],
   server: {
     // The fake backend imports the shared example data from ../testdata.
     fs: { allow: [searchForWorkspaceRoot(process.cwd()), "../testdata"] },
