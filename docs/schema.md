@@ -274,7 +274,7 @@ If the all-time download becomes noticeable:
 
 ## Resolved questions
 
-1. **A running cycle after a closed tab: resume it** (FR-3.5). On reopen, the countdown continues. If the planned end has passed, the app shows the bell, logged at the planned length. Pause state lives only in the UI, so a pause before the tab closed is not counted.
+1. **A running cycle after a closed tab: resume it** (FR-3.5). On reopen, the countdown continues. If the planned end has passed, the app shows the bell, logged at the planned length. Pause state lives only in the browser: the app keeps the paused time in browser storage, keyed by the cycle ID, so a reload does not count paused time as work (see `api.md`, "Timer rules"). In a different browser, the paused time is lost.
 2. **`planned_minutes` for a hand entry equals the entered length.** Hand entries show zero difference in the planned-vs-actual analysis.
 3. **The week starts on Monday.** There is no setting in v1.
 
