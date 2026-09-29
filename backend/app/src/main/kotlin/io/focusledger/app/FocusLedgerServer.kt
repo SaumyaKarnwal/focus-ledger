@@ -39,10 +39,14 @@ private constructor(
         val forwardedRoutes =
             listOf("/mcp", "prefix:/oauth/", "regex:^/\\.well-known/oauth-[^/]*(/.*)?$")
 
-        /** [grpc] serves LedgerService for gRPC and gRPC-Web on the public port. */
+        /**
+         * [grpc] serves LedgerService for gRPC and gRPC-Web on the public port. [web] gets every
+         * path that no other service claims; without it, those paths return 404.
+         */
         fun start(
             port: Int,
             grpc: HttpServiceWithRoutes,
+            web: HttpService?,
             ktorModule: Application.() -> Unit,
         ): FocusLedgerServer {
             val ktor =
@@ -55,6 +59,7 @@ private constructor(
                     .fold(Server.builder().http(port).service(grpc)) { builder, route ->
                         builder.service(route, forward)
                     }
+                    .apply { web?.let { serviceUnder("/", it) } }
                     .build()
             armeria.start().join()
             return FocusLedgerServer(armeria, ktor)

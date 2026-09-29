@@ -1,2 +1,9 @@
 *
 !backend/app/build/install/app
+!buf.yaml
+!proto
+!testdata
+!web
+web/node_modules
+web/dist
+web/src/gen

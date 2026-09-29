@@ -1,6 +1,7 @@
 package io.focusledger.app
 
 import java.io.File
+import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
@@ -30,6 +31,20 @@ class AppConfigTest {
         assertEquals(8080, config.port)
         assertEquals("https://ledger.example/mcp", config.oauth.resource)
         assertTrue(config.oauth.signingKey.contentEquals(signingKey.toByteArray()))
+    }
+
+    @Test
+    fun missingWebDir_defaultsToTheImagePath() {
+        val config = AppConfig.fromEnvironment(environment)
+
+        assertEquals(Path.of("/app/web"), config.webDir)
+    }
+
+    @Test
+    fun webDir_setsTheWebBuildPath() {
+        val config = AppConfig.fromEnvironment(environment + (AppConfig.WEB_DIR to "web/dist"))
+
+        assertEquals(Path.of("web/dist"), config.webDir)
     }
 
     @Test

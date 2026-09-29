@@ -42,7 +42,9 @@ object FocusLedgerApp {
             )
         val tools = LedgerTools(services.ledger, services.account, services.clock)
         val grpc = LedgerGrpc.service(services.ledger, services.account, services.sessionCookies)
-        return FocusLedgerServer.start(config.port, grpc) {
+        val web = WebApp.fromDirectory(config.webDir, config.googleClientId)
+        if (web == null) println("No web build in ${config.webDir}, so only the API is served.")
+        return FocusLedgerServer.start(config.port, grpc, web) {
             focusLedgerMcp(tools, oauth)
             extraKtorModule()
         }

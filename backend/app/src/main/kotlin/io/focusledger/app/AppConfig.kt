@@ -1,6 +1,7 @@
 package io.focusledger.app
 
 import io.focusledger.mcp.oauth.OAuthConfig
+import java.nio.file.Path
 
 /** A missing or bad setting. The message names the variable and never holds its value. */
 class ConfigException(message: String) : Exception(message)
@@ -16,10 +17,13 @@ class AppConfig(
     val sessionSigningKey: ByteArray,
     /** The OAuth client ID that a Google ID token must name as its audience. */
     val googleClientId: String,
+    /** The web build that Armeria serves. `WEB_DIR` sets it; the image holds it at `/app/web`. */
+    val webDir: Path = Path.of(DEFAULT_WEB_DIR),
 ) {
     override fun toString(): String =
         "AppConfig(port=$port, publicBaseUrl=${oauth.issuer}, databaseUrl=<hidden>, " +
-            "mcpTokenSigningKey=<hidden>, sessionSigningKey=<hidden>, googleClientId=$googleClientId)"
+            "mcpTokenSigningKey=<hidden>, sessionSigningKey=<hidden>, googleClientId=$googleClientId, " +
+            "webDir=$webDir)"
 
     companion object {
         const val PORT = "PORT"
@@ -28,6 +32,8 @@ class AppConfig(
         const val PUBLIC_BASE_URL = "PUBLIC_BASE_URL"
         const val SESSION_SIGNING_KEY = "SESSION_SIGNING_KEY"
         const val GOOGLE_CLIENT_ID = "GOOGLE_CLIENT_ID"
+        const val WEB_DIR = "WEB_DIR"
+        const val DEFAULT_WEB_DIR = "/app/web"
         private const val MIN_SESSION_KEY_BYTES = 32
 
         fun fromEnvironment(environment: Map<String, String>): AppConfig {
@@ -59,6 +65,7 @@ class AppConfig(
                 oauth,
                 sessionSigningKey,
                 required(GOOGLE_CLIENT_ID),
+                Path.of(environment[WEB_DIR]?.takeIf { it.isNotBlank() } ?: DEFAULT_WEB_DIR),
             )
         }
     }

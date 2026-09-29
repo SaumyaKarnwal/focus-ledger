@@ -99,7 +99,7 @@ function GoogleButton({
   if (!clientId) {
     return (
       <p className="alert" role="alert">
-        Sign-in is not set up: GOOGLE_CLIENT_ID is missing from the build.
+        Sign-in is not set up: the server sent no GOOGLE_CLIENT_ID.
       </p>
     );
   }
