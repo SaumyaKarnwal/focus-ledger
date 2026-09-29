@@ -1,6 +1,7 @@
 package io.focusledger.mcp
 
 import io.focusledger.core.UserId
+import io.focusledger.mcp.oauth.PRODUCT_NAME
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -142,7 +143,8 @@ class LedgerMcpServerTest {
                 .result()
 
         val instructions = result.getValue("instructions").jsonPrimitive.content
-        assertTrue(instructions.startsWith("Focus Ledger records how the user spends time."))
+        assertTrue(instructions.startsWith("$PRODUCT_NAME records how the user spends time."))
+        assertFalse(instructions.contains("%PRODUCT_NAME%"), instructions)
         assertTrue(instructions.contains("time_zone"), instructions)
         assertTrue(result.getValue("capabilities").jsonObject.containsKey("prompts"))
     }

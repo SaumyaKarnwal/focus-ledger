@@ -1,5 +1,7 @@
 package io.focusledger.mcp
 
+import io.focusledger.mcp.oauth.PRODUCT_NAME
+
 /** A prompt that the agent's user can start, for example as a slash command. */
 internal class PromptDefinition(
     val name: String,
@@ -23,13 +25,14 @@ internal val serverInstructions: String =
             "instructions.md is missing from the api-mcp resources."
         }
         .readText()
+        .replace("%PRODUCT_NAME%", PRODUCT_NAME)
         .trim()
 
 internal val promptDefinitions: List<PromptDefinition> =
     listOf(
         PromptDefinition(
             name = LOG_SESSION,
-            description = "Log the work from this conversation to Focus Ledger.",
+            description = "Log the work from this conversation to $PRODUCT_NAME.",
             arguments =
                 listOf(
                     PromptArgumentDefinition(
@@ -40,7 +43,7 @@ internal val promptDefinitions: List<PromptDefinition> =
                 ),
         ) { arguments ->
             listOfNotNull(
-                    "Log the work from this conversation to Focus Ledger.",
+                    "Log the work from this conversation to $PRODUCT_NAME.",
                     "1. Find each block of work in this conversation: what I worked on, when it " +
                         "started, and how long it took. Ask me for a time that you cannot find.",
                     "2. Call list_nodes for this_week in my time zone, and choose a node for each " +
@@ -71,7 +74,7 @@ internal val promptDefinitions: List<PromptDefinition> =
                 arguments["parent_path"]?.takeIf { it.isNotBlank() }?.let { "under \"$it\"" }
                     ?: "at the top level"
             listOf(
-                    "Plan the node tree for the project \"$project\" in Focus Ledger, $parent.",
+                    "Plan the node tree for the project \"$project\" in $PRODUCT_NAME, $parent.",
                     "1. Call list_nodes, and check for nodes that already cover this project.",
                     "2. Propose a tree of at most three levels. Name each task so that I can " +
                         "finish it.",
