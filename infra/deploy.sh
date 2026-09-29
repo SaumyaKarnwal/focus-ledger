@@ -96,5 +96,27 @@ clean_up() {
   printf '  %s\n' $kept
 }
 
+# After a deploy: the site answers, and the registry holds at most KEEP_IMAGES tagged images.
+verify() {
+  local url path code tagged
+  url=$(gcp run services describe "$SERVICE" --region="$REGION" --format='value(status.url)')
+  for path in / /.well-known/oauth-authorization-server; do
+    code=$(curl -s -o /dev/null -w '%{http_code}' --retry 5 --retry-delay 3 "$url$path")
+    if [ "$code" != 200 ]; then
+      echo "Check failed: GET $url$path returned $code." >&2
+      exit 1
+    fi
+    echo "Check passed: GET $path returned 200."
+  done
+  tagged=$(gcp artifacts docker images list "$REPOSITORY" --include-tags --format=json |
+    jq '[.[] | select((.tags // []) | length > 0)] | length')
+  if [ "$tagged" -gt "$KEEP_IMAGES" ]; then
+    echo "Check failed: the registry holds $tagged tagged images, more than $KEEP_IMAGES." >&2
+    exit 1
+  fi
+  echo "Check passed: the registry holds $tagged tagged images."
+}
+
 $dry_run || deploy
 clean_up
+$dry_run || verify
