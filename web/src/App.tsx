@@ -12,6 +12,7 @@ import {
   type PendingExtension,
   saveExtension,
 } from "./cycle/extensionStore";
+import { clearPause } from "./cycle/pauseStore";
 import { RunningScreen } from "./cycle/RunningScreen";
 import { EntryDialog } from "./entry/EntryDialog";
 import { FirstRunScreen } from "./firstRun/FirstRunScreen";
@@ -243,6 +244,7 @@ export function App({
             retryDelaysMs,
           );
           if (loadExtension()?.cycleId === cycle.id) clearExtension();
+          clearPause(cycle.id);
           if (response.cycle) {
             setScreen({ kind: "bell", cycle: response.cycle });
           }
