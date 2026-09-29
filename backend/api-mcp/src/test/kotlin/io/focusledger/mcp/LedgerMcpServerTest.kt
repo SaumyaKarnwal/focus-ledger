@@ -131,6 +131,81 @@ class LedgerMcpServerTest {
     }
 
     @Test
+    fun initialize_sendsTheInstructions() = mcpTest {
+        val result =
+            rpc(
+                    "test-token-a",
+                    """{"jsonrpc":"2.0","id":1,"method":"initialize","params":""" +
+                        """{"protocolVersion":"2025-06-18","capabilities":{},""" +
+                        """"clientInfo":{"name":"test","version":"1"}}}""",
+                )
+                .result()
+
+        val instructions = result.getValue("instructions").jsonPrimitive.content
+        assertTrue(instructions.startsWith("Focus Ledger records how the user spends time."))
+        assertTrue(instructions.contains("time_zone"), instructions)
+        assertTrue(result.getValue("capabilities").jsonObject.containsKey("prompts"))
+    }
+
+    @Test
+    fun promptsList_returnsTheTwoPrompts() = mcpTest {
+        val result =
+            rpc("test-token-a", """{"jsonrpc":"2.0","id":1,"method":"prompts/list"}""").result()
+
+        val names =
+            result.getValue("prompts").jsonArray.map {
+                it.jsonObject.getValue("name").jsonPrimitive.content
+            }
+        assertEquals(listOf(LOG_SESSION, PLAN_PROJECT), names)
+    }
+
+    private suspend fun ApplicationTestBuilder.promptText(name: String, arguments: String): String =
+        rpc(
+                "test-token-a",
+                """{"jsonrpc":"2.0","id":1,"method":"prompts/get",""" +
+                    """"params":{"name":"$name","arguments":$arguments}}""",
+            )
+            .result()
+            .getValue("messages")
+            .jsonArray
+            .single()
+            .jsonObject
+            .getValue("content")
+            .jsonObject
+            .getValue("text")
+            .jsonPrimitive
+            .content
+
+    @Test
+    fun logSessionPrompt_asksForAYesBeforeLoggingAndAddsTheNotes() = mcpTest {
+        val text = promptText(LOG_SESSION, """{"notes":"Fixed the redirect bug"}""")
+
+        assertTrue(text.contains("After I say yes, call log_cycle"), text)
+        assertTrue(text.endsWith("My notes: Fixed the redirect bug"), text)
+    }
+
+    @Test
+    fun logSessionPrompt_withoutNotes_hasNoNotesLine() = mcpTest {
+        assertFalse(promptText(LOG_SESSION, "{}").contains("My notes"))
+    }
+
+    @Test
+    fun planProjectPrompt_namesTheProjectAndTheParent() = mcpTest {
+        val text = promptText(PLAN_PROJECT, """{"project":"Website","parent_path":"Work"}""")
+
+        assertTrue(text.startsWith("Plan the node tree for the project \"Website\""), text)
+        assertTrue(text.contains("under \"Work\""), text)
+        assertTrue(text.contains("Create nothing yet."), text)
+    }
+
+    @Test
+    fun promptsList_withoutAToken_gets401() = mcpTest {
+        val response = rpc(null, """{"jsonrpc":"2.0","id":1,"method":"prompts/list"}""")
+
+        assertEquals(HttpStatusCode.Unauthorized, response.status)
+    }
+
+    @Test
     fun toolCall_actsForTheTokensUser() = mcpTest {
         fun JsonObject.text() =
             getValue("content").jsonArray.single().jsonObject.getValue("text").jsonPrimitive.content

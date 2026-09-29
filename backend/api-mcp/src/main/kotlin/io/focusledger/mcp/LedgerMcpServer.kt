@@ -17,7 +17,11 @@ import io.modelcontextprotocol.kotlin.sdk.server.Server
 import io.modelcontextprotocol.kotlin.sdk.server.ServerOptions
 import io.modelcontextprotocol.kotlin.sdk.server.mcpStatelessStreamableHttp
 import io.modelcontextprotocol.kotlin.sdk.types.CallToolResult
+import io.modelcontextprotocol.kotlin.sdk.types.GetPromptResult
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
+import io.modelcontextprotocol.kotlin.sdk.types.PromptArgument
+import io.modelcontextprotocol.kotlin.sdk.types.PromptMessage
+import io.modelcontextprotocol.kotlin.sdk.types.Role
 import io.modelcontextprotocol.kotlin.sdk.types.ServerCapabilities
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
 import io.modelcontextprotocol.kotlin.sdk.types.ToolAnnotations
@@ -100,9 +104,31 @@ private fun mcpServer(tools: LedgerTools, userId: UserId): Server {
         Server(
             Implementation(name = "focus-ledger", version = "1"),
             ServerOptions(
-                ServerCapabilities(tools = ServerCapabilities.Tools(listChanged = false))
+                ServerCapabilities(
+                    tools = ServerCapabilities.Tools(listChanged = false),
+                    prompts = ServerCapabilities.Prompts(listChanged = false),
+                )
             ),
+            serverInstructions,
         )
+    promptDefinitions.forEach { prompt ->
+        server.addPrompt(
+            name = prompt.name,
+            description = prompt.description,
+            arguments =
+                prompt.arguments.map { PromptArgument(it.name, it.description, it.required) },
+        ) { request ->
+            GetPromptResult(
+                listOf(
+                    PromptMessage(
+                        Role.User,
+                        TextContent(prompt.text(request.arguments.orEmpty())),
+                    )
+                ),
+                description = prompt.description,
+            )
+        }
+    }
     tools.definitions.forEach { definition ->
         server.addTool(
             name = definition.name,
