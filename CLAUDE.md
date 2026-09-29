@@ -101,6 +101,7 @@ After `corepack enable`, plain `pnpm` works in place of `corepack pnpm`. Each wo
 - One issue per task, one branch and one PR per task. Branch names: `skarnwal_<short-description>`.
 - Every PR deploys on its own.
 - Every PR that changes behavior includes tests: unit tests for rules, integration tests against a real Postgres, and a user-isolation test for every RPC and MCP tool. The orchestrator does not merge a behavior change without them.
+- Keep the MCP guidance current. Every agent gets the server instructions (`backend/api-mcp/src/main/resources/io/focusledger/mcp/instructions.md`) and the prompts (`LedgerGuidance.kt`). A PR that changes what an agent must know updates them in the same PR. Examples: a tool, a tool argument, a rule, a mode, or a user setting. The PR description says what changed in the guidance, or why nothing changed.
 - Push after each commit.
 - Run the module checks and the formatter before every push.
 - Do not merge a test that fails even once in repeated runs.
