@@ -1,4 +1,11 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react";
 import { Code } from "@connectrpc/connect";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
@@ -284,8 +291,149 @@ describe("Stop", () => {
 
     expect(
       screen.getAllByRole("button").map((button) => button.textContent),
-    ).toEqual(["Stop and log 1 min"]);
+    ).toEqual(["Pause", "Stop and log 1 min"]);
     expect(screen.queryByRole("radio")).toBeNull();
+    expect(screen.queryByRole("combobox")).toBeNull();
+    expect(screen.queryByRole("spinbutton")).toBeNull();
+  });
+});
+
+describe("Pause", () => {
+  async function startShallow(client: LedgerClient) {
+    renderApp(client);
+    await screen.findByRole("button", { name: "Start" });
+    fireEvent.click(screen.getByRole("radio", { name: "Shallow" }));
+    await startFromToday("Book");
+  }
+
+  function timeLeft() {
+    return screen.getByRole("timer", { name: "Time left" }).textContent;
+  }
+
+  test("pause_stopsTheCountdownAndResumeContinuesIt", async () => {
+    await startShallow(
+      recordingClient(exampleNodesWithNothingRunning()).client,
+    );
+    await advance(5 * MINUTE_MS);
+    expect(timeLeft()).toBe("20:00");
+
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    await advance(3 * MINUTE_MS);
+
+    expect(timeLeft()).toBe("20:00");
+    expect(screen.getByRole("status").textContent).toContain("Paused");
+    fireEvent.click(screen.getByRole("button", { name: "Resume" }));
+    await advance(MINUTE_MS);
+    expect(timeLeft()).toBe("19:00");
+  });
+
+  test("pause_stopAfterAPause_logsTheMinutesWithoutThePausedTime", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await startShallow(recording.client);
+    await advance(6.5 * MINUTE_MS);
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    await advance(4 * MINUTE_MS);
+    fireEvent.click(screen.getByRole("button", { name: "Resume" }));
+    await advance(3 * MINUTE_MS);
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop and log 9 min" }));
+
+    expect(await screen.findByText("9 min logged")).toBeDefined();
+    expect(recording.updateCycleMinutes).toEqual([9]);
+  });
+
+  test("pause_overTenMinutes_stopsTheCycleAndLogsTheMinutesThatRan", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await startShallow(recording.client);
+    await advance(7 * MINUTE_MS + 20_000);
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+
+    await advance(10 * MINUTE_MS + 1000);
+
+    expect(await screen.findByText("7 min logged")).toBeDefined();
+    expect(recording.updateCycleMinutes).toEqual([7]);
+  });
+
+  test("pause_pausedPastThePlannedEnd_doesNotRing", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await startShallow(recording.client);
+    await advance(20 * MINUTE_MS);
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    await advance(6 * MINUTE_MS);
+
+    expect(timeLeft()).toBe("05:00");
+    expect(recording.updateCycleMinutes).toEqual([]);
+  });
+
+  test("pause_reload_keepsThePausedTimeOutOfTheWork", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await startShallow(recording.client);
+    await advance(5 * MINUTE_MS);
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    await advance(2 * MINUTE_MS);
+    fireEvent.click(screen.getByRole("button", { name: "Resume" }));
+    await advance(MINUTE_MS);
+    cleanup();
+
+    renderApp(recording.client);
+
+    expect(
+      (await screen.findByRole("timer", { name: "Time left" })).textContent,
+    ).toBe("19:00");
+  });
+
+  test("pause_reloadDuringAPause_staysPausedAndKeepsItsLimit", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await startShallow(recording.client);
+    await advance(5 * MINUTE_MS);
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    await advance(4 * MINUTE_MS);
+    cleanup();
+
+    renderApp(recording.client);
+
+    expect(
+      (await screen.findByRole("timer", { name: "Time left" })).textContent,
+    ).toBe("20:00");
+    expect(screen.getByRole("button", { name: "Resume" })).toBeDefined();
+    await advance(6 * MINUTE_MS + 1000);
+    expect(await screen.findByText("5 min logged")).toBeDefined();
+  });
+
+  test("pause_stop_removesTheStoredPause", async () => {
+    await startShallow(
+      recordingClient(exampleNodesWithNothingRunning()).client,
+    );
+    await advance(2 * MINUTE_MS);
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    expect(Object.keys(localStorage).some((key) => key.includes("pause"))).toBe(
+      true,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop and log 2 min" }));
+
+    await screen.findByText("2 min logged");
+    expect(Object.keys(localStorage).some((key) => key.includes("pause"))).toBe(
+      false,
+    );
+  });
+
+  test("pause_storageBlocked_stillPausesInMemory", async () => {
+    const setItem = vi
+      .spyOn(Storage.prototype, "setItem")
+      .mockImplementation(() => {
+        throw new Error("blocked");
+      });
+    await startShallow(
+      recordingClient(exampleNodesWithNothingRunning()).client,
+    );
+    await advance(5 * MINUTE_MS);
+
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    await advance(2 * MINUTE_MS);
+
+    expect(timeLeft()).toBe("20:00");
+    setItem.mockRestore();
   });
 });
 

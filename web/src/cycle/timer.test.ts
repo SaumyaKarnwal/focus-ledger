@@ -9,6 +9,8 @@ import {
   formatCountdown,
   hasEnded,
   minutesToLog,
+  pausedMs,
+  pauseTooLong,
   remainingMs,
 } from "./timer";
 
@@ -33,6 +35,25 @@ describe("timer", () => {
   test("remainingMs_pastTheEnd_isZero", () => {
     expect(remainingMs(running, at(70))).toBe(0);
     expect(hasEnded(running, at(70))).toBe(true);
+  });
+
+  test("pausedTime_leavesTheWorkAndMovesTheEnd", () => {
+    const pause = { totalMs: 3 * MINUTE_MS, sinceMs: at(20).getTime() };
+
+    expect(pausedMs(pause, at(22))).toBe(5 * MINUTE_MS);
+    expect(minutesToLog(running, at(22), pausedMs(pause, at(22)))).toBe(17);
+    expect(remainingMs(running, at(22), pausedMs(pause, at(22)))).toBe(
+      33 * MINUTE_MS,
+    );
+    expect(endTime(running, 5 * MINUTE_MS)).toEqual(at(55));
+  });
+
+  test("pauseTooLong_atTenMinutes_isTrue", () => {
+    const pause = { totalMs: 0, sinceMs: at(5).getTime() };
+
+    expect(pauseTooLong(pause, at(14.9))).toBe(false);
+    expect(pauseTooLong(pause, at(15))).toBe(true);
+    expect(pauseTooLong({ totalMs: 20 * MINUTE_MS }, at(40))).toBe(false);
   });
 
   test("endTime_plannedFifty_isFiftyMinutesAfterStart", () => {
