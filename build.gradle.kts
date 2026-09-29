@@ -43,3 +43,11 @@ subprojects {
         systemProperty("user.timezone", "UTC")
     }
 }
+
+tasks.register<Exec>("deploy") {
+    description =
+        "Deploys origin/main to Cloud Run and keeps the two newest images. Ask the owner first."
+    group = "deployment"
+    dependsOn(":backend:app:installDist")
+    commandLine("infra/deploy.sh")
+}
