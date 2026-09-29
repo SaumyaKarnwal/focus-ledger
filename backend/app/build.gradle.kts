@@ -21,8 +21,11 @@ application { mainClass = "io.focusledger.app.MainKt" }
 val localEnvironment = rootProject.extra["localEnvironment"] as () -> Map<String, String>
 
 tasks.register<JavaExec>("runLocal") {
-    description = "Runs the program with the settings in .env, and serves web/dist when it exists."
+    description =
+        "Starts the local Postgres, applies the migrations, and runs the program with the " +
+            "settings in .env. Serves web/dist when it exists."
     group = "application"
+    dependsOn(":backend:data:startLocalDatabase", ":backend:data:migrateLocal")
     classpath = sourceSets.main.get().runtimeClasspath
     mainClass = application.mainClass
     doFirst {

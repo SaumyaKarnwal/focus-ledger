@@ -57,7 +57,17 @@ tasks.test {
     systemProperty("focusledger.dockerPostgresDir", dockerPostgresDir.path)
 }
 
+val startLocalDatabase =
+    tasks.register<Exec>("startLocalDatabase") {
+        description =
+            "Starts the local Postgres from docker-compose.yml and waits until it is ready."
+        group = "database"
+        workingDir = rootProject.projectDir
+        commandLine("docker", "compose", "up", "-d", "--wait")
+    }
+
 tasks.register<JavaExec>("migrateLocal") {
+    mustRunAfter(startLocalDatabase)
     description =
         "Applies the migrations to the database in DB_URL_MIGRATE, from the environment or .env."
     group = "database"

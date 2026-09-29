@@ -61,8 +61,8 @@ docker compose down -v && docker compose up -d --wait && ./gradlew :backend:data
 Run locally (after the setup; two terminals):
 
 ```bash
-./gradlew :backend:app:runLocal             # the backend on PORT, with the settings in .env
-(cd web && corepack pnpm dev)               # the web app on http://localhost:5173; it sends the API calls to the backend
+./gradlew runLocal                          # starts Postgres, applies the migrations, runs the backend on PORT with .env
+(cd web && corepack pnpm dev)               # the web app on http://localhost:5173; it reloads on each save and sends the API calls to the backend
 ```
 
 Open http://localhost:5173 and sign in with Google. `.env` needs the real, public `GOOGLE_CLIENT_ID`, and the OAuth client allows the `http://localhost:5173` origin. To test the web build as the image serves it, run `(cd web && corepack pnpm build)` first and open http://localhost:8080. For an agent, connect it to `http://localhost:8080/mcp`.
