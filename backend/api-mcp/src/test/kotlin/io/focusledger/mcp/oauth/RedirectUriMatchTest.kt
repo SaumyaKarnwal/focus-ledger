@@ -67,9 +67,10 @@ class RedirectUriMatchTest {
     }
 
     @Test
-    fun registeredLoopbackUriWithAPort_isAnExactMatch() {
+    fun registeredLoopbackUriWithAPort_acceptsAnyPort() {
         assertTrue(client.allowsRedirectUri("http://localhost:33418/fixed"))
-        assertFalse(client.allowsRedirectUri("http://localhost:52017/fixed"))
+        assertTrue(client.allowsRedirectUri("http://localhost:52017/fixed"))
+        assertTrue(client.allowsRedirectUri("http://localhost/fixed"))
     }
 
     @Test

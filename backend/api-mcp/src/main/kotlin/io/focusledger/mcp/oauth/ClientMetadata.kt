@@ -26,8 +26,8 @@ data class ClientMetadata(
     val redirectUris: List<String>,
 ) {
     /**
-     * An exact match, except that a registered `http` loopback URI without a port accepts any port
-     * (RFC 8252, section 7.3): a local agent picks a free port for each sign-in.
+     * An exact match, except that a registered `http` loopback URI accepts any port (RFC 8252,
+     * section 7.3): a local agent picks a free port for each sign-in.
      */
     fun allowsRedirectUri(requested: String): Boolean =
         requested in redirectUris || redirectUris.any { matchesLoopbackWithAnyPort(it, requested) }
@@ -38,7 +38,6 @@ private fun matchesLoopbackWithAnyPort(registered: String, requested: String): B
     val requestedUri = parseUri(requested) ?: return false
     return registeredUri.scheme == "http" &&
         ClientMetadataRules.isLoopbackHost(registeredUri.host) &&
-        registeredUri.port == -1 &&
         registeredUri.rawUserInfo == null &&
         requestedUri.scheme == registeredUri.scheme &&
         requestedUri.host == registeredUri.host &&
