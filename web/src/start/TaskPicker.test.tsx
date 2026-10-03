@@ -178,7 +178,9 @@ describe("Task picker", () => {
       .flatMap((node) => node.cycles)
       .find((cycle) => cycle.minutes === undefined);
     expect(running?.nodeId).toBeUndefined();
-    expect(screen.getByRole("heading", { name: "Inbox" })).toBeDefined();
+    expect(
+      screen.getByText("Not sure yet", { selector: ".task-strip-name" }),
+    ).toBeDefined();
   });
 
   test("picker_newTask_opensTheTasksPage", async () => {

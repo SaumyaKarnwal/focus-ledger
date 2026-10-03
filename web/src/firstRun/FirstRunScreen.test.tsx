@@ -88,7 +88,9 @@ describe("First run", () => {
     );
 
     expect(
-      await screen.findByRole("heading", { name: "Rewrite the pricing page" }),
+      await screen.findByText("Rewrite the pricing page", {
+        selector: ".task-strip-name",
+      }),
     ).toBeDefined();
     const [node] = (await allNodes(recording.client)).filter(
       (listed) => listed.id !== "",

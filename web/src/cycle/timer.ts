@@ -75,14 +75,10 @@ export function pauseTooLong(pause: PauseState, now: Date): boolean {
   );
 }
 
-/** "mm:ss", or "h:mm:ss" from one hour. */
+/** "mm:ss", with the minutes past 59 as they are ("90:00"), as the boards show. */
 export function formatCountdown(ms: number): string {
   const totalSeconds = Math.ceil(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const minutesAndSeconds = `${pad(minutes)}:${pad(seconds)}`;
-  return hours > 0 ? `${hours}:${minutesAndSeconds}` : minutesAndSeconds;
+  return `${pad(Math.floor(totalSeconds / 60))}:${pad(totalSeconds % 60)}`;
 }
 
 export function formatClockTime(instant: Date): string {

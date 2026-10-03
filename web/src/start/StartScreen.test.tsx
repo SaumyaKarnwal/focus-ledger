@@ -171,7 +171,7 @@ describe("Start", () => {
     fireEvent.click(screen.getByRole("button", { name: "Take a break" }));
 
     expect(
-      await screen.findByRole("timer", { name: "Break time left" }),
+      await screen.findByRole("radiogroup", { name: "What kind of break" }),
     ).toBeDefined();
   });
 

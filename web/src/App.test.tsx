@@ -4,6 +4,7 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import { Code } from "@connectrpc/connect";
 import { StrictMode } from "react";
@@ -69,7 +70,9 @@ describe("Start", () => {
     expect(screen.getByRole("timer", { name: "Time left" }).textContent).toBe(
       "50:00",
     );
-    expect(screen.getByRole("heading", { name: "Book" })).toBeDefined();
+    expect(
+      screen.getByText("Book", { selector: ".task-strip-name" }),
+    ).toBeDefined();
     const running = (await allCycles(client)).filter(
       (cycle) => cycle.minutes === undefined,
     );
@@ -127,8 +130,9 @@ describe("Stop", () => {
     );
 
     expect(await screen.findByText("12 min logged")).toBeDefined();
-    expect(screen.getByText("Deep Focus · logged")).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Book" })).toBeDefined();
+    expect(
+      screen.getByRole("heading", { name: "Deep Focus · Book" }),
+    ).toBeDefined();
     const stopped = (await allCycles(client)).filter(
       (cycle) => cycle.minutes === 12,
     );
@@ -165,9 +169,15 @@ describe("Stop", () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
     await startCycleOn("Book");
 
+    const cycle = screen.getByRole("region", { name: "Cycle" });
     expect(
-      screen.getAllByRole("button").map((button) => button.textContent),
-    ).toEqual(["Pause", "Stop and log 1 min"]);
+      within(cycle)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual(["PAUSE", "Stop and log"]);
+    expect(
+      screen.getByRole("button", { name: "Stop and log 1 min" }),
+    ).toBeDefined();
     expect(screen.queryByRole("radio")).toBeNull();
     expect(screen.queryByRole("combobox")).toBeNull();
     expect(screen.queryByRole("spinbutton")).toBeNull();
@@ -439,6 +449,53 @@ describe("Bell and extension", () => {
     expect(screen.getAllByRole("radio")).toHaveLength(3);
     expect(screen.queryByRole("timer")).toBeNull();
   });
+
+  test("bell_overStart_showsTheCycleTaskAndModeAndKeepsThemAfter", async () => {
+    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
+    await startCycleOn("Book", "Execution");
+    fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
+
+    expect(
+      await screen.findByRole("dialog", { name: "Execution · Book" }),
+    ).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Start a new cycle" }));
+
+    await screen.findByRole("button", { name: "Start" });
+    expect(
+      screen
+        .getByRole("radio", { name: "Execution" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+    expect(
+      screen.getByText("Book", { selector: ".task-strip-name" }),
+    ).toBeDefined();
+  });
+
+  test("bell_inboxCycle_headingIsTheModeOnly", async () => {
+    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
+    await screen.findByRole("button", { name: "Start" });
+    fireEvent.click(screen.getByRole("button", { name: /Working on/ }));
+    fireEvent.click(screen.getByText("Not sure yet"));
+    await pressStart();
+    expect(
+      screen.getByText("Not sure yet", { selector: ".task-strip-name" }),
+    ).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
+
+    expect(
+      await screen.findByRole("dialog", { name: "Deep Focus" }),
+    ).toBeDefined();
+  });
+
+  test("running_header_tasksIsInert", async () => {
+    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
+    await startCycleOn("Book");
+
+    expect(screen.queryByRole("button", { name: "Tasks" })).toBeNull();
+    expect(screen.getByText("Tasks").getAttribute("aria-disabled")).toBe(
+      "true",
+    );
+  });
 });
 
 describe("Break", () => {
@@ -449,6 +506,9 @@ describe("Break", () => {
     fireEvent.click(
       await screen.findByRole("button", { name: "Take a break" }),
     );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Start the break" }),
+    );
     return screen.findByRole("timer", { name: "Break time left" });
   }
 
@@ -456,7 +516,7 @@ describe("Break", () => {
     const timer = await takeBreak();
 
     expect(timer.textContent).toBe("05:00");
-    expect(screen.getByText("0 of 5 min")).toBeDefined();
+    expect(screen.getByText(/^0 of 5 min/)).toBeDefined();
   });
 
   test("break_plusFive_addsFiveMinutes", async () => {
@@ -465,16 +525,59 @@ describe("Break", () => {
     fireEvent.click(screen.getByRole("button", { name: "+5 min" }));
 
     expect(timer.textContent).toBe("10:00");
-    expect(screen.getByText("0 of 10 min")).toBeDefined();
+    expect(screen.getByText(/^0 of 10 min/)).toBeDefined();
   });
 
-  test("break_skipAndStart_landsOnTodayWithNothingRunning", async () => {
+  test("break_startACycle_landsOnTodayWithNothingRunning", async () => {
     await takeBreak();
 
-    fireEvent.click(screen.getByRole("button", { name: "Skip and start" }));
+    fireEvent.click(screen.getByRole("button", { name: "Start a cycle" }));
 
     expect(await screen.findByRole("button", { name: "Start" })).toBeDefined();
     expect(screen.queryByRole("timer")).toBeNull();
+  });
+
+  test("break_longBreak_setsFifteenMinutes", async () => {
+    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
+    await startCycleOn("Book");
+    fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Take a break" }),
+    );
+
+    fireEvent.click(await screen.findByRole("radio", { name: "Long break" }));
+    expect(
+      screen.getByLabelText("Break length", { selector: "output" }).textContent,
+    ).toBe("15:00");
+    fireEvent.click(screen.getByRole("button", { name: "Shorter break" }));
+    expect(
+      screen.getByLabelText("Break length", { selector: "output" }).textContent,
+    ).toBe("10:00");
+  });
+
+  test("break_comingBackTo_namesTheModeAndTaskAndReturnsToThem", async () => {
+    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
+    await startCycleOn("Book", "Shallow");
+    fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Take a break" }),
+    );
+
+    expect(await screen.findByText("Coming back to")).toBeDefined();
+    expect(
+      screen.getByText("Shallow", { selector: ".task-strip-name" }),
+    ).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "Start a cycle" }));
+
+    await screen.findByRole("button", { name: "Start" });
+    expect(
+      screen
+        .getByRole("radio", { name: "Shallow" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+    expect(
+      screen.getByText("Book", { selector: ".task-strip-name" }),
+    ).toBeDefined();
   });
 
   test("break_runsOut_landsOnToday", async () => {
@@ -493,8 +596,12 @@ describe("Reload", () => {
 
     const timer = await screen.findByRole("timer", { name: "Time left" });
     expect(timer.textContent).toBe("20:00");
-    expect(screen.getByText(/^30 of 50 min/)).toBeDefined();
-    expect(screen.getByRole("heading", { name: "Notes" })).toBeDefined();
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe(
+      "60",
+    );
+    expect(
+      screen.getByText("Notes", { selector: ".task-strip-name" }),
+    ).toBeDefined();
     first.unmount();
 
     await advance(2 * MINUTE_MS);
@@ -504,7 +611,9 @@ describe("Reload", () => {
       name: "Time left",
     });
     expect(timerAfterReload.textContent).toBe("18:00");
-    expect(screen.getByRole("heading", { name: "Notes" })).toBeDefined();
+    expect(
+      screen.getByText("Notes", { selector: ".task-strip-name" }),
+    ).toBeDefined();
   });
 
   test("reload_afterTheEndTime_logsPlannedMinutesAndRings", async () => {
@@ -592,7 +701,9 @@ describe("Failures", () => {
 
     const timer = await screen.findByRole("timer", { name: "Time left" });
     expect(timer.textContent).toBe("20:00");
-    expect(screen.getByRole("heading", { name: "Notes" })).toBeDefined();
+    expect(
+      screen.getByText("Notes", { selector: ".task-strip-name" }),
+    ).toBeDefined();
 
     fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
     fireEvent.click(

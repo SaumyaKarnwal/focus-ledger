@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { FocusMode } from "../gen/focusledger/v1/model_pb";
 import { LOGGED_MODES, type LoggedMode } from "../ledger/rollup";
 import { modeKey } from "../modes/modes";
@@ -10,7 +10,7 @@ import {
   todayModel,
 } from "../today/todayModel";
 import { useNow } from "../useNow";
-import { ScreenHeader } from "./ScreenHeader";
+import { ModeScreenFrame } from "./ModeScreenFrame";
 import { taskStrip } from "./startModel";
 import { TaskPicker } from "./TaskPicker";
 
@@ -24,10 +24,13 @@ type Props = {
   busy: boolean;
   /** The task to show first, for example from "Open on Today" on the Tasks page. */
   initialNodeId?: string;
+  initialMode?: LoggedMode;
+  /** A dialog over the screen, such as the bell. The screen behind it takes no input. */
+  overlay?: ReactNode;
   onStart: (nodeId: string, mode: LoggedMode, plannedMinutes: number) => void;
-  onBreak: () => void;
+  onBreak: (nodeId: string, mode: LoggedMode) => void;
   onNewTask: () => void;
-  onOpenTasks: () => void;
+  onOpenTasks?: () => void;
   onSignOut: () => void;
 };
 
@@ -37,6 +40,8 @@ export function StartScreen({
   timeZone,
   busy,
   initialNodeId,
+  initialMode = FocusMode.DEEP_FOCUS,
+  overlay,
   onStart,
   onBreak,
   onNewTask,
@@ -50,9 +55,9 @@ export function StartScreen({
       todayModel(data, now, timeZone).rail[0]?.nodeId ??
       INBOX_ID,
   );
-  const [mode, setMode] = useState<LoggedMode>(FocusMode.DEEP_FOCUS);
+  const [mode, setMode] = useState<LoggedMode>(initialMode);
   const [minutes, setMinutes] = useState(() =>
-    plannedMinutesFor(data.settings, FocusMode.DEEP_FOCUS),
+    plannedMinutesFor(data.settings, initialMode),
   );
   const strip = taskStrip(data, nodeId);
   const [picking, setPicking] = useState(false);
@@ -67,84 +72,15 @@ export function StartScreen({
     );
 
   return (
-    <div className="mode-screen" data-mode={modeKey(mode)}>
-      <div className="mode-screen-glow" aria-hidden="true" />
-      <div className="mode-screen-body">
-        <ScreenHeader
-          now={now}
-          timeZone={timeZone}
-          email={data.email}
-          onOpenTasks={onOpenTasks}
-          onSignOut={onSignOut}
-        />
-        <div className="start-main">
-          <section className="start-modes" aria-labelledby="focus-kind">
-            <h2 id="focus-kind" className="screen-label start-modes-label">
-              What kind of focus
-            </h2>
-            <div
-              className="start-mode-list"
-              role="radiogroup"
-              aria-labelledby="focus-kind"
-            >
-              {LOGGED_MODES.map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  role="radio"
-                  aria-checked={mode === option}
-                  className="start-mode"
-                  onClick={() => chooseMode(option)}
-                >
-                  <span className="start-mode-bar" aria-hidden="true" />
-                  <span className="start-mode-name">{MODE_NAMES[option]}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-          <section className="start-clock" aria-label="Length">
-            <div className="start-stepper">
-              <button
-                type="button"
-                className="start-step"
-                aria-label="Five minutes less"
-                onClick={() => step(-LENGTH_STEP)}
-              >
-                −
-              </button>
-              <output className="start-time" aria-label="Length">
-                {`${minutes}:00`}
-              </output>
-              <button
-                type="button"
-                className="start-step"
-                aria-label="Five minutes more"
-                onClick={() => step(LENGTH_STEP)}
-              >
-                +
-              </button>
-            </div>
-            <div className="start-actions">
-              <button
-                type="button"
-                className="screen-cta"
-                aria-label="Start"
-                disabled={busy}
-                onClick={() => onStart(nodeId, mode, minutes)}
-              >
-                START
-              </button>
-              <button
-                type="button"
-                className="screen-outline"
-                onClick={onBreak}
-              >
-                Take a break
-              </button>
-            </div>
-          </section>
-        </div>
-        <footer className="task-strip">
+    <ModeScreenFrame
+      modeKey={modeKey(mode)}
+      timeZone={timeZone}
+      email={data.email}
+      onOpenTasks={onOpenTasks}
+      onSignOut={onSignOut}
+      inert={overlay !== undefined}
+      strip={
+        <>
           <button
             type="button"
             className="task-strip-task"
@@ -169,26 +105,95 @@ export function StartScreen({
           <span className="task-strip-time" data-testid="strip-time">
             {strip?.timeLine}
           </span>
-        </footer>
-      </div>
-      {picking && (
-        <TaskPicker
-          data={data}
-          now={now}
-          timeZone={timeZone}
-          currentNodeId={nodeId}
-          onPick={(picked) => {
-            setNodeId(picked);
-            setPicking(false);
-          }}
-          onNewTask={() => {
-            setPicking(false);
-            onNewTask();
-          }}
-          onClose={() => setPicking(false)}
-        />
-      )}
-    </div>
+        </>
+      }
+      overlay={
+        overlay ??
+        (picking && (
+          <TaskPicker
+            data={data}
+            now={now}
+            timeZone={timeZone}
+            currentNodeId={nodeId}
+            onPick={(picked) => {
+              setNodeId(picked);
+              setPicking(false);
+            }}
+            onNewTask={() => {
+              setPicking(false);
+              onNewTask();
+            }}
+            onClose={() => setPicking(false)}
+          />
+        ))
+      }
+    >
+      <section className="start-modes" aria-labelledby="focus-kind">
+        <h2 id="focus-kind" className="screen-label start-modes-label">
+          What kind of focus
+        </h2>
+        <div
+          className="start-mode-list"
+          role="radiogroup"
+          aria-labelledby="focus-kind"
+        >
+          {LOGGED_MODES.map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="radio"
+              aria-checked={mode === option}
+              className="start-mode"
+              onClick={() => chooseMode(option)}
+            >
+              <span className="start-mode-bar" aria-hidden="true" />
+              <span className="start-mode-name">{MODE_NAMES[option]}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+      <section className="start-clock" aria-label="Length">
+        <div className="start-stepper">
+          <button
+            type="button"
+            className="start-step"
+            aria-label="Five minutes less"
+            onClick={() => step(-LENGTH_STEP)}
+          >
+            −
+          </button>
+          <output className="start-time" aria-label="Length">
+            {`${minutes}:00`}
+          </output>
+          <button
+            type="button"
+            className="start-step"
+            aria-label="Five minutes more"
+            onClick={() => step(LENGTH_STEP)}
+          >
+            +
+          </button>
+        </div>
+        <div className="start-actions">
+          <button
+            type="button"
+            className="screen-cta"
+            aria-label="Start"
+            disabled={busy}
+            onClick={() => onStart(nodeId, mode, minutes)}
+          >
+            START
+          </button>
+          <button
+            type="button"
+            className="screen-outline"
+            onClick={() => onBreak(nodeId, mode)}
+          >
+            Take a break
+          </button>
+        </div>
+      </section>
+    </ModeScreenFrame>
   );
 }
 

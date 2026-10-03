@@ -106,7 +106,7 @@ describe("timer", () => {
     [59_001, "01:00"],
     [59_000, "00:59"],
     [0, "00:00"],
-    [90 * MINUTE_MS, "1:30:00"],
+    [90 * MINUTE_MS, "90:00"],
   ])("formatCountdown_%sMs_is%s", (ms, expected) => {
     expect(formatCountdown(ms)).toBe(expected);
   });

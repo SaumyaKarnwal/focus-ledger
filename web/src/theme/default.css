@@ -17,11 +17,17 @@
   --paper-50: #fffdf8;
   --ink-900: #2a2724;
   --plum-950: #241a22;
+  --plum-800: #4a3f46;
+  --plum-750: #574b52;
   --plum-700: #5c5158;
   --plum-600: #7a6f76;
   --plum-500: #9a8e96;
+  --plum-450: #a79ba2;
+  --plum-350: #bfb4bb;
+  --plum-300: #d5c9d0;
   --plum-200: #ebe1e7;
   --plum-150: #f1e6ee;
+  --plum-120: #f3ecf0;
   --plum-100: #f6f0f4;
   --plum-50: #fbf7f9;
   --mark-aubergine-soft: #c9a3c4;
@@ -54,7 +60,9 @@
   --on-screen-plate: rgb(255 255 255 / 0.13);
   --on-screen-rule: rgb(255 255 255 / 0.14);
   --on-screen-outline: rgb(255 255 255 / 0.42);
+  --on-screen-outline-soft: rgb(255 255 255 / 0.32);
   --on-screen-dim: rgb(255 255 255 / 0.5);
+  --on-screen-track: rgb(255 255 255 / 0.25);
   --on-screen-chip: rgb(255 255 255 / 0.18);
   --on-screen-chip-border: rgb(255 255 255 / 0.34);
   --screen-glow-end: rgb(255 255 255 / 0);
@@ -88,6 +96,13 @@
   --dialog-faint: var(--plum-500);
   --dialog-rule: var(--plum-200);
   --dialog-selected: var(--plum-150);
+  /* The bell's "Keep going" field and its outline button (board C-Desk-Bell2). */
+  --dialog-inset-bg: var(--plum-120);
+  --dialog-inset-fg: var(--plum-750);
+  --dialog-input-rule: var(--plum-450);
+  --dialog-placeholder: var(--plum-350);
+  --dialog-outline: var(--plum-300);
+  --dialog-outline-fg: var(--plum-800);
   /* The mode bar of a row in a dialog list, lighter than the page marks. */
   --dialog-mode-deep-mark: var(--mark-aubergine-soft);
   --dialog-mode-execution-mark: var(--mark-rose-soft);
