@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
@@ -8,6 +8,7 @@ import {
   exampleNodesWithNothingRunning,
   recordingClient,
 } from "../testing/appHarness";
+import { openFromTasks } from "../testing/navigation";
 import { FAKE_ID_TOKEN, type SignInMethod } from "./signInMethod";
 
 beforeEach(() => {
@@ -97,8 +98,7 @@ describe("Sign-in", () => {
   test("signOut_fromSettings_returnsToSignIn", async () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     renderApp(client);
-    const nav = await screen.findByRole("navigation", { name: "Views" });
-    fireEvent.click(within(nav).getByRole("button", { name: "Settings" }));
+    await openFromTasks("Settings");
 
     fireEvent.click(await screen.findByRole("button", { name: "Sign out" }));
 
@@ -106,6 +106,20 @@ describe("Sign-in", () => {
       await screen.findByRole("heading", { name: "Sign in" }),
     ).toBeDefined();
     await expect(client.getAccount({})).rejects.toThrow(/no session/);
+  });
+
+  test("signOut_fromTheAccountBadge_returnsToSignIn", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    renderApp(client);
+    await screen.findByRole("button", { name: "Start" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Your account" }));
+    expect(screen.getByText("fake.user@example.com")).toBeDefined();
+    fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Sign in" }),
+    ).toBeDefined();
   });
 
   test("session_endsDuringUse_nextActionOpensSignIn", async () => {

@@ -26,6 +26,8 @@ import {
 
 /** The rows that Today reads, from the calls in docs/api.md. */
 export type TodayData = {
+  /** The signed-in account, for the header badge. */
+  email: string;
   settings: SettingsPb;
   /** ListNodes() for all time, open nodes only. */
   allTimeNodes: NodePb[];

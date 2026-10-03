@@ -6,6 +6,7 @@ import { readGoogleClientId } from "./signIn/googleClientId";
 import "./theme/default.css";
 import "./theme/scope.css";
 import "./styles/app.css";
+import "./styles/modeScreen.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

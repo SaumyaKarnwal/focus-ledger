@@ -8,7 +8,8 @@ export async function loadToday(
   timeZone: string,
 ): Promise<TodayData> {
   const week = weekRange(now, timeZone);
-  const [settingsResponse, allTime, thisWeek] = await Promise.all([
+  const [account, settingsResponse, allTime, thisWeek] = await Promise.all([
+    client.getAccount({}),
     client.getSettings({}),
     client.listNodes({}),
     // Closed nodes keep their time in the totals (FR-7.7).
@@ -17,6 +18,7 @@ export async function loadToday(
   if (!settingsResponse.settings)
     throw new Error("GetSettings sent no settings");
   return {
+    email: account.account?.email ?? "",
     settings: settingsResponse.settings,
     allTimeNodes: allTime.nodes,
     weekNodes: thisWeek.nodes,

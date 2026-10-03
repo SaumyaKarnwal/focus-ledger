@@ -28,7 +28,7 @@ async function openTree(client: LedgerClient) {
     </StrictMode>,
   );
   const nav = await screen.findByRole("navigation", { name: "Views" });
-  fireEvent.click(within(nav).getByRole("button", { name: "Tree" }));
+  fireEvent.click(within(nav).getByRole("button", { name: "Tasks" }));
   await screen.findByRole("listitem", { name: "Book" });
 }
 
@@ -127,7 +127,9 @@ describe("Outliner", () => {
 
     await typeAndPress("Garden", "Enter", { metaKey: true });
 
-    expect(await screen.findByRole("region", { name: "Garden" })).toBeDefined();
+    expect(
+      await screen.findByText("Garden", { selector: ".task-strip-name" }),
+    ).toBeDefined();
     expect(screen.getByRole("button", { name: "Start" })).toBeDefined();
     expect(recording.createCycleRequestIds).toEqual([]);
   });
