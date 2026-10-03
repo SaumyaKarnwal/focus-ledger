@@ -9,7 +9,6 @@ import type { TaskSave } from "../task/saveTask";
 import { TaskDialog } from "../task/TaskDialog";
 import { TaskPage } from "../taskPage/TaskPage";
 import { formatMinutes, MODE_NAMES, type TodayData } from "../today/todayModel";
-import { moveSummary } from "../tree/treeModel";
 import { useAction } from "../useAction";
 import { useListNodes } from "../useListNodes";
 import { useNow } from "../useNow";
@@ -46,8 +45,6 @@ type Props = {
 type Dragging =
   { kind: "task"; nodeId: string } | { kind: "cycle"; cycle: CyclePb };
 
-type PendingMove = { row: TaskRow; parentId?: string; parentName: string };
-
 /** The Tasks page (boards G-Tasks, -Hover, -Unfiled, -Drag, and -Empty). */
 export function TasksPage({
   client,
@@ -77,7 +74,6 @@ export function TasksPage({
   const [dragging, setDragging] = useState<Dragging>();
   const [dropTarget, setDropTarget] = useState<string | null>();
   const [pointer, setPointer] = useState<{ x: number; y: number }>();
-  const [pendingMove, setPendingMove] = useState<PendingMove>();
 
   const all = nodes ?? [];
   const tree = taskTree(all);
@@ -148,19 +144,8 @@ export function TasksPage({
       fileCycle(current.cycle, parentId);
       return;
     }
-    if (!moving) return;
-    if (moveSummary(moving)) {
-      setPendingMove({
-        row: moving,
-        parentId,
-        parentName:
-          parentId === undefined
-            ? "the top level"
-            : (findRow(tree, parentId)?.node.name ?? ""),
-      });
-    } else {
-      moveTask(moving, parentId);
-    }
+    // A drop moves at once, also when cycles move with the task (owner decision, #103).
+    if (moving) moveTask(moving, parentId);
   };
 
   const startDrag = (event: DragEvent, next: Dragging) => {
@@ -442,44 +427,6 @@ export function TasksPage({
             <span>{draggedTask?.node.name}</span>
           )}
         </span>
-      )}
-      {pendingMove && (
-        <div className="picker-scrim">
-          <section
-            className="bell move-confirm"
-            role="alertdialog"
-            aria-modal="true"
-            aria-label="Confirm the move"
-          >
-            <p className="move-confirm-text">
-              Move <strong>{pendingMove.row.node.name}</strong> under{" "}
-              <strong>{pendingMove.parentName}</strong>?{" "}
-              {moveSummary(pendingMove.row)}.
-            </p>
-            <div className="task-dialog-actions">
-              <button
-                type="button"
-                className="bell-outline"
-                onClick={() => setPendingMove(undefined)}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="task-dialog-save"
-                disabled={busy}
-                autoFocus
-                onClick={() => {
-                  const move = pendingMove;
-                  setPendingMove(undefined);
-                  moveTask(move.row, move.parentId);
-                }}
-              >
-                Move
-              </button>
-            </div>
-          </section>
-        </div>
       )}
       {dialog && (
         <TaskDialog

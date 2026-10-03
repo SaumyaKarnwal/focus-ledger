@@ -1,7 +1,6 @@
 import { timestampDate } from "@bufbuild/protobuf/wkt";
 import type { NodePb } from "../gen/focusledger/v1/model_pb";
 import { isInbox, type NodeRollUp, rollUpTree } from "../ledger/rollup";
-import { formatMinutes } from "../today/todayModel";
 
 export type TreeRow = {
   node: NodePb;
@@ -32,14 +31,6 @@ export function buildTree(nodes: readonly NodePb[]): TreeRow[] {
 /** The rows in display order, depth first. */
 export function flattenTree(rows: readonly TreeRow[]): TreeRow[] {
   return rows.flatMap((row) => [row, ...flattenTree(row.children)]);
-}
-
-/** What a move of the row carries (FR-7.6), or undefined when it has no logged cycle. */
-export function moveSummary(row: Pick<TreeRow, "rollUp">): string | undefined {
-  const { doneCycles, minutes } = row.rollUp.rolledUp;
-  if (doneCycles === 0) return undefined;
-  const cycles = doneCycles === 1 ? "1 cycle" : `${doneCycles} cycles`;
-  return `${cycles} · ${formatMinutes(minutes)} will move with it`;
 }
 
 function createdAtMs(node: NodePb): number {
