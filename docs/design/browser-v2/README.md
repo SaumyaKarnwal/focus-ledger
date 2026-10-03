@@ -15,9 +15,10 @@ Each file is plain HTML with inline styles. It needs the canvas runtime (`suppor
 | Break | `C-Desk-Break2`, `-Break2-Long` | Short or long break, in its own winter teal. "Coming back to" shows the last mode and task. |
 | New task | `C-Desk-NewTask`, `-NewTask-Parent`, `-Parent-Hover`, `-Parent-Add`, `C-Desk-EditTask` | The task dialog: name, parent picked from the tree (add a branch on hover), and the estimate. Edit uses the same dialog. |
 | Tasks | `G-Tasks`, `-Hover`, `-Unfiled`, `-Drag`, `-Empty` | The task table in a fixed panel. Untagged cycles at the top. Drag a cycle onto a task to file it; drag a task onto a task to change its parent. |
-| Task page | `E-Task`, `E-Task-Edit`, `E-Task-Pie` | Estimate card (editable: minutes × cycles per mode), "How it splits" ring of leaf tasks, and the last seven days. |
+| Task page | `E-Task`, `E-Task-Edit`, `E-Task-Pie`, `E-Task-Done` | Back arrow (bare arrow, as on `E-Task`), parent path above the name, Mark complete / Completed button, estimate card (editable: minutes × cycles per mode), "How it splits" ring of leaf tasks, and the last seven days. |
+| Settings | `H-Settings-Stacked` | Two cards in one 680px column: Cycles (mode lengths, short and long break, long break every N cycles) and The bell (sound, volume, two switches). |
 
-Report and Settings are not designed yet. The header shows them, but they stay out of this build: the links are inert until their boards exist.
+Report is not designed yet. The header shows it, but the link stays inert. The owner ships without Report: when Settings and the other screens are merged, the build may deploy.
 
 ## Rules for the build
 
@@ -28,5 +29,17 @@ Report and Settings are not designed yet. The header shows them, but they stay o
    - Drag a task onto a task: `UpdateNode`, which changes its parent.
    - Keep going: `UpdateCycle`, which extends it.
 4. A break is not stored. It lives only in the browser, like the pause.
-5. No color literal outside the theme files. See [`../theming.md`](../theming.md).
-6. Do not deploy this build. The owner deploys after Report and Settings exist.
+5. **Mark complete** sets the node's `closed` flag with `UpdateNode`; **Completed** clears it. The Tasks page lists completed tasks (with `include_closed`), with the name in the muted ink. The task picker hides them.
+6. **Settings storage.** The proto stays as it is. The server keeps what `SettingsPb` has; the browser keeps the rest in local storage, per device:
+
+   | Control | Stored in |
+   |---|---|
+   | Deep Focus, Execution, Shallow minutes | `SettingsPb` mode minutes |
+   | Short break | `SettingsPb.break_minutes` |
+   | Bell sound Silent or not | `SettingsPb.sound_enabled` |
+   | Show a notification when it rings | `SettingsPb.notifications_enabled` |
+   | Long break, long break every N cycles, the sound choice, volume, ring when a break ends | browser local storage |
+
+   The numbers on the boards (60, 45, 30) are sample values. The defaults stay as in `prd.md`.
+7. No color literal outside the theme files. See [`../theming.md`](../theming.md).
+8. Deploy only after Settings and all screens above are merged. Report is not needed for the first release.
