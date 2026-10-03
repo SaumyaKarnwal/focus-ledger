@@ -1,0 +1,469 @@
+import { create } from "@bufbuild/protobuf";
+import { Code, ConnectError } from "@connectrpc/connect";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { StrictMode } from "react";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
+import { App } from "../App";
+import type { LedgerClient } from "../api/ledgerClient";
+import {
+  FocusMode,
+  type NodePb,
+  SettingsPbSchema,
+} from "../gen/focusledger/v1/model_pb";
+import { exampleNodes, exampleNow } from "../ledger/exampleData";
+import {
+  exampleNodesWithNothingRunning,
+  recordingClient,
+} from "../testing/appHarness";
+import type { TodayData } from "../today/todayModel";
+import { writeTask } from "./saveTask";
+import { TaskDialog } from "./TaskDialog";
+import { filterParentRows, parentLabel, parentRows } from "./taskDialogModel";
+
+const BOOK = "00000000-0000-4000-8000-00000000000a";
+const CHAPTER_1 = "00000000-0000-4000-8000-00000000000b";
+
+beforeEach(() => {
+  localStorage.clear();
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  vi.setSystemTime(exampleNow);
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
+
+function dataOf(nodes: NodePb[]): TodayData {
+  return {
+    weekNodes: nodes,
+    allTimeNodes: nodes,
+    settings: create(SettingsPbSchema, {
+      deepFocusMinutes: 90,
+      executionMinutes: 50,
+      shallowMinutes: 25,
+      breakMinutes: 5,
+    }),
+    email: "test@example.com",
+  } as TodayData;
+}
+
+function renderApp(client: LedgerClient) {
+  return render(
+    <StrictMode>
+      <App client={client} timeZone="UTC" retryDelaysMs={[0]} />
+    </StrictMode>,
+  );
+}
+
+async function openNewTask(client: LedgerClient) {
+  renderApp(client);
+  await screen.findByRole("button", { name: "Start" });
+  fireEvent.click(screen.getByRole("button", { name: /working on/i }));
+  fireEvent.click(screen.getByRole("button", { name: /New task/ }));
+  return screen.getByRole("dialog", { name: "New task" });
+}
+
+function typeName(name: string) {
+  fireEvent.change(screen.getByRole("textbox", { name: "Task name" }), {
+    target: { value: name },
+  });
+}
+
+function parentButton() {
+  return screen.getByRole("button", { name: /^Parent/ });
+}
+
+async function createdNodes(client: LedgerClient, name: string) {
+  const { nodes } = await client.listNodes({});
+  return nodes.filter((node) => node.name === name);
+}
+
+describe("Task dialog model", () => {
+  test("parentRows_exampleTree_drawsTheTreeAndHidesClosedTasks", () => {
+    const rows = parentRows(dataOf(exampleNodes()));
+
+    expect(
+      rows.map(({ name, depth, guides, last }) => [name, depth, guides, last]),
+    ).toEqual([
+      ["Book", 0, [], false],
+      ["Chapter 1", 1, [], true],
+      ["Notes", 2, [false], true],
+      ["Admin", 0, [], true],
+    ]);
+  });
+
+  test("parentRows_editing_leavesOutTheTaskAndItsSubtree", () => {
+    const rows = parentRows(dataOf(exampleNodes()), CHAPTER_1);
+
+    expect(rows.map((row) => row.name)).toEqual(["Book", "Admin"]);
+  });
+
+  test("parentRows_branch_isTheLastChildOfItsParent", () => {
+    const rows = parentRows(dataOf(exampleNodes()), undefined, {
+      name: "Drafts",
+      parentId: BOOK,
+    });
+
+    expect(rows.map((row) => [row.name, row.depth, row.last])).toEqual([
+      ["Book", 0, false],
+      ["Chapter 1", 1, false],
+      ["Notes", 2, true],
+      ["Drafts", 1, true],
+      ["Admin", 0, true],
+    ]);
+    expect(rows[2].guides).toEqual([true]);
+  });
+
+  test("filterParentRows_matchesTheNameOrThePath", () => {
+    const rows = parentRows(dataOf(exampleNodes()));
+
+    expect(filterParentRows(rows, "chapter").map((row) => row.name)).toEqual([
+      "Chapter 1",
+      "Notes",
+    ]);
+  });
+
+  test("parentLabel_isThePathWithTheName", () => {
+    const data = dataOf(exampleNodes());
+
+    expect(parentLabel(data, { kind: "root" })).toBe("None");
+    expect(parentLabel(data, { kind: "node", nodeId: CHAPTER_1 })).toBe(
+      "Book / Chapter 1",
+    );
+    expect(
+      parentLabel(data, {
+        kind: "branch",
+        branch: { name: "Drafts", parentId: BOOK },
+      }),
+    ).toBe("Book / Drafts");
+  });
+});
+
+describe("New task", () => {
+  test("newTask_fromThePicker_createsTheTaskAndStartShowsIt", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await openNewTask(recording.client);
+    // Start's task is Notes, under Book / Chapter 1: the new task starts as its sibling.
+    expect(parentButton().textContent).toContain("Book / Chapter 1");
+
+    typeName("Migrations");
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    expect(
+      await screen.findByText("Migrations", { selector: ".task-strip-name" }),
+    ).toBeDefined();
+    expect(screen.queryByRole("dialog")).toBeNull();
+    const [node] = await createdNodes(recording.client, "Migrations");
+    expect(node.parentId).toBe(CHAPTER_1);
+    expect(recording.createNodeRequestIds).toHaveLength(1);
+  });
+
+  test("newTask_inboxOnStart_startsWithNoParent", async () => {
+    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
+    await screen.findByRole("button", { name: "Start" });
+    fireEvent.click(screen.getByRole("button", { name: /working on/i }));
+    fireEvent.click(screen.getByText("Not sure yet"));
+    fireEvent.click(
+      screen.getByRole("button", { name: /What are you working on/ }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /New task/ }));
+
+    expect(parentButton().textContent).toContain("None");
+  });
+
+  test("newTask_noName_cannotCreate", async () => {
+    await openNewTask(recordingClient(exampleNodesWithNothingRunning()).client);
+
+    expect(
+      screen.getByRole("button", { name: "Create" }).hasAttribute("disabled"),
+    ).toBe(true);
+    typeName("   ");
+    expect(
+      screen.getByRole("button", { name: "Create" }).hasAttribute("disabled"),
+    ).toBe(true);
+  });
+
+  test("newTask_estimate_sendsOnlyTheModesWithCycles", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await openNewTask(recording.client);
+
+    typeName("Migrations");
+    const more = screen.getByRole("button", {
+      name: "Execution cycles: One cycle more",
+    });
+    fireEvent.click(more);
+    fireEvent.click(more);
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Execution minutes per cycle: 5 minutes less",
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    await screen.findByText("Migrations", { selector: ".task-strip-name" });
+    const [node] = await createdNodes(recording.client, "Migrations");
+    expect(
+      node.estimates.map(({ mode, cycleMinutes, cycleCount }) => ({
+        mode,
+        cycleMinutes,
+        cycleCount,
+      })),
+    ).toEqual([{ mode: FocusMode.EXECUTION, cycleMinutes: 45, cycleCount: 2 }]);
+  });
+
+  test("newTask_pickAParent_createsTheTaskUnderIt", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await openNewTask(recording.client);
+    typeName("Migrations");
+
+    fireEvent.click(parentButton());
+    expect(
+      screen.getByRole("textbox", { name: "Search for a parent" }),
+    ).toHaveProperty("placeholder", "Where does Migrations belong?");
+    fireEvent.click(screen.getByRole("button", { name: /^Chapter 1/ }));
+
+    expect(parentButton().textContent).toContain("Book / Chapter 1");
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+    await screen.findByText("Migrations", { selector: ".task-strip-name" });
+    const [node] = await createdNodes(recording.client, "Migrations");
+    expect(node.parentId).toBe(CHAPTER_1);
+  });
+
+  test("newTask_parentSearch_filtersTheTree", async () => {
+    await openNewTask(recordingClient(exampleNodesWithNothingRunning()).client);
+    fireEvent.click(parentButton());
+
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Search for a parent" }),
+      { target: { value: "notes" } },
+    );
+
+    expect(
+      screen
+        .getAllByRole("button", { pressed: false })
+        .map((button) => button.querySelector(".parent-name")?.textContent),
+    ).toEqual(["Notes · Book / Chapter 1"]);
+  });
+
+  test("newTask_escapeInTheParentList_goesBackToTheForm", async () => {
+    await openNewTask(recordingClient(exampleNodesWithNothingRunning()).client);
+    typeName("Migrations");
+    fireEvent.click(parentButton());
+
+    fireEvent.keyDown(
+      screen.getByRole("textbox", { name: "Search for a parent" }),
+      { key: "Escape" },
+    );
+
+    expect(
+      (screen.getByRole("textbox", { name: "Task name" }) as HTMLInputElement)
+        .value,
+    ).toBe("Migrations");
+  });
+
+  test("newTask_escapeAndCancel_closeWithoutAWrite", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await openNewTask(recording.client);
+    typeName("Migrations");
+
+    fireEvent.keyDown(screen.getByRole("textbox", { name: "Task name" }), {
+      key: "Escape",
+    });
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: /working on/i }));
+    fireEvent.click(screen.getByRole("button", { name: /New task/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(recording.createNodeRequestIds).toEqual([]);
+  });
+});
+
+describe("New branch in the parent tree", () => {
+  async function addBranchUnderBook(client: LedgerClient) {
+    await openNewTask(client);
+    typeName("Migrations");
+    fireEvent.click(parentButton());
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a task under Book" }),
+    );
+    const input = screen.getByRole("textbox", { name: "New task under Book" });
+    fireEvent.change(input, { target: { value: "Drafts" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+  }
+
+  test("branch_isHeldUntilCreate_thenCreatedBeforeTheTask", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await addBranchUnderBook(recording.client);
+
+    expect(parentButton().textContent).toContain("Book / Drafts");
+    expect(recording.createNodeRequestIds).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    await screen.findByText("Migrations", { selector: ".task-strip-name" });
+    const [branch] = await createdNodes(recording.client, "Drafts");
+    const [task] = await createdNodes(recording.client, "Migrations");
+    expect(branch.parentId).toBe(BOOK);
+    expect(task.parentId).toBe(branch.id);
+    expect(new Set(recording.createNodeRequestIds).size).toBe(2);
+  });
+
+  test("branch_showsAsPickedInTheTree", async () => {
+    await addBranchUnderBook(
+      recordingClient(exampleNodesWithNothingRunning()).client,
+    );
+
+    fireEvent.click(parentButton());
+
+    expect(
+      screen
+        .getByRole("button", { pressed: true })
+        .querySelector(".parent-name")?.textContent,
+    ).toBe("Drafts");
+  });
+
+  test("branch_cancel_createsNothing", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await addBranchUnderBook(recording.client);
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(recording.createNodeRequestIds).toEqual([]);
+    expect(await createdNodes(recording.client, "Drafts")).toEqual([]);
+  });
+
+  test("branch_escapeWhileAdding_dropsTheNewRowOnly", async () => {
+    await openNewTask(recordingClient(exampleNodesWithNothingRunning()).client);
+    fireEvent.click(parentButton());
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a task under Book" }),
+    );
+
+    fireEvent.keyDown(
+      screen.getByRole("textbox", { name: "New task under Book" }),
+      { key: "Escape" },
+    );
+
+    expect(
+      screen.queryByRole("textbox", { name: "New task under Book" }),
+    ).toBeNull();
+    expect(
+      screen.getByRole("textbox", { name: "Search for a parent" }),
+    ).toBeDefined();
+  });
+
+  test("branch_taskCreateFails_keepsTheDialogAndARetryReusesBothIds", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    const inner = recording.client;
+    const requestIds: (string | undefined)[] = [];
+    const flaky: LedgerClient = {
+      ...inner,
+      createNode: (request, options) => {
+        requestIds.push(request.requestId);
+        if (requestIds.length === 2) {
+          return Promise.reject(
+            new ConnectError("the call failed", Code.Internal),
+          );
+        }
+        return inner.createNode(request, options);
+      },
+    };
+    const data = dataOf(exampleNodesWithNothingRunning());
+    const onDone = vi.fn();
+    render(
+      <TaskDialog
+        data={data}
+        onSave={(save) => writeTask(flaky, save, [0])}
+        onDone={onDone}
+        onClose={() => {}}
+      />,
+    );
+    typeName("Migrations");
+    fireEvent.click(parentButton());
+    fireEvent.click(
+      screen.getByRole("button", { name: "Add a task under Book" }),
+    );
+    const input = screen.getByRole("textbox", { name: "New task under Book" });
+    fireEvent.change(input, { target: { value: "Drafts" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "not saved",
+    );
+    expect(onDone).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce());
+
+    const [branchId, taskId, retryBranchId, retryTaskId] = requestIds;
+    expect(requestIds).toHaveLength(4);
+    expect(retryBranchId).toBe(branchId);
+    expect(retryTaskId).toBe(taskId);
+    expect(await createdNodes(inner, "Drafts")).toHaveLength(1);
+    expect(await createdNodes(inner, "Migrations")).toHaveLength(1);
+  });
+});
+
+describe("Edit task", () => {
+  function renderEdit(client: LedgerClient, nodeId: string) {
+    const nodes = exampleNodesWithNothingRunning();
+    const editing = nodes.find((node) => node.id === nodeId) as NodePb;
+    const onDone = vi.fn();
+    render(
+      <TaskDialog
+        data={dataOf(nodes)}
+        editing={editing}
+        onSave={(save) => writeTask(client, save, [0])}
+        onDone={onDone}
+        onClose={() => {}}
+      />,
+    );
+    return onDone;
+  }
+
+  test("edit_showsTheTaskAndSavesNameParentAndEstimate", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    const onDone = renderEdit(recording.client, CHAPTER_1);
+
+    expect(screen.getByRole("dialog", { name: "Edit task" })).toBeDefined();
+    expect(
+      (screen.getByRole("textbox", { name: "Task name" }) as HTMLInputElement)
+        .value,
+    ).toBe("Chapter 1");
+    expect(parentButton().textContent).toContain("Book");
+    expect(
+      screen.getByRole("status", { name: "Execution cycles" }).textContent,
+    ).toBe("20");
+
+    typeName("Chapter one");
+    fireEvent.click(parentButton());
+    fireEvent.click(screen.getByRole("button", { name: /^None/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce());
+    expect(recording.updateNodeMasks).toEqual([
+      ["name", "parent_id", "estimates"],
+    ]);
+    expect(recording.createNodeRequestIds).toEqual([]);
+    const [saved] = await createdNodes(recording.client, "Chapter one");
+    expect(saved.parentId).toBeUndefined();
+    expect(saved.estimates.map((estimate) => estimate.cycleCount)).toEqual([
+      20,
+    ]);
+  });
+
+  test("edit_parentList_leavesOutTheTaskAndItsSubtree", () => {
+    renderEdit(
+      recordingClient(exampleNodesWithNothingRunning()).client,
+      CHAPTER_1,
+    );
+
+    fireEvent.click(parentButton());
+
+    expect(screen.queryByRole("button", { name: /^Chapter 1/ })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^Notes/ })).toBeNull();
+    expect(screen.getByRole("button", { name: /^Book/ })).toBeDefined();
+  });
+});

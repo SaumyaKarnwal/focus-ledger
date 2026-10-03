@@ -147,7 +147,7 @@ export function BellScreen({
       overlay={dialog}
       onStart={() => {}}
       onBreak={() => {}}
-      onNewTask={() => {}}
+      onSaveTask={async () => undefined}
       onSignOut={onSignOut}
     />
   );
