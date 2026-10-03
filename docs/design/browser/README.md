@@ -1,5 +1,7 @@
 # Browser app mocks
 
+> Superseded by [`../browser-v2/`](../browser-v2/README.md) for every screen that version 2 shows. Read this folder only for Report and Settings until those get new boards.
+
 The web app's look, from the owner's design canvas ("Direction C, the one to build", 1440 × 900). One file per screen. Each is plain HTML with inline styles; it needs the canvas runtime (`support.js`) to render, but the markup and styles read directly.
 
 | File | Screen |

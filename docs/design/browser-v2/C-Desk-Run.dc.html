@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Running — the clock is going</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&amp;display=swap">
+<style>
+body{margin:0;background:#5E4459;color:#FFFFFF;font-family:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif}
+button{font:inherit;color:inherit}
+a{color:#FFFFFF}
+</style>
+</helmet>
+<div style="position: relative; width: 1440px; height: 900px; box-sizing: border-box; background: #5E4459; color: #FFFFFF; font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; display: flex; flex-direction: column;">
+  <div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(130% 85% at 72% -10%, rgba(255,255,255,0.17), rgba(255,255,255,0) 62%);"></div>
+  <div style="position: relative; display: flex; flex-direction: column; height: 100%;">
+
+  <header style="display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 26px 56px 0;">
+    <span style="display: flex; align-items: baseline; gap: 12px;">
+      <span style="font-family: Newsreader, Georgia, serif; font-size: 26px;">Ekagra</span>
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.6);">Tue 22 Sep</span>
+    </span>
+    <span style="display: flex; align-items: center; gap: 28px;">
+      <span style="font-size: 14.5px; color: rgba(255,255,255,0.82);">Report</span>
+      <span style="font-size: 14.5px; color: rgba(255,255,255,0.82);">Tasks</span>
+      <span style="font-size: 14.5px; color: rgba(255,255,255,0.82);">Settings</span>
+      <span aria-label="Your account" style="display: flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 17px; background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.34); font-size: 14px; font-weight: 600;">S</span>
+    </span>
+  </header>
+
+  <div style="flex-grow: 1; display: flex; align-items: center; gap: 80px; padding: 0 56px;">
+
+    <div style="width: 520px; flex-shrink: 0; display: flex; flex-direction: column; gap: 16px;">
+      <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.62); padding-left: 20px;">Focus for this cycle</span>
+      <div style="display: flex; align-items: center; gap: 20px; min-height: 84px; padding: 0 24px 0 20px; background: rgba(255,255,255,0.13); border-radius: 10px;">
+        <span aria-hidden="true" style="width: 10px; height: 44px; flex-shrink: 0; border-radius: 5px; background: #FFFFFF;"></span>
+        <span style="font-family: Newsreader, Georgia, serif; font-size: 44px; line-height: 1.05;">Deep Focus</span>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1; display: flex; flex-direction: column; align-items: center; gap: 28px;">
+
+      <div style="display: flex; flex-direction: column; align-items: center; gap: 18px; width: 520px;">
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 150px; font-weight: 500; line-height: 0.88; letter-spacing: -0.045em; font-variant-numeric: tabular-nums;">71:12</span>
+        <div style="width: 100%; display: flex; flex-direction: column; gap: 9px;">
+          <div style="display: flex; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.25); overflow: hidden;">
+            <span style="width: 21%; background: #FFFFFF;"></span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 14px;">
+        <button type="button" style="display: flex; align-items: center; justify-content: center; gap: 12px; width: 230px; min-height: 72px; background: #FFFFFF; color: #5E4459; border: 0; border-radius: 10px; font-size: 23px; font-weight: 700; letter-spacing: 0.1em; cursor: pointer;">
+          <svg width="17" height="19" viewBox="0 0 12 14" fill="none" stroke="#5E4459" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M4 2v10M8 2v10"></path></svg>
+          PAUSE
+        </button>
+        <a href="C-Desk-Bell.dc.html" style="display: flex; align-items: center; justify-content: center; min-height: 72px; padding: 0 26px; border: 1.5px solid rgba(255,255,255,0.42); border-radius: 10px; text-decoration: none; font-size: 16px;">Stop and log</a>
+      </div>
+
+    </div>
+
+  </div>
+
+    <div style="display: flex; align-items: center; gap: 22px; margin: 0 56px; padding: 22px 0 0; border-top: 1px solid rgba(255,255,255,0.14);">
+      <span style="display: flex; align-items: center; gap: 16px;">
+        <span style="font-family: 'IBM Plex Mono', ui-monospace, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.18em; text-transform: uppercase; color: rgba(255,255,255,0.6);">Working on</span>
+        <span style="font-size: 20px; font-weight: 600;">Data model</span>
+        <span style="font-size: 14px; color: rgba(255,255,255,0.7);">Harbour / Backend</span>
+      </span>
+    </div>
+
+  <div style="height: 40px;"></div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
