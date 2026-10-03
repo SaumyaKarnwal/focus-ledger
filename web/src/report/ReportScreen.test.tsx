@@ -9,6 +9,7 @@ import {
   exampleNodesWithNothingRunning,
   recordingClient,
 } from "../testing/appHarness";
+import { openFromTasks, openTasks } from "../testing/navigation";
 
 beforeEach(() => {
   localStorage.clear();
@@ -30,8 +31,7 @@ function renderApp(client: LedgerClient) {
 
 async function openReport(client: LedgerClient) {
   renderApp(client);
-  const nav = await screen.findByRole("navigation", { name: "Views" });
-  fireEvent.click(within(nav).getByRole("button", { name: "Report" }));
+  await openFromTasks("Report");
   return screen.findByRole("table", { name: "Node × mode" });
 }
 
@@ -190,7 +190,8 @@ describe("Report", () => {
   test("report_loadFails_showsTheErrorAndThenRetries", async () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     renderApp(recording.client);
-    const nav = await screen.findByRole("navigation", { name: "Views" });
+    await openTasks();
+    const nav = screen.getByRole("navigation", { name: "Views" });
     // StrictMode runs the load effect twice, so both runs fail.
     recording.failNext("ListNodes", Code.Internal, 2);
 

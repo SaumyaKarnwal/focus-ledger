@@ -4,7 +4,6 @@ import {
   fireEvent,
   render,
   screen,
-  within,
 } from "@testing-library/react";
 import { Code } from "@connectrpc/connect";
 import { StrictMode } from "react";
@@ -18,6 +17,7 @@ import {
   exampleNodesWithNothingRunning,
   recordingClient,
 } from "./testing/appHarness";
+import { openOnStart, pressStart, startCycleOn } from "./testing/navigation";
 
 const MINUTE_MS = 60_000;
 
@@ -50,36 +50,6 @@ async function allCycles(client: LedgerClient): Promise<CyclePb[]> {
   return nodes.flatMap((node) => node.cycles);
 }
 
-/** The rail button whose name part is `name`. */
-async function railButton(name: string) {
-  const rail = await screen.findByRole("list", { name: "Open nodes" });
-  const button = within(rail)
-    .getAllByRole("button")
-    .find(
-      (candidate) =>
-        candidate.querySelector('[data-part="name"]')?.textContent === name,
-    );
-  if (!button) throw new Error(`no rail row named ${name}`);
-  return button;
-}
-
-function railNames(rows: HTMLElement[]) {
-  return rows.map(
-    (row) => row.querySelector('[data-part="name"]')?.textContent,
-  );
-}
-
-function glanceTotal(name: "Today" | "This week") {
-  return within(screen.getByRole("region", { name })).getByTestId("total")
-    .textContent;
-}
-
-async function startFromToday(nodeName: string) {
-  fireEvent.click(await railButton(nodeName));
-  fireEvent.click(screen.getByRole("button", { name: "Start" }));
-  await screen.findByRole("timer", { name: "Time left" });
-}
-
 describe("App", () => {
   test("App_render_showsProductName", async () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
@@ -89,95 +59,12 @@ describe("App", () => {
   });
 });
 
-describe("Today", () => {
-  test("today_exampleData_listsOpenNodesByLastWork", async () => {
-    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
-
-    const rows = await screen.findAllByTestId("rail-row");
-
-    expect(railNames(rows)).toEqual(["Notes", "Book", "Chapter 1", "Admin"]);
-    expect(
-      rows.every(
-        (row) => row.querySelector(".rail-row-time")?.textContent !== "",
-      ),
-    ).toBe(true);
-    expect(screen.getByText("2 unfiled")).toBeDefined();
-  });
-
-  test("today_exampleData_showsTodayAndWeekTotals", async () => {
-    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
-
-    const today = await screen.findByRole("region", { name: "Today" });
-
-    expect(glanceTotal("Today")).toBe("2h 30m");
-    expect(within(today).getByRole("img").getAttribute("aria-label")).toContain(
-      "Deep Focus 1h 15m",
-    );
-    expect(glanceTotal("This week")).toBe("5h 50m");
-  });
-
-  test("today_closeNode_leavesRailAndKeepsTotals", async () => {
-    const { client } = recordingClient(exampleNodesWithNothingRunning());
-    await client.updateNode({
-      nodeId: "00000000-0000-4000-8000-00000000000b",
-      closed: true,
-      updateMask: { paths: ["closed"] },
-    });
-
-    renderApp(client);
-
-    const rows = await screen.findAllByTestId("rail-row");
-    expect(railNames(rows)).toEqual(["Book", "Admin"]);
-    expect(glanceTotal("This week")).toBe("5h 50m");
-  });
-
-  test("today_selectRailRow_showsThatNodeWithItsProgress", async () => {
-    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
-    fireEvent.click(await railButton("Book"));
-
-    const selected = screen.getByRole("region", { name: "Book" });
-    expect(
-      within(selected).getByRole("heading", { name: /Estimate/ }).textContent,
-    ).toBe("Estimate · 3 of 5 cycles done");
-    expect(screen.getByTestId("meta-line").textContent).toContain(
-      "Cycle 4 of 5",
-    );
-    expect(
-      within(selected).getByRole("list", { name: "Logged today" }).children,
-    ).toHaveLength(1);
-  });
-
-  test("today_modeAndStepper_setLengthAndEndTime", async () => {
-    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
-    await screen.findByRole("button", { name: "Start" });
-
-    expect(
-      (screen.getByRole("radio", { name: "Deep Focus" }) as HTMLInputElement)
-        .checked,
-    ).toBe(true);
-    const endBefore = screen.getByTestId("meta-line").textContent;
-
-    fireEvent.click(screen.getByRole("radio", { name: "Shallow" }));
-    expect(screen.getByRole("status", { name: "Length" }).textContent).toBe(
-      "25",
-    );
-    fireEvent.click(screen.getByRole("button", { name: "Five minutes more" }));
-
-    expect(screen.getByRole("status", { name: "Length" }).textContent).toBe(
-      "30",
-    );
-    expect(screen.getByTestId("meta-line").textContent).not.toBe(endBefore);
-  });
-});
-
 describe("Start", () => {
   test("start_selectedNodeAndMode_writesRunningCycleAndShowsTimer", async () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     renderApp(client);
     await screen.findByRole("button", { name: "Start" });
-    fireEvent.click(screen.getByRole("radio", { name: "Execution" }));
-
-    await startFromToday("Book");
+    await startCycleOn("Book", "Execution");
 
     expect(screen.getByRole("timer", { name: "Time left" }).textContent).toBe(
       "50:00",
@@ -195,27 +82,17 @@ describe("Start", () => {
     ]);
   });
 
-  test("start_inboxSelected_writesCycleWithNoNode", async () => {
-    const { client } = recordingClient(exampleNodesWithNothingRunning());
-    renderApp(client);
-
-    await startFromToday("Inbox");
-
-    const running = (await allCycles(client)).find(
-      (cycle) => cycle.minutes === undefined,
-    );
-    expect(running?.nodeId).toBeUndefined();
-    expect(screen.getByRole("heading", { name: "Inbox" })).toBeDefined();
-  });
-
   test("start_responseLostThenRetried_createsOneCycle", async () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     const cyclesBefore = (await allCycles(recording.client)).length;
     renderApp(recording.client);
     await screen.findByRole("button", { name: "Start" });
 
+    await openOnStart("Book");
+
     recording.loseNextResponse();
-    await startFromToday("Book");
+
+    await pressStart();
 
     expect(recording.createCycleRequestIds).toHaveLength(2);
     expect(new Set(recording.createCycleRequestIds).size).toBe(1);
@@ -227,12 +104,12 @@ describe("Start", () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     renderApp(recording.client);
 
-    await startFromToday("Book");
+    await startCycleOn("Book");
     fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
     fireEvent.click(
       await screen.findByRole("button", { name: "Start a new cycle" }),
     );
-    await startFromToday("Book");
+    await startCycleOn("Book");
 
     expect(new Set(recording.createCycleRequestIds).size).toBe(2);
   });
@@ -242,7 +119,7 @@ describe("Stop", () => {
   test("stop_afterTwelveAndAHalfMinutes_logsTwelveAndRings", async () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     renderApp(client);
-    await startFromToday("Book");
+    await startCycleOn("Book");
 
     await advance(12.5 * MINUTE_MS);
     fireEvent.click(
@@ -262,7 +139,7 @@ describe("Stop", () => {
 
   test("stop_underOneMinute_logsOneMinute", async () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
-    await startFromToday("Book");
+    await startCycleOn("Book");
 
     await advance(20_000);
     fireEvent.click(screen.getByRole("button", { name: "Stop and log 1 min" }));
@@ -274,8 +151,7 @@ describe("Stop", () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     renderApp(client);
     await screen.findByRole("button", { name: "Start" });
-    fireEvent.click(screen.getByRole("radio", { name: "Shallow" }));
-    await startFromToday("Book");
+    await startCycleOn("Book", "Shallow");
 
     await advance(25 * MINUTE_MS + 1000);
 
@@ -287,7 +163,7 @@ describe("Stop", () => {
 
   test("running_screen_hasNoLengthOrModeControl", async () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
-    await startFromToday("Book");
+    await startCycleOn("Book");
 
     expect(
       screen.getAllByRole("button").map((button) => button.textContent),
@@ -302,8 +178,7 @@ describe("Pause", () => {
   async function startShallow(client: LedgerClient) {
     renderApp(client);
     await screen.findByRole("button", { name: "Start" });
-    fireEvent.click(screen.getByRole("radio", { name: "Shallow" }));
-    await startFromToday("Book");
+    await startCycleOn("Book", "Shallow");
   }
 
   function timeLeft() {
@@ -441,8 +316,7 @@ describe("Bell and extension", () => {
   async function ringAfterFullCycle(client: LedgerClient) {
     const rendered = renderApp(client);
     await screen.findByRole("button", { name: "Start" });
-    fireEvent.click(screen.getByRole("radio", { name: "Execution" }));
-    await startFromToday("Book");
+    await startCycleOn("Book", "Execution");
     await advance(50 * MINUTE_MS + 1000);
     await screen.findByText("50 min logged");
     return rendered;
@@ -570,7 +444,7 @@ describe("Bell and extension", () => {
 describe("Break", () => {
   async function takeBreak() {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
-    await startFromToday("Book");
+    await startCycleOn("Book");
     fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
     fireEvent.click(
       await screen.findByRole("button", { name: "Take a break" }),
@@ -651,8 +525,7 @@ describe("Failures", () => {
   async function startShallowOnBook(client: LedgerClient) {
     renderApp(client);
     await screen.findByRole("button", { name: "Start" });
-    fireEvent.click(screen.getByRole("radio", { name: "Shallow" }));
-    await startFromToday("Book");
+    await startCycleOn("Book", "Shallow");
   }
 
   test("running_automaticStopFails_userCanStopAgain", async () => {
@@ -725,11 +598,13 @@ describe("Failures", () => {
     fireEvent.click(
       await screen.findByRole("button", { name: "Start a new cycle" }),
     );
-    const rows = await screen.findAllByTestId("rail-row");
-    expect(railNames(rows)).toEqual(["Book", "Chapter 1", "Admin"]);
+    // The closed node is not the default task; the most recently worked open one is.
+    expect(
+      await screen.findByText("Book", { selector: ".task-strip-name" }),
+    ).toBeDefined();
   });
 
-  test("today_runningCycleUnderClosedParent_railLeavesOutTheSubtree", async () => {
+  test("start_runningCycleUnderClosedParent_defaultTaskIsAnOpenOne", async () => {
     const { client } = recordingClient(exampleNodes());
     await client.updateNode({
       nodeId: "00000000-0000-4000-8000-00000000000b",
@@ -744,8 +619,9 @@ describe("Failures", () => {
       await screen.findByRole("button", { name: "Start a new cycle" }),
     );
 
-    const rows = await screen.findAllByTestId("rail-row");
-    expect(railNames(rows)).toEqual(["Book", "Admin"]);
+    expect(
+      await screen.findByText("Book", { selector: ".task-strip-name" }),
+    ).toBeDefined();
   });
 
   test("stop_refreshFailsAfterTheWrite_stillShowsTheBell", async () => {
@@ -775,9 +651,9 @@ describe("Failures", () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     renderApp(recording.client);
     await screen.findByRole("button", { name: "Start" });
+    await openOnStart("Book");
     recording.failNext("CreateCycle", Code.Unknown);
-
-    await startFromToday("Book");
+    await pressStart();
 
     expect(screen.queryByRole("alert")).toBeNull();
   });

@@ -34,6 +34,11 @@
   --mode-execution-bg: var(--rose-600);
   --mode-shallow-bg: var(--sage-600);
   --mode-break-bg: var(--winter-700);
+  /* The top glow is stronger on the lighter mode colors (boards C-Desk-Start-*). */
+  --mode-deep-glow: rgb(255 255 255 / 0.17);
+  --mode-execution-glow: rgb(255 255 255 / 0.2);
+  --mode-shallow-glow: rgb(255 255 255 / 0.2);
+  --mode-break-glow: rgb(255 255 255 / 0);
 
   /* On a mode screen */
   --on-screen-strong: var(--white);
@@ -42,8 +47,10 @@
   --on-screen-faint: rgb(255 255 255 / 0.6);
   --on-screen-plate: rgb(255 255 255 / 0.13);
   --on-screen-rule: rgb(255 255 255 / 0.14);
-  --on-screen-outline: rgb(255 255 255 / 0.34);
-  --screen-glow: rgb(255 255 255 / 0.18);
+  --on-screen-outline: rgb(255 255 255 / 0.42);
+  --on-screen-dim: rgb(255 255 255 / 0.5);
+  --on-screen-chip: rgb(255 255 255 / 0.18);
+  --on-screen-chip-border: rgb(255 255 255 / 0.34);
   --screen-glow-end: rgb(255 255 255 / 0);
 
   /* Primary button on a mode screen. Its label takes the screen color (scope.css). */

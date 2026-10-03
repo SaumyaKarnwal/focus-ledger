@@ -5,18 +5,22 @@
  */
 [data-mode="deep"] {
   --screen-bg: var(--mode-deep-bg);
+  --screen-glow: var(--mode-deep-glow);
   --mode: var(--mode-deep-mark);
 }
 [data-mode="execution"] {
   --screen-bg: var(--mode-execution-bg);
+  --screen-glow: var(--mode-execution-glow);
   --mode: var(--mode-execution-mark);
 }
 [data-mode="shallow"] {
   --screen-bg: var(--mode-shallow-bg);
+  --screen-glow: var(--mode-shallow-glow);
   --mode: var(--mode-shallow-mark);
 }
 [data-mode="break"] {
   --screen-bg: var(--mode-break-bg);
+  --screen-glow: var(--mode-break-glow);
 }
 [data-mode] {
   --screen-cta-fg: var(--screen-bg);

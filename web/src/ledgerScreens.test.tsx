@@ -11,6 +11,7 @@ import {
   exampleNodesWithNothingRunning,
   recordingClient,
 } from "./testing/appHarness";
+import { openTasks } from "./testing/navigation";
 
 const BOOK = "00000000-0000-4000-8000-00000000000a";
 const ADMIN = "00000000-0000-4000-8000-00000000000e";
@@ -37,20 +38,14 @@ function renderApp(client: LedgerClient) {
 async function openTree(client: LedgerClient) {
   renderApp(client);
   const nav = await screen.findByRole("navigation", { name: "Views" });
-  fireEvent.click(within(nav).getByRole("button", { name: "Tree" }));
+  fireEvent.click(within(nav).getByRole("button", { name: "Tasks" }));
   return screen.findByRole("listitem", { name: "Book" });
 }
 
 async function openInbox(client: LedgerClient) {
   renderApp(client);
-  const rail = await screen.findByRole("list", { name: "Open nodes" });
-  const inbox = within(rail)
-    .getAllByRole("button")
-    .find(
-      (button) =>
-        button.querySelector('[data-part="name"]')?.textContent === "Inbox",
-    );
-  fireEvent.click(inbox!);
+  await openTasks();
+  fireEvent.click(row("Inbox").querySelector('[data-part="name"]') as Element);
 }
 
 function row(name: string) {
@@ -517,64 +512,6 @@ describe("Entries", () => {
 
     expect(screen.queryByRole("dialog")).toBeNull();
     expect(recording.createCycleRequestIds).toEqual([]);
-  });
-
-  test("entry_fromToday_appearsInLoggedToday", async () => {
-    const { client } = recordingClient(exampleNodesWithNothingRunning());
-    renderApp(client);
-    const selected = await screen.findByRole("region", { name: "Notes" });
-    const loggedBefore = within(selected).getAllByRole("listitem").length;
-
-    fireEvent.click(
-      within(selected).getByRole("button", { name: "+ Add an entry" }),
-    );
-    const dialog = screen.getByRole("dialog", { name: "Notes" });
-    fillEntry(dialog, { Started: "12:00", Length: "20" });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Log it" }));
-
-    await vi.waitFor(() =>
-      expect(
-        within(screen.getByRole("region", { name: "Notes" })).getAllByRole(
-          "listitem",
-        ),
-      ).toHaveLength(loggedBefore + 1),
-    );
-    expect(screen.queryByRole("dialog")).toBeNull();
-  });
-
-  test("entry_onAnEarlierDayOfTheWeek_changesTheWeekButNotToday", async () => {
-    const { client } = recordingClient(exampleNodesWithNothingRunning());
-    renderApp(client);
-    const selected = await screen.findByRole("region", { name: "Notes" });
-    const loggedBefore = within(selected).getAllByRole("listitem").length;
-
-    fireEvent.click(
-      within(selected).getByRole("button", { name: "+ Add an entry" }),
-    );
-    const dialog = screen.getByRole("dialog", { name: "Notes" });
-    fillEntry(dialog, {
-      Date: "2026-10-27",
-      Started: "10:00",
-      Length: "50",
-    });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Log it" }));
-
-    await vi.waitFor(() =>
-      expect(
-        within(screen.getByRole("region", { name: "This week" })).getByTestId(
-          "total",
-        ).textContent,
-      ).toBe("6h 40m"),
-    );
-    expect(
-      within(screen.getByRole("region", { name: "Today" })).getByTestId("total")
-        .textContent,
-    ).toBe("2h 30m");
-    expect(
-      within(screen.getByRole("region", { name: "Notes" })).getAllByRole(
-        "listitem",
-      ),
-    ).toHaveLength(loggedBefore);
   });
 });
 

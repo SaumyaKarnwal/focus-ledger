@@ -110,6 +110,12 @@ export function formatHeaderTime(instant: Date, timeZone: string): string {
   return `${parts.weekday} ${parts.day} ${parts.month} · ${localTimeString(instant, timeZone)}`;
 }
 
+/** "Tue 22 Sep" in `timeZone`, for the mode screen header. */
+export function formatDayLabel(instant: Date, timeZone: string): string {
+  const parts = dateParts(instant, timeZone);
+  return `${parts.weekday} ${parts.day} ${parts.month}`;
+}
+
 /** "2 Sep" in `timeZone`. */
 export function formatShortDate(instant: Date, timeZone: string): string {
   const parts = dateParts(instant, timeZone);

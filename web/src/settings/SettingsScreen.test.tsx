@@ -8,6 +8,7 @@ import {
   exampleNodesWithNothingRunning,
   recordingClient,
 } from "../testing/appHarness";
+import { openFromTasks } from "../testing/navigation";
 import { changedPaths } from "./settingsModel";
 
 beforeEach(() => {
@@ -30,8 +31,7 @@ function renderApp(client: LedgerClient) {
 
 async function openSettings(client: LedgerClient) {
   renderApp(client);
-  const nav = await screen.findByRole("navigation", { name: "Views" });
-  fireEvent.click(within(nav).getByRole("button", { name: "Settings" }));
+  await openFromTasks("Settings");
   return screen.findByRole("heading", { name: "Settings" });
 }
 
@@ -78,7 +78,7 @@ describe("Settings", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: /Notifications/ }));
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
 
-    expect(await screen.findByRole("button", { name: "Start" })).toBeDefined();
+    expect(await screen.findByRole("list", { name: "Nodes" })).toBeDefined();
     expect(update).toHaveBeenCalledTimes(1);
     expect(update.mock.calls[0][0].updateMask?.paths).toEqual([
       "deep_focus_minutes",
@@ -89,9 +89,15 @@ describe("Settings", () => {
       deepFocusMinutes: 95,
       notificationsEnabled: true,
     });
-    expect(screen.getByRole("status", { name: "Length" }).textContent).toBe(
-      "95",
+    fireEvent.click(
+      within(screen.getByRole("navigation", { name: "Views" })).getByRole(
+        "button",
+        { name: "Today" },
+      ),
     );
+    expect(
+      (await screen.findByRole("status", { name: "Length" })).textContent,
+    ).toBe("95:00");
   });
 
   test("settings_doneWithNoChange_sendsNothing", async () => {
@@ -101,7 +107,7 @@ describe("Settings", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
 
-    expect(await screen.findByRole("button", { name: "Start" })).toBeDefined();
+    expect(await screen.findByRole("list", { name: "Nodes" })).toBeDefined();
     expect(update).not.toHaveBeenCalled();
   });
 
@@ -118,7 +124,7 @@ describe("Settings", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
 
-    await screen.findByRole("button", { name: "Start" });
+    await screen.findByRole("list", { name: "Nodes" });
     expect(update).not.toHaveBeenCalled();
   });
 
@@ -141,7 +147,7 @@ describe("Settings", () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     renderApp(client);
     const nav = await screen.findByRole("navigation", { name: "Views" });
-    fireEvent.click(within(nav).getByRole("button", { name: "Tree" }));
+    fireEvent.click(within(nav).getByRole("button", { name: "Tasks" }));
     fireEvent.click(
       within(screen.getByRole("navigation", { name: "Views" })).getByRole(
         "button",

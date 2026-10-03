@@ -22,6 +22,7 @@ import {
 function exampleData(): TodayData {
   const nodes = exampleNodes().filter((node) => !node.closed);
   return {
+    email: "fake.user@example.com",
     settings: create(SettingsPbSchema),
     allTimeNodes: nodes,
     weekNodes: exampleNodes(),

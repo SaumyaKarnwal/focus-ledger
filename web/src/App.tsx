@@ -14,12 +14,10 @@ import {
 } from "./cycle/extensionStore";
 import { clearPause } from "./cycle/pauseStore";
 import { RunningScreen } from "./cycle/RunningScreen";
-import { EntryDialog } from "./entry/EntryDialog";
 import { FirstRunScreen } from "./firstRun/FirstRunScreen";
-import type { CyclePb, NodePb } from "./gen/focusledger/v1/model_pb";
+import type { CyclePb } from "./gen/focusledger/v1/model_pb";
 import { browserTimeZone, formatHeaderTime } from "./ledger/period";
 import type { LoggedMode } from "./ledger/rollup";
-import type { toEstimates } from "./tree/estimateModel";
 import { ReportScreen } from "./report/ReportScreen";
 import { SettingsScreen } from "./settings/SettingsScreen";
 import { SignInScreen } from "./signIn/SignInScreen";
@@ -28,11 +26,10 @@ import { TreeScreen } from "./tree/TreeScreen";
 import { PageHeader } from "./ui/PageHeader";
 import { useNow } from "./useNow";
 import { loadToday } from "./today/loadToday";
-import { TodayScreen } from "./today/TodayScreen";
+import { StartScreen } from "./start/StartScreen";
 import {
   cycleContext,
   INBOX_ID,
-  isClosedOrUnderClosed,
   knownCycles,
   type TodayData,
   todayModel,
@@ -67,7 +64,7 @@ type View = "today" | "tree" | "report" | "settings";
 
 const VIEWS: readonly [View, string][] = [
   ["today", "Today"],
-  ["tree", "Tree"],
+  ["tree", "Tasks"],
   ["report", "Report"],
   ["settings", "Settings"],
 ];
@@ -131,10 +128,8 @@ export function App({
     });
 
   const [view, setView] = useState<View>("today");
-  const [entryNodeId, setEntryNodeId] = useState<string>();
   const openView = (next: View) => {
     setView(next);
-    setEntryNodeId(undefined);
     if (next === "today") void showToday();
     else setPreselectedNodeId(undefined);
   };
@@ -290,46 +285,6 @@ export function App({
     [extendedCycle, writeMinutes],
   );
 
-  const saveEstimate = async (
-    node: NodePb,
-    estimates: ReturnType<typeof toEstimates>,
-  ) => {
-    let saved = false;
-    await act(async () => {
-      await withRetry(
-        () =>
-          client.updateNode({
-            nodeId: node.id,
-            estimates,
-            updateMask: { paths: ["estimates"] },
-          }),
-        retryDelaysMs,
-      );
-      saved = true;
-      await refreshWithRetry();
-    });
-    return saved;
-  };
-
-  // The Inbox is read again after a failure too, so a cycle that was filed
-  // elsewhere leaves the list.
-  const fileCycle = (cycle: CyclePb, nodeId: string) =>
-    void act(async () => {
-      try {
-        await withRetry(
-          () =>
-            client.updateCycle({
-              cycleId: cycle.id,
-              nodeId,
-              updateMask: { paths: ["node_id"] },
-            }),
-          retryDelaysMs,
-        );
-      } finally {
-        await refreshWithRetry();
-      }
-    });
-
   const [preselectedNodeId, setPreselectedNodeId] = useState<string>();
   const openOnToday = (nodeId: string) => {
     setPreselectedNodeId(nodeId);
@@ -400,14 +355,9 @@ export function App({
       )}
       {!firstRun && screen.kind === "today" && data && view === "today" && (
         <>
-          <PageHeader
-            framed
-            middle={nav}
-            end={<HeaderClock timeZone={timeZone} />}
-          />
           {alert}
-          <TodayScreen
-            key={preselectedNodeId ?? "today"}
+          <StartScreen
+            key={preselectedNodeId ?? "start"}
             data={data}
             timeZone={timeZone}
             busy={busy}
@@ -415,36 +365,13 @@ export function App({
             onStart={(nodeId, mode, plannedMinutes) =>
               void start(nodeId, mode, plannedMinutes)
             }
-            onAddEntry={setEntryNodeId}
-            onOpenTree={() => openView("tree")}
-            onSaveEstimate={saveEstimate}
-            onFile={fileCycle}
+            onBreak={() => setScreen({ kind: "break" })}
+            onPickTask={() => openView("tree")}
+            onOpenTasks={() => openView("tree")}
+            onSignOut={signOut}
           />
         </>
       )}
-      {!firstRun &&
-        screen.kind === "today" &&
-        data &&
-        view === "today" &&
-        entryNodeId !== undefined && (
-          <EntryDialog
-            client={client}
-            settings={data.settings}
-            nodes={data.allTimeNodes.filter(
-              (node) =>
-                node.id !== INBOX_ID &&
-                !isClosedOrUnderClosed(node, data.allTimeNodes),
-            )}
-            initialNodeId={entryNodeId}
-            timeZone={timeZone}
-            retryDelaysMs={retryDelaysMs}
-            onSaved={() => {
-              setEntryNodeId(undefined);
-              void showToday();
-            }}
-            onCancel={() => setEntryNodeId(undefined)}
-          />
-        )}
       {!firstRun && screen.kind === "today" && data && view === "tree" && (
         <>
           {alert}
