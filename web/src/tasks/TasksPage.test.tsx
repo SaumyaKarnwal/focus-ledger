@@ -261,43 +261,24 @@ describe("Drag a task", () => {
     expect(recording.updateNodeMasks).toEqual([["parent_id"]]);
   });
 
-  test("drag_taskWithCycles_statesWhatMovesBeforeMoving", async () => {
+  test("drag_taskWithCycles_movesAtOnceWithNoConfirm", async () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     await openTasksPage(recording.client);
 
-    drag(row("Chapter 1"), row("Admin"));
+    expect(drag(row("Chapter 1"), row("Admin"))).toBe(true);
 
-    const confirm = screen.getByRole("alertdialog", {
-      name: "Confirm the move",
-    });
-    expect(confirm.textContent).toContain(
-      "3 cycles · 2h 40m will move with it",
-    );
-    expect(recording.updateNodeMasks).toEqual([]);
-    fireEvent.click(within(confirm).getByRole("button", { name: "Move" }));
-
+    expect(screen.queryByRole("alertdialog")).toBeNull();
     await vi.waitFor(async () =>
       expect(await parentOf(recording.client, "Chapter 1")).toBe("Admin"),
     );
     expect(recording.updateNodeMasks).toEqual([["parent_id"]]);
   });
 
-  test("drag_cancelTheConfirm_writesNothing", async () => {
+  test("drag_ontoItselfItsSubtreeOrCurrentParent_isNotADropTarget", async () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     await openTasksPage(recording.client);
 
-    drag(row("Chapter 1"), row("Admin"));
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-
-    expect(screen.queryByRole("alertdialog")).toBeNull();
-    expect(recording.updateNodeMasks).toEqual([]);
-    expect(await parentOf(recording.client, "Chapter 1")).toBe("Book");
-  });
-
-  test("drag_ontoOwnDescendantOrCurrentParent_isNotADropTarget", async () => {
-    const recording = recordingClient(exampleNodesWithNothingRunning());
-    await openTasksPage(recording.client);
-
+    expect(drag(row("Book"), row("Book"))).toBe(false);
     expect(drag(row("Book"), row("Notes"))).toBe(false);
     expect(drag(row("Notes"), row("Chapter 1"))).toBe(false);
     expect(recording.updateNodeMasks).toEqual([]);
@@ -319,11 +300,6 @@ describe("Drag a task", () => {
     const zone = screen.getByText("Move to the top level");
     fireEvent.dragOver(zone);
     fireEvent.drop(zone);
-    fireEvent.click(
-      within(
-        screen.getByRole("alertdialog", { name: "Confirm the move" }),
-      ).getByRole("button", { name: "Move" }),
-    );
 
     await vi.waitFor(async () =>
       expect(await parentOf(recording.client, "Notes")).toBeUndefined(),
