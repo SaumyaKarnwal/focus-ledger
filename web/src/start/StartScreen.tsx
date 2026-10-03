@@ -12,6 +12,7 @@ import {
 import { useNow } from "../useNow";
 import { ScreenHeader } from "./ScreenHeader";
 import { taskStrip } from "./startModel";
+import { TaskPicker } from "./TaskPicker";
 
 const LENGTH_STEP = 5;
 const LENGTH_MIN = 5;
@@ -25,7 +26,7 @@ type Props = {
   initialNodeId?: string;
   onStart: (nodeId: string, mode: LoggedMode, plannedMinutes: number) => void;
   onBreak: () => void;
-  onPickTask: () => void;
+  onNewTask: () => void;
   onOpenTasks: () => void;
   onSignOut: () => void;
 };
@@ -38,12 +39,12 @@ export function StartScreen({
   initialNodeId,
   onStart,
   onBreak,
-  onPickTask,
+  onNewTask,
   onOpenTasks,
   onSignOut,
 }: Props) {
   const now = useNow();
-  const [nodeId] = useState(
+  const [nodeId, setNodeId] = useState(
     () =>
       initialNodeId ??
       todayModel(data, now, timeZone).rail[0]?.nodeId ??
@@ -54,6 +55,7 @@ export function StartScreen({
     plannedMinutesFor(data.settings, FocusMode.DEEP_FOCUS),
   );
   const strip = taskStrip(data, nodeId);
+  const [picking, setPicking] = useState(false);
 
   const chooseMode = (next: LoggedMode) => {
     setMode(next);
@@ -146,7 +148,8 @@ export function StartScreen({
           <button
             type="button"
             className="task-strip-task"
-            onClick={onPickTask}
+            aria-haspopup="dialog"
+            onClick={() => setPicking(true)}
           >
             {strip ? (
               <>
@@ -168,6 +171,23 @@ export function StartScreen({
           </span>
         </footer>
       </div>
+      {picking && (
+        <TaskPicker
+          data={data}
+          now={now}
+          timeZone={timeZone}
+          currentNodeId={nodeId}
+          onPick={(picked) => {
+            setNodeId(picked);
+            setPicking(false);
+          }}
+          onNewTask={() => {
+            setPicking(false);
+            onNewTask();
+          }}
+          onClose={() => setPicking(false)}
+        />
+      )}
     </div>
   );
 }

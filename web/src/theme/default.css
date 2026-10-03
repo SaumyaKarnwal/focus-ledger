@@ -17,10 +17,16 @@
   --paper-50: #fffdf8;
   --ink-900: #2a2724;
   --plum-950: #241a22;
+  --plum-700: #5c5158;
+  --plum-600: #7a6f76;
   --plum-500: #9a8e96;
   --plum-200: #ebe1e7;
+  --plum-150: #f1e6ee;
   --plum-100: #f6f0f4;
   --plum-50: #fbf7f9;
+  --mark-aubergine-soft: #c9a3c4;
+  --mark-rose-soft: #e9afb4;
+  --mark-sage-soft: #a6cfcb;
   --red-600: #b45c66;
   --chart-peach: #f5a07f;
   --chart-sky: #8ab8ec;
@@ -73,12 +79,19 @@
   --row-hover: rgb(42 39 36 / 0.055);
 
   /* Dialog: task picker, bell, new task, edit task */
-  --dialog-bg: var(--white);
-  --dialog-header-bg: var(--plum-50);
+  --dialog-bg: var(--plum-50);
+  --dialog-header-bg: var(--plum-100);
+  --dialog-field-bg: var(--white);
   --dialog-fg: var(--plum-950);
-  --dialog-muted: var(--plum-500);
+  --dialog-figure: var(--plum-700);
+  --dialog-muted: var(--plum-600);
+  --dialog-faint: var(--plum-500);
   --dialog-rule: var(--plum-200);
-  --dialog-selected: var(--plum-100);
+  --dialog-selected: var(--plum-150);
+  /* The mode bar of a row in a dialog list, lighter than the page marks. */
+  --dialog-mode-deep-mark: var(--mark-aubergine-soft);
+  --dialog-mode-execution-mark: var(--mark-rose-soft);
+  --dialog-mode-shallow-mark: var(--mark-sage-soft);
   --scrim: rgb(33 23 31 / 0.58);
   --dialog-shadow: rgb(20 12 18 / 0.44);
 

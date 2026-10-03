@@ -7,16 +7,19 @@
   --screen-bg: var(--mode-deep-bg);
   --screen-glow: var(--mode-deep-glow);
   --mode: var(--mode-deep-mark);
+  --dialog-mode: var(--dialog-mode-deep-mark);
 }
 [data-mode="execution"] {
   --screen-bg: var(--mode-execution-bg);
   --screen-glow: var(--mode-execution-glow);
   --mode: var(--mode-execution-mark);
+  --dialog-mode: var(--dialog-mode-execution-mark);
 }
 [data-mode="shallow"] {
   --screen-bg: var(--mode-shallow-bg);
   --screen-glow: var(--mode-shallow-glow);
   --mode: var(--mode-shallow-mark);
+  --dialog-mode: var(--dialog-mode-shallow-mark);
 }
 [data-mode="break"] {
   --screen-bg: var(--mode-break-bg);
