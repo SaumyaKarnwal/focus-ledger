@@ -28,6 +28,7 @@ Report is not designed yet. The header shows it, but the link stays inert. The o
    - Drag a cycle onto a task: `UpdateCycle`, which files it.
    - Drag a task onto a task: `UpdateNode`, which changes its parent.
    - Keep going: `UpdateCycle`, which extends it.
+   - A drop takes effect at once, with no confirm step, also when the moved task carries cycles. Filing an Untagged cycle is final (a cycle's task is set once), and the drop still does not ask.
 4. A break is not stored. It lives only in the browser, like the pause.
 5. **Mark complete** sets the node's `closed` flag with `UpdateNode`; **Completed** clears it. The Tasks page lists completed tasks (with `include_closed`), with the name in the muted ink. The task picker hides them.
 6. **Settings storage.** The proto stays as it is. The server keeps what `SettingsPb` has; the browser keeps the rest in local storage, per device:
