@@ -20,6 +20,9 @@ export const SETTINGS_PATHS: Record<keyof SettingsForm, string> = {
   notificationsEnabled: "notifications_enabled",
 };
 
+/** The pause after the last change before the server write. */
+export const SAVE_DELAY_MS = 600;
+
 export const MODE_LENGTH = { min: 1, max: 480, step: 5 };
 export const BREAK_LENGTH = { min: 1, max: 60, step: 1 };
 

@@ -8,20 +8,19 @@ type Props = {
   email: string;
   /** Without it, Tasks is shown but does nothing, as while a cycle runs. */
   onOpenTasks?: () => void;
-  /** Report and Settings open only from the Tasks page until their v2 pages exist. */
+  /** Report opens only from the Tasks page until it has a v2 page. */
   onOpenReport?: () => void;
   onOpenSettings?: () => void;
   /** The brand goes to Start. The Tasks page has no other way back. */
   onOpenHome?: () => void;
   /** The view this header sits on. */
-  current?: "tasks";
+  current?: "tasks" | "settings";
   onSignOut: () => void;
 };
 
 /**
- * The header of the mode screens and of the Tasks page. Report and Settings
- * have no v2 page yet, so on Start and Running they are shown but do nothing
- * (browser-v2 README).
+ * The header of the mode screens and of the light pages. Report has no v2
+ * page yet, so only the Tasks page links it (browser-v2 README).
  */
 export function ScreenHeader({
   now,
@@ -61,7 +60,11 @@ export function ScreenHeader({
           onOpen={onOpenTasks}
           current={current === "tasks"}
         />
-        <NavItem label="Settings" onOpen={onOpenSettings} />
+        <NavItem
+          label="Settings"
+          onOpen={onOpenSettings}
+          current={current === "settings"}
+        />
         <span className="screen-account">
           <button
             type="button"

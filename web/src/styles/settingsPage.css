@@ -1,0 +1,206 @@
+/* The Settings page (board H-Settings-Stacked). The page frame comes from tasksPage.css. */
+
+.settings-main {
+  width: 680px;
+  max-width: calc(100% - 32px);
+  margin: 0 auto 40px;
+  padding-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  padding: 22px 30px 14px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+}
+.settings-card-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding-bottom: 12px;
+}
+.settings-card-head h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 21px;
+  font-weight: 400;
+  color: var(--ink-strong);
+}
+.settings-card-head p {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+.settings-group {
+  margin: 0;
+  padding: 12px 0 2px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.settings-card-head + .settings-group {
+  padding-top: 0;
+}
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-height: 46px;
+  border-top: 1px solid var(--rule);
+}
+.settings-row[data-hint] {
+  min-height: 50px;
+}
+.settings-group + .settings-row,
+.settings-card-head + .settings-row {
+  border-top: 0;
+}
+.settings-label {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  font-size: 14.5px;
+  color: var(--ink-strong);
+}
+.settings-label-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.settings-hint {
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.settings-mark {
+  width: 5px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  background: var(--mode);
+}
+.settings-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.settings-stepper .estimate-edit-stepper output {
+  min-width: 40px;
+}
+.settings-stepper .estimate-edit-stepper output[data-narrow] {
+  min-width: 28px;
+}
+.settings-unit {
+  width: 26px;
+  font-size: 12.5px;
+  color: var(--ink-faint);
+}
+.settings-unit[data-wide] {
+  width: 42px;
+}
+.settings-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.settings-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 14px 0 11px;
+  background: transparent;
+  border: 1px solid var(--axis);
+  border-radius: 18px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+.settings-chip[aria-checked="true"] {
+  padding: 0 13.5px 0 10.5px;
+  background: var(--accent-tint);
+  border: 1.5px solid var(--accent);
+  font-weight: 600;
+  color: var(--ink-strong);
+}
+.settings-chip[aria-checked="true"] svg {
+  color: var(--accent);
+}
+.settings-volume {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 220px;
+  color: var(--ink-muted);
+}
+.settings-volume input {
+  flex-grow: 1;
+  height: 16px;
+  margin: 0;
+  background: transparent;
+  appearance: none;
+}
+.settings-volume input::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(
+    to right,
+    var(--accent) var(--fill),
+    var(--panel-border) var(--fill)
+  );
+}
+.settings-volume input::-moz-range-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--panel-border);
+}
+.settings-volume input::-moz-range-progress {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.settings-volume input::-webkit-slider-thumb {
+  width: 16px;
+  height: 16px;
+  margin-top: -6px;
+  border-radius: 8px;
+  background: var(--switch-knob);
+  border: 1.5px solid var(--accent);
+  appearance: none;
+}
+.settings-volume input::-moz-range-thumb {
+  width: 13px;
+  height: 13px;
+  border-radius: 8px;
+  background: var(--switch-knob);
+  border: 1.5px solid var(--accent);
+}
+.settings-switch {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 40px;
+  height: 23px;
+  flex-shrink: 0;
+  padding: 2px;
+  background: var(--rule-strong);
+  border: 0;
+  border-radius: 12px;
+}
+.settings-switch[aria-checked="true"] {
+  justify-content: flex-end;
+  background: var(--accent);
+}
+.settings-switch span {
+  width: 19px;
+  height: 19px;
+  border-radius: 10px;
+  background: var(--switch-knob);
+}

@@ -8,6 +8,7 @@ import {
 } from "../start/ModeScreenFrame";
 import { MODE_NAMES } from "../today/todayModel";
 import { useNow } from "../useNow";
+import { loadLocalSettings } from "../settings/localSettings";
 import { formatCountdown } from "./timer";
 
 const MINUTE_MS = 60_000;
@@ -15,8 +16,6 @@ const EXTRA_BREAK_MINUTES = 5;
 const LENGTH_STEP = 5;
 const LENGTH_MIN = 5;
 const LENGTH_MAX = 120;
-/** The long break lives in the browser only: settings store one break length. */
-const LONG_BREAK_MINUTES = 15;
 
 type BreakKind = "short" | "long";
 const BREAK_NAMES: Record<BreakKind, string> = {
@@ -74,7 +73,9 @@ export function BreakScreen({
 
   const chooseKind = (next: BreakKind) => {
     setKind(next);
-    setTotalMinutes(next === "short" ? breakMinutes : LONG_BREAK_MINUTES);
+    setTotalMinutes(
+      next === "short" ? breakMinutes : loadLocalSettings().longBreakMinutes,
+    );
   };
   const step = (by: number) =>
     setTotalMinutes((current) =>

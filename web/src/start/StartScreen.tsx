@@ -36,6 +36,7 @@ type Props = {
   /** Writes a task from the New task dialog and reloads the data. */
   onSaveTask: (save: TaskSave) => Promise<NodePb | undefined>;
   onOpenTasks?: () => void;
+  onOpenSettings?: () => void;
   onSignOut: () => void;
 };
 
@@ -51,6 +52,7 @@ export function StartScreen({
   onBreak,
   onSaveTask,
   onOpenTasks,
+  onOpenSettings,
   onSignOut,
 }: Props) {
   const now = useNow();
@@ -83,6 +85,7 @@ export function StartScreen({
       timeZone={timeZone}
       email={data.email}
       onOpenTasks={onOpenTasks}
+      onOpenSettings={onOpenSettings}
       onSignOut={onSignOut}
       inert={overlay !== undefined}
       strip={

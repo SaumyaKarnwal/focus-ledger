@@ -99,8 +99,10 @@ describe("Sign-in", () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     renderApp(client);
     await openFromTasks("Settings");
+    await screen.findByRole("heading", { name: "Cycles" });
 
-    fireEvent.click(await screen.findByRole("button", { name: "Sign out" }));
+    fireEvent.click(screen.getByRole("button", { name: "Your account" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
 
     expect(
       await screen.findByRole("heading", { name: "Sign in" }),
