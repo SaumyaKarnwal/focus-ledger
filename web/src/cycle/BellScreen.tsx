@@ -2,30 +2,41 @@ import { type FormEvent, useState } from "react";
 import type { CyclePb } from "../gen/focusledger/v1/model_pb";
 import type { LoggedMode } from "../ledger/rollup";
 import { modeKey } from "../modes/modes";
-import { MODE_NAMES } from "../today/todayModel";
-import { PageHeader } from "../ui/PageHeader";
+import { StartScreen } from "../start/StartScreen";
+import {
+  cycleContext,
+  MODE_NAMES,
+  type TodayData,
+  taskAfterCycle,
+} from "../today/todayModel";
 
 const MAX_CYCLE_MINUTES = 1440;
 
 type Props = {
+  data: TodayData;
   cycle: CyclePb;
-  nodeName: string;
-  path: string[];
+  timeZone: string;
   busy: boolean;
   onExtend: (moreMinutes: number) => void;
   onBreak: () => void;
   onNewCycle: () => void;
+  onSignOut: () => void;
 };
 
-/** The cycle is already written. The bell never asks for the mode again (FR-4.3). */
+/**
+ * The bell (boards C-Desk-Bell2 and -Bell2-Empty): a dialog over the Start
+ * screen. The cycle is already written, and the bell never asks for the mode
+ * again (FR-4.3).
+ */
 export function BellScreen({
+  data,
   cycle,
-  nodeName,
-  path,
+  timeZone,
   busy,
   onExtend,
   onBreak,
   onNewCycle,
+  onSignOut,
 }: Props) {
   const [moreMinutes, setMoreMinutes] = useState("");
   const logged = cycle.minutes ?? 0;
@@ -36,6 +47,8 @@ export function BellScreen({
     extension >= 1 &&
     logged + extension <= MAX_CYCLE_MINUTES;
   const mode = cycle.mode as LoggedMode;
+  const { nodeName } = cycleContext(data, cycle);
+  const isInbox = cycle.nodeId === undefined;
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -44,85 +57,98 @@ export function BellScreen({
     setMoreMinutes("");
   };
 
-  return (
-    <div className="bell-page">
-      <PageHeader
-        framed
-        middle={
-          path.length > 0 ? (
-            <span className="crumb">{path.join(" / ")}</span>
-          ) : undefined
-        }
-        end={<span className="mono">00:00</span>}
-      />
-      <div className="bell-body">
-        <section className="sheet" aria-labelledby="bell-heading">
-          <div className="sheet-heading">
-            <span className="sheet-chip" data-mode={modeKey(mode)}>
-              <span className="mode-bar" aria-hidden="true" />
-              {MODE_NAMES[mode]} · logged
-            </span>
-            <h2 id="bell-heading" className="title title-l">
-              {nodeName}
+  const dialog = (
+    <div className="picker-scrim">
+      <section
+        className="bell"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bell-heading"
+        data-mode={modeKey(mode)}
+      >
+        <div className="bell-heading">
+          <span className="bell-bar" aria-hidden="true" />
+          <div>
+            <h2 id="bell-heading" className="bell-title">
+              {MODE_NAMES[mode]}
+              {!isInbox && (
+                <>
+                  {" "}
+                  <span className="bell-separator">·</span> {nodeName}
+                </>
+              )}
             </h2>
-            <p className="note">{logged} min logged</p>
+            <p className="visually-hidden">{logged} min logged</p>
           </div>
-          <form onSubmit={submit}>
-            <div className="extend-field">
-              <span aria-hidden="true">Keep going for</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={1}
-                max={MAX_CYCLE_MINUTES - logged}
-                placeholder="00"
-                aria-label="Keep going for more minutes"
-                value={moreMinutes}
-                onChange={(event) => setMoreMinutes(event.target.value)}
-              />
-              <span aria-hidden="true">more minutes</span>
-              <button
-                type="submit"
-                className="extend-go"
-                aria-label="Keep going"
-                disabled={busy || !validExtension}
-              >
-                <svg
-                  width="19"
-                  height="13"
-                  viewBox="0 0 19 13"
-                  fill="none"
-                  stroke="var(--accent)"
-                  strokeWidth="1.7"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M1 6.5h16M12 1.5l5 5-5 5" />
-                </svg>
-              </button>
-            </div>
-          </form>
-          <div className="sheet-actions">
-            <button
-              type="button"
-              className="button"
-              disabled={busy}
-              onClick={onBreak}
+        </div>
+        <form className="bell-field" onSubmit={submit}>
+          <span aria-hidden="true">Keep going for</span>
+          <input
+            type="number"
+            inputMode="numeric"
+            min={1}
+            max={MAX_CYCLE_MINUTES - logged}
+            placeholder="00"
+            aria-label="Keep going for more minutes"
+            value={moreMinutes}
+            onChange={(event) => setMoreMinutes(event.target.value)}
+          />
+          <span aria-hidden="true">more minutes</span>
+          <button
+            type="submit"
+            className="bell-go"
+            aria-label="Keep going"
+            disabled={busy || !validExtension}
+          >
+            <svg
+              width="18"
+              height="12"
+              viewBox="0 0 19 13"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
             >
-              Take a break
-            </button>
-            <button
-              type="button"
-              className="button-primary"
-              disabled={busy}
-              onClick={onNewCycle}
-            >
-              Start a new cycle
-            </button>
-          </div>
-        </section>
-      </div>
+              <path d="M1 6.5h16M12 1.5l5 5-5 5" />
+            </svg>
+          </button>
+        </form>
+        <div className="bell-actions">
+          <button
+            type="button"
+            className="bell-outline"
+            disabled={busy}
+            onClick={onBreak}
+          >
+            Take a break
+          </button>
+          <button
+            type="button"
+            className="bell-primary"
+            disabled={busy}
+            onClick={onNewCycle}
+          >
+            Start a new cycle
+          </button>
+        </div>
+      </section>
     </div>
+  );
+
+  return (
+    <StartScreen
+      data={data}
+      timeZone={timeZone}
+      busy
+      initialNodeId={taskAfterCycle(data, cycle)}
+      initialMode={mode}
+      overlay={dialog}
+      onStart={() => {}}
+      onBreak={() => {}}
+      onNewTask={() => {}}
+      onSignOut={onSignOut}
+    />
   );
 }

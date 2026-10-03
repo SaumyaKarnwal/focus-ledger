@@ -245,6 +245,163 @@
   font-size: 16px;
   color: var(--on-screen-strong);
 }
+.screen-outline-soft {
+  border-color: var(--on-screen-outline-soft);
+}
+.screen-cta,
+.screen-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* Running, extension, and break */
+
+.start-mode-plate {
+  background: var(--on-screen-plate);
+  opacity: 1;
+}
+.start-mode-plate .start-mode-bar {
+  background: var(--on-screen-strong);
+}
+.start-mode-plate .start-mode-name {
+  font-size: 44px;
+  font-weight: 400;
+}
+.screen-clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+}
+.screen-progress {
+  width: 520px;
+  max-width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: var(--on-screen-track);
+}
+.screen-progress span {
+  display: block;
+  height: 100%;
+  background: var(--on-screen-strong);
+}
+.screen-note {
+  margin: 0;
+  font-size: 14px;
+  color: var(--on-screen-muted);
+}
+
+/* The bell */
+
+.bell {
+  width: 540px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 34px 34px 30px;
+  background: var(--dialog-bg);
+  color: var(--dialog-fg);
+  border-radius: 14px;
+  box-shadow: 0 32px 80px var(--dialog-shadow);
+}
+.bell-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.bell-bar {
+  width: 7px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: var(--dialog-mode);
+}
+.bell-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 33px;
+  font-weight: 400;
+  line-height: 1.08;
+}
+.bell-separator {
+  color: var(--dialog-faint);
+}
+.bell-field {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 0 18px;
+  background: var(--dialog-inset-bg);
+  border-radius: 9px;
+  font-size: 16px;
+  color: var(--dialog-inset-fg);
+}
+.bell-field input {
+  width: 34px;
+  margin: 0 8px;
+  padding: 2px 0 1px;
+  background: none;
+  border: 0;
+  border-bottom: 1.5px solid var(--dialog-input-rule);
+  outline: 0;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 18.5px;
+  color: var(--dialog-fg);
+  caret-color: var(--accent);
+  appearance: textfield;
+}
+.bell-field input::-webkit-outer-spin-button,
+.bell-field input::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+.bell-field input::placeholder {
+  color: var(--dialog-placeholder);
+}
+.bell-go {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin: 0 -4px 0 auto;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--accent);
+}
+.bell-go:disabled {
+  opacity: 0.45;
+}
+.bell-actions {
+  display: flex;
+  gap: 10px;
+}
+.bell-outline,
+.bell-primary {
+  min-height: 56px;
+  border-radius: 9px;
+}
+.bell-outline {
+  padding: 0 24px;
+  background: none;
+  border: 1px solid var(--dialog-outline);
+  font-size: 15.5px;
+  color: var(--dialog-outline-fg);
+}
+.bell-primary {
+  flex-grow: 1;
+  background: var(--accent);
+  border: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dialog-bg);
+}
 
 /* The task picker */
 

@@ -333,6 +333,20 @@ export function formatMinutes(minutes: number): string {
   return `${hours}h ${String(rest).padStart(2, "0")}m`;
 }
 
+/**
+ * The task to show after the cycle: its own task, or undefined for the default
+ * task when the cycle's task is now closed or under a closed task.
+ */
+export function taskAfterCycle(
+  data: TodayData,
+  cycle: CyclePb,
+): string | undefined {
+  if (cycle.nodeId === undefined) return INBOX_ID;
+  const nodes = knownNodes(data);
+  const node = nodes.find((listed) => listed.id === cycle.nodeId);
+  return node && !isClosedOrUnderClosed(node, nodes) ? node.id : undefined;
+}
+
 /** ListNodes() also returns a closed node and its ancestors when a cycle runs on it. */
 export function isClosedOrUnderClosed(
   node: NodePb,

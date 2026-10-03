@@ -4,7 +4,7 @@ import type { LedgerClient } from "./api/ledgerClient";
 import { newRequestId } from "./api/requestId";
 import { withRetry } from "./api/retry";
 import { BellScreen } from "./cycle/BellScreen";
-import { BreakScreen } from "./cycle/BreakScreen";
+import { BreakScreen, type ComingBackTo } from "./cycle/BreakScreen";
 import { ExtensionScreen } from "./cycle/ExtensionScreen";
 import {
   clearExtension,
@@ -26,11 +26,13 @@ import { TreeScreen } from "./tree/TreeScreen";
 import { PageHeader } from "./ui/PageHeader";
 import { useNow } from "./useNow";
 import { loadToday } from "./today/loadToday";
+import { taskStrip } from "./start/startModel";
 import { StartScreen } from "./start/StartScreen";
 import {
   cycleContext,
   INBOX_ID,
   knownCycles,
+  taskAfterCycle,
   type TodayData,
   todayModel,
 } from "./today/todayModel";
@@ -42,7 +44,7 @@ type Screen =
   | { kind: "running"; cycle: CyclePb }
   | { kind: "bell"; cycle: CyclePb }
   | { kind: "extension"; cycle: CyclePb; extension: PendingExtension }
-  | { kind: "break" };
+  | { kind: "break"; comingBackTo: ComingBackTo };
 
 /** The extension to resume after a reload, if its cycle still has the minutes it started with. */
 function pendingExtensionFor(
@@ -131,7 +133,10 @@ export function App({
   const openView = (next: View) => {
     setView(next);
     if (next === "today") void showToday();
-    else setPreselectedNodeId(undefined);
+    else {
+      setPreselectedNodeId(undefined);
+      setPreselectedMode(undefined);
+    }
   };
 
   // Settings returns to the page it was opened from, with the new settings loaded.
@@ -286,9 +291,46 @@ export function App({
   );
 
   const [preselectedNodeId, setPreselectedNodeId] = useState<string>();
+  const [preselectedMode, setPreselectedMode] = useState<LoggedMode>();
   const openOnToday = (nodeId: string) => {
     setPreselectedNodeId(nodeId);
+    setPreselectedMode(undefined);
     openView("today");
+  };
+  /** Back to Start with the task and mode of the cycle before, as the bell shows them. */
+  const backToStart = (nodeId: string | undefined, mode: LoggedMode) => {
+    setPreselectedNodeId(nodeId);
+    setPreselectedMode(mode);
+    openView("today");
+  };
+  const breakAfterCycle = (loaded: TodayData, cycle: CyclePb) => {
+    const { nodeName, path } = cycleContext(loaded, cycle);
+    const mode = cycle.mode as LoggedMode;
+    setScreen({
+      kind: "break",
+      comingBackTo: {
+        mode,
+        taskName: cycle.nodeId === undefined ? undefined : nodeName,
+        path,
+        nodeId: taskAfterCycle(loaded, cycle),
+      },
+    });
+  };
+  const breakFromStart = (
+    loaded: TodayData,
+    nodeId: string,
+    mode: LoggedMode,
+  ) => {
+    const strip = taskStrip(loaded, nodeId);
+    setScreen({
+      kind: "break",
+      comingBackTo: {
+        mode,
+        taskName: strip?.name,
+        path: strip?.path ?? [],
+        nodeId,
+      },
+    });
   };
 
   const nav = (
@@ -357,15 +399,16 @@ export function App({
         <>
           {alert}
           <StartScreen
-            key={preselectedNodeId ?? "start"}
+            key={`${preselectedNodeId ?? "start"}-${preselectedMode ?? ""}`}
             data={data}
             timeZone={timeZone}
             busy={busy}
             initialNodeId={preselectedNodeId}
+            initialMode={preselectedMode}
             onStart={(nodeId, mode, plannedMinutes) =>
               void start(nodeId, mode, plannedMinutes)
             }
-            onBreak={() => setScreen({ kind: "break" })}
+            onBreak={(nodeId, mode) => breakFromStart(data, nodeId, mode)}
             onNewTask={() => openView("tree")}
             onOpenTasks={() => openView("tree")}
             onSignOut={signOut}
@@ -416,10 +459,13 @@ export function App({
           <RunningScreen
             key={screen.cycle.id}
             cycle={screen.cycle}
-            {...cycleContext(data, screen.cycle)}
+            nodeName={cycleContext(data, screen.cycle).nodeName}
+            path={cycleContext(data, screen.cycle).path}
+            email={data.email}
             timeZone={timeZone}
             busy={busy}
             onStop={stop}
+            onSignOut={signOut}
           />
         </>
       )}
@@ -427,15 +473,21 @@ export function App({
         <>
           {alert}
           <BellScreen
+            data={data}
             cycle={screen.cycle}
-            nodeName={cycleContext(data, screen.cycle).nodeName}
-            path={cycleContext(data, screen.cycle).path}
+            timeZone={timeZone}
             busy={busy}
             onExtend={(moreMinutes) =>
               startExtension(screen.cycle, moreMinutes)
             }
-            onBreak={() => setScreen({ kind: "break" })}
-            onNewCycle={() => void showToday()}
+            onBreak={() => breakAfterCycle(data, screen.cycle)}
+            onNewCycle={() =>
+              backToStart(
+                taskAfterCycle(data, screen.cycle),
+                screen.cycle.mode as LoggedMode,
+              )
+            }
+            onSignOut={signOut}
           />
         </>
       )}
@@ -448,16 +500,24 @@ export function App({
             extension={screen.extension}
             nodeName={cycleContext(data, screen.cycle).nodeName}
             path={cycleContext(data, screen.cycle).path}
+            email={data.email}
             timeZone={timeZone}
             busy={busy}
             onStop={stopExtension}
+            onSignOut={signOut}
           />
         </>
       )}
       {screen.kind === "break" && data && (
         <BreakScreen
+          comingBackTo={screen.comingBackTo}
           breakMinutes={data.settings.breakMinutes}
-          onDone={() => void showToday()}
+          email={data.email}
+          timeZone={timeZone}
+          onDone={() =>
+            backToStart(screen.comingBackTo.nodeId, screen.comingBackTo.mode)
+          }
+          onSignOut={signOut}
         />
       )}
     </div>

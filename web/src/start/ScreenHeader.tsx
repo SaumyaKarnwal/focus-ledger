@@ -6,7 +6,8 @@ type Props = {
   now: Date;
   timeZone: string;
   email: string;
-  onOpenTasks: () => void;
+  /** Without it, Tasks is shown but does nothing, as while a cycle runs. */
+  onOpenTasks?: () => void;
   onSignOut: () => void;
 };
 
@@ -36,9 +37,19 @@ export function ScreenHeader({
         >
           Report
         </span>
-        <button type="button" className="screen-nav-item" onClick={onOpenTasks}>
-          Tasks
-        </button>
+        {onOpenTasks ? (
+          <button
+            type="button"
+            className="screen-nav-item"
+            onClick={onOpenTasks}
+          >
+            Tasks
+          </button>
+        ) : (
+          <span className="screen-nav-item" aria-disabled="true">
+            Tasks
+          </span>
+        )}
         <span
           className="screen-nav-item"
           aria-disabled="true"
