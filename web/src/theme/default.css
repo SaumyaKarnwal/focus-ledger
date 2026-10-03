@@ -1,0 +1,97 @@
+/*
+ * The default theme (docs/design/theming.md). The only place with color values.
+ * Values come from the boards in docs/design/browser-v2/.
+ * Components read the semantic tokens below, never the palette.
+ */
+:root {
+  /* Palette */
+  --white: #ffffff;
+  --aubergine-600: #5e4459;
+  --rose-600: #a85e6b;
+  --sage-600: #4e807c;
+  --winter-700: #2b4653;
+  --mark-aubergine: #9b74a0;
+  --mark-rose: #c47f86;
+  --mark-sage: #6fa7a1;
+  --paper-100: #f4f1ea;
+  --paper-50: #fffdf8;
+  --ink-900: #2a2724;
+  --plum-950: #241a22;
+  --plum-500: #9a8e96;
+  --plum-200: #ebe1e7;
+  --plum-100: #f6f0f4;
+  --plum-50: #fbf7f9;
+  --red-600: #b45c66;
+  --chart-peach: #f5a07f;
+  --chart-sky: #8ab8ec;
+  --chart-leaf: #a4d49b;
+  --chart-sun: #edd57c;
+  --chart-lilac: #c9a3c4;
+  --chart-mint: #a6cfcb;
+
+  /* Mode screens: Start, Running, Bell, and Break */
+  --mode-deep-bg: var(--aubergine-600);
+  --mode-execution-bg: var(--rose-600);
+  --mode-shallow-bg: var(--sage-600);
+  --mode-break-bg: var(--winter-700);
+
+  /* On a mode screen */
+  --on-screen-strong: var(--white);
+  --on-screen: rgb(255 255 255 / 0.82);
+  --on-screen-muted: rgb(255 255 255 / 0.7);
+  --on-screen-faint: rgb(255 255 255 / 0.6);
+  --on-screen-plate: rgb(255 255 255 / 0.13);
+  --on-screen-rule: rgb(255 255 255 / 0.14);
+  --on-screen-outline: rgb(255 255 255 / 0.34);
+  --screen-glow: rgb(255 255 255 / 0.18);
+  --screen-glow-end: rgb(255 255 255 / 0);
+
+  /* Primary button on a mode screen. Its label takes the screen color (scope.css). */
+  --screen-cta-bg: var(--white);
+
+  /* Mode marks on light surfaces */
+  --mode-deep-mark: var(--mark-aubergine);
+  --mode-execution-mark: var(--mark-rose);
+  --mode-shallow-mark: var(--mark-sage);
+
+  /* Page: Tasks and the task page */
+  --paper: var(--paper-100);
+  --panel: var(--paper-50);
+  --ink-strong: var(--ink-900);
+  --ink: rgb(42 39 36 / 0.88);
+  --ink-muted: rgb(42 39 36 / 0.55);
+  --ink-faint: rgb(42 39 36 / 0.38);
+  --rule: rgb(42 39 36 / 0.085);
+  --rule-strong: rgb(42 39 36 / 0.18);
+  --row-hover: rgb(42 39 36 / 0.055);
+
+  /* Dialog: task picker, bell, new task, edit task */
+  --dialog-bg: var(--white);
+  --dialog-header-bg: var(--plum-50);
+  --dialog-fg: var(--plum-950);
+  --dialog-muted: var(--plum-500);
+  --dialog-rule: var(--plum-200);
+  --dialog-selected: var(--plum-100);
+  --scrim: rgb(33 23 31 / 0.58);
+  --dialog-shadow: rgb(20 12 18 / 0.44);
+
+  /* Accent: links, the New task pill, a dialog's primary button */
+  --accent: var(--aubergine-600);
+  --accent-on: var(--white);
+
+  /* State */
+  --over-estimate: var(--red-600);
+  --over-estimate-bg: rgb(180 92 102 / 0.13);
+  --focus-ring: var(--aubergine-600);
+
+  /* Chart: the "How it splits" ring. Never a mode color. */
+  --chart-1: var(--chart-peach);
+  --chart-2: var(--chart-sky);
+  --chart-3: var(--chart-leaf);
+  --chart-4: var(--chart-sun);
+  --chart-5: var(--chart-lilac);
+  --chart-6: var(--chart-mint);
+  --chart-other: rgb(42 39 36 / 0.16);
+
+  color-scheme: light;
+}

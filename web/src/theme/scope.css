@@ -1,0 +1,24 @@
+/*
+ * Mode scope (docs/design/theming.md). It holds no color values: it maps the
+ * screen tokens to the mode tokens of the theme. A screen root sets data-mode,
+ * and a component reads --screen-* or --mode without naming a mode.
+ */
+[data-mode="deep"] {
+  --screen-bg: var(--mode-deep-bg);
+  --mode: var(--mode-deep-mark);
+}
+[data-mode="execution"] {
+  --screen-bg: var(--mode-execution-bg);
+  --mode: var(--mode-execution-mark);
+}
+[data-mode="shallow"] {
+  --screen-bg: var(--mode-shallow-bg);
+  --mode: var(--mode-shallow-mark);
+}
+[data-mode="break"] {
+  --screen-bg: var(--mode-break-bg);
+}
+[data-mode] {
+  --screen-cta-fg: var(--screen-bg);
+  --screen-on: var(--on-screen);
+}
