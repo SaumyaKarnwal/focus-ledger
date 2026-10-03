@@ -71,12 +71,7 @@ export function TaskDialog({
     setError(undefined);
     try {
       const node = await onSave(
-        taskSave(
-          draft,
-          editing?.id,
-          branchKey.requestIdFor,
-          taskKey.requestIdFor,
-        ),
+        taskSave(draft, editing, branchKey.requestIdFor, taskKey.requestIdFor),
       );
       branchKey.done();
       taskKey.done();

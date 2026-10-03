@@ -443,15 +443,50 @@ describe("Edit task", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce());
-    expect(recording.updateNodeMasks).toEqual([
-      ["name", "parent_id", "estimates"],
-    ]);
+    expect(recording.updateNodeMasks).toEqual([["name", "parent_id"]]);
     expect(recording.createNodeRequestIds).toEqual([]);
     const [saved] = await createdNodes(recording.client, "Chapter one");
     expect(saved.parentId).toBeUndefined();
     expect(saved.estimates.map((estimate) => estimate.cycleCount)).toEqual([
       20,
     ]);
+  });
+
+  test("edit_nameOnly_sendsOnlyTheName", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    const onDone = renderEdit(recording.client, CHAPTER_1);
+
+    typeName("Chapter one");
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce());
+    expect(recording.updateNodeMasks).toEqual([["name"]]);
+    const [saved] = await createdNodes(recording.client, "Chapter one");
+    expect(saved.parentId).toBe(BOOK);
+  });
+
+  test("edit_estimateOnly_sendsOnlyTheEstimates", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    const onDone = renderEdit(recording.client, CHAPTER_1);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Execution cycles: One cycle less" }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce());
+    expect(recording.updateNodeMasks).toEqual([["estimates"]]);
+  });
+
+  test("edit_noChange_writesNothing", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    const onDone = renderEdit(recording.client, CHAPTER_1);
+
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce());
+    expect(recording.updateNodeMasks).toEqual([]);
+    expect(recording.createNodeRequestIds).toEqual([]);
   });
 
   test("edit_parentList_leavesOutTheTaskAndItsSubtree", () => {
