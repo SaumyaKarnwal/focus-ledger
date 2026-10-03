@@ -29,7 +29,7 @@ type Props = {
   email: string;
   timeZone: string;
   busy: boolean;
-  onStop: (totalMinutes: number) => void;
+  onStop: (totalMinutes: number, ranOut?: boolean) => void;
   onSignOut: () => void;
 };
 
@@ -53,7 +53,7 @@ export function ExtensionScreen({
   useEffect(() => {
     if (remaining === 0 && !endHandled.current) {
       endHandled.current = true;
-      onStop(extension.loggedMinutes + extension.minutes);
+      onStop(extension.loggedMinutes + extension.minutes, true);
     }
   }, [remaining, extension, onStop]);
 

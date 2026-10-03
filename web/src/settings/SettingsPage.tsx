@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LedgerClient } from "../api/ledgerClient";
 import { withRetry } from "../api/retry";
+import { type BellDeps, unlockAudio } from "../bell/bell";
 import { FocusMode } from "../gen/focusledger/v1/model_pb";
 import type { LoggedMode } from "../ledger/rollup";
 import { modeKey } from "../modes/modes";
@@ -39,6 +40,8 @@ const SOUND_NAMES: Record<BellSound, string> = {
 
 type Props = {
   client: LedgerClient;
+  /** Plays the sound previews and asks for the notification permission. */
+  bell: BellDeps;
   data: TodayData;
   timeZone: string;
   retryDelaysMs?: readonly number[];
@@ -56,6 +59,7 @@ type Props = {
  */
 export function SettingsPage({
   client,
+  bell,
   data,
   timeZone,
   retryDelaysMs,
@@ -68,6 +72,7 @@ export function SettingsPage({
   const [form, setForm] = useState<SettingsForm>(() => toForm(data.settings));
   const [local, setLocal] = useState<LocalSettings>(loadLocalSettings);
   const [error, setError] = useState<string>();
+  const [notifyNote, setNotifyNote] = useState<string>();
   const saved = useRef<SettingsForm>(toForm(data.settings));
   const latest = useRef(form);
   useEffect(() => {
@@ -108,6 +113,29 @@ export function SettingsPage({
     setForm((current) => ({ ...current, ...next }));
     if (timer.current !== undefined) clearTimeout(timer.current);
     timer.current = setTimeout(() => void flush(), SAVE_DELAY_MS);
+  };
+
+  // Turning notifications on asks the browser first. A refusal keeps the switch off.
+  const toggleNotifications = async () => {
+    if (form.notificationsEnabled) {
+      setNotifyNote(undefined);
+      change({ notificationsEnabled: false });
+      return;
+    }
+    const permission =
+      bell.permission() === "default"
+        ? await bell.requestPermission()
+        : bell.permission();
+    if (permission === "granted") {
+      setNotifyNote(undefined);
+      change({ notificationsEnabled: true });
+    } else {
+      setNotifyNote(
+        permission === "unsupported"
+          ? "This browser cannot show notifications."
+          : "The browser blocks notifications for this site. Allow them in the browser settings, then turn this on.",
+      );
+    }
   };
 
   const changeLocal = (next: Partial<LocalSettings>) => {
@@ -238,6 +266,9 @@ export function SettingsPage({
                   aria-checked={form.soundEnabled && local.sound === sound}
                   className="settings-chip"
                   onClick={() => {
+                    // The click is a user gesture, so the preview may play.
+                    unlockAudio();
+                    bell.play(sound, local.volume);
                     changeLocal({ sound });
                     if (!form.soundEnabled) change({ soundEnabled: true });
                   }}
@@ -283,15 +314,13 @@ export function SettingsPage({
           </SettingRow>
           <SettingRow
             label="Show a notification when it rings"
-            hint="Even when Ekagra is in another tab"
+            hint={notifyNote ?? "Even when Ekagra is in another tab"}
             labelId="settings-notify"
           >
             <Switch
               labelledBy="settings-notify"
               on={form.notificationsEnabled}
-              onToggle={() =>
-                change({ notificationsEnabled: !form.notificationsEnabled })
-              }
+              onToggle={() => void toggleNotifications()}
             />
           </SettingRow>
           <SettingRow label="Ring when a break ends" labelId="settings-ring">
@@ -331,7 +360,11 @@ function SettingRow({
         )}
         <span className="settings-label-text">
           <span id={labelId}>{label}</span>
-          {hint && <span className="settings-hint">{hint}</span>}
+          {hint && (
+            <span className="settings-hint" aria-live="polite">
+              {hint}
+            </span>
+          )}
         </span>
       </span>
       {children}

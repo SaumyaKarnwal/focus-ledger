@@ -31,7 +31,8 @@ type Props = {
   email: string;
   timeZone: string;
   busy: boolean;
-  onStop: (minutes: number) => void;
+  /** `ranOut` is true when the clock reached zero: the bell rings then. */
+  onStop: (minutes: number, ranOut?: boolean) => void;
   onSignOut: () => void;
 };
 
@@ -66,7 +67,7 @@ export function RunningScreen({
     if (endHandled.current) return;
     if (ended) {
       endHandled.current = true;
-      onStop(cycle.plannedMinutes);
+      onStop(cycle.plannedMinutes, true);
     } else if (tooLong) {
       endHandled.current = true;
       onStop(minutes);
