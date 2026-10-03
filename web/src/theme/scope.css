@@ -24,6 +24,7 @@
 [data-mode="break"] {
   --screen-bg: var(--mode-break-bg);
   --screen-glow: var(--mode-break-glow);
+  --mode: var(--mode-break-mark);
 }
 [data-mode] {
   --screen-cta-fg: var(--screen-bg);

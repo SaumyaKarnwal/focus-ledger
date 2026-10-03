@@ -62,14 +62,14 @@ function length() {
 }
 
 describe("Start", () => {
-  test("start_header_showsTheDateTasksAndInertReportAndSettings", async () => {
+  test("start_header_showsTheDateTasksSettingsAndInertReport", async () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
     const nav = await screen.findByRole("navigation", { name: "Views" });
 
     expect(screen.getByText("Sun 1 Nov")).toBeDefined();
     expect(within(nav).getByRole("button", { name: "Tasks" })).toBeDefined();
     expect(within(nav).queryByRole("button", { name: "Report" })).toBeNull();
-    expect(within(nav).queryByRole("button", { name: "Settings" })).toBeNull();
+    expect(within(nav).getByRole("button", { name: "Settings" })).toBeDefined();
     expect(within(nav).getByText("Report").getAttribute("aria-disabled")).toBe(
       "true",
     );

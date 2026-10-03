@@ -19,7 +19,7 @@ import type { CyclePb } from "./gen/focusledger/v1/model_pb";
 import { browserTimeZone, formatHeaderTime } from "./ledger/period";
 import type { LoggedMode } from "./ledger/rollup";
 import { ReportScreen } from "./report/ReportScreen";
-import { SettingsScreen } from "./settings/SettingsScreen";
+import { SettingsPage } from "./settings/SettingsPage";
 import { SignInScreen } from "./signIn/SignInScreen";
 import type { SignInMethod } from "./signIn/signInMethod";
 import { TasksPage } from "./tasks/TasksPage";
@@ -140,21 +140,7 @@ export function App({
     }
   };
 
-  // Settings returns to the page it was opened from, with the new settings loaded.
-  const [returnView, setReturnView] = useState<View>("today");
-  const openSettings = () => {
-    if (view !== "settings") setReturnView(view);
-    openView("settings");
-  };
-  const closeSettings = () => {
-    if (returnView === "today") openView("today");
-    else {
-      void refreshWithRetry().catch((reason: unknown) =>
-        setError(String(reason)),
-      );
-      openView(returnView);
-    }
-  };
+  const openSettings = () => openView("settings");
 
   const [loadAttempt, setLoadAttempt] = useState(0);
   useEffect(() => {
@@ -414,6 +400,7 @@ export function App({
             onBreak={(nodeId, mode) => breakFromStart(data, nodeId, mode)}
             onSaveTask={saveTask}
             onOpenTasks={() => openView("tree")}
+            onOpenSettings={openSettings}
             onSignOut={signOut}
           />
         </>
@@ -449,12 +436,18 @@ export function App({
       {!firstRun && screen.kind === "today" && data && view === "settings" && (
         <>
           {alert}
-          <SettingsScreen
+          <SettingsPage
             client={client}
-            settings={data.settings}
+            data={data}
+            timeZone={timeZone}
             retryDelaysMs={retryDelaysMs}
-            nav={nav}
-            onDone={closeSettings}
+            onSaved={() =>
+              void refreshWithRetry().catch((reason: unknown) =>
+                setError(String(reason)),
+              )
+            }
+            onOpenStart={() => openView("today")}
+            onOpenTasks={() => openView("tree")}
             onSignOut={signOut}
           />
         </>

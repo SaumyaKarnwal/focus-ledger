@@ -13,6 +13,7 @@
   --mark-aubergine: #9b74a0;
   --mark-rose: #c47f86;
   --mark-sage: #6fa7a1;
+  --mark-winter: #5b7f8c;
   --paper-100: #f4f1ea;
   --paper-75: #f5f2ea;
   --paper-50: #fffdf8;
@@ -78,6 +79,7 @@
   --mode-deep-mark: var(--mark-aubergine);
   --mode-execution-mark: var(--mark-rose);
   --mode-shallow-mark: var(--mark-sage);
+  --mode-break-mark: var(--mark-winter);
 
   /* Page: Tasks and the task page */
   --paper: var(--paper-100);
@@ -103,6 +105,9 @@
   /* The task page (boards E-Task-*) */
   --track: rgb(42 39 36 / 0.07);
   --axis: rgb(42 39 36 / 0.16);
+  /* Settings (board H-Settings-Stacked) */
+  --accent-tint: rgb(94 68 89 / 0.07);
+  --switch-knob: var(--white);
 
   /* Dialog: task picker, bell, new task, edit task */
   --dialog-bg: var(--plum-50);

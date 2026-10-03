@@ -1,0 +1,438 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { LedgerClient } from "../api/ledgerClient";
+import { withRetry } from "../api/retry";
+import { FocusMode } from "../gen/focusledger/v1/model_pb";
+import type { LoggedMode } from "../ledger/rollup";
+import { modeKey } from "../modes/modes";
+import { ScreenHeader } from "../start/ScreenHeader";
+import { MODE_NAMES, type TodayData } from "../today/todayModel";
+import { stepWithin } from "../tree/estimateModel";
+import { useNow } from "../useNow";
+import {
+  type BellSound,
+  LONG_BREAK_EVERY,
+  LONG_BREAK_LENGTH,
+  type LocalSettings,
+  loadLocalSettings,
+  saveLocalSettings,
+} from "./localSettings";
+import {
+  BREAK_LENGTH,
+  changedPaths,
+  MODE_LENGTH,
+  SAVE_DELAY_MS,
+  type SettingsForm,
+  toForm,
+} from "./settingsModel";
+
+const MODE_FIELDS: readonly [LoggedMode, keyof SettingsForm][] = [
+  [FocusMode.DEEP_FOCUS, "deepFocusMinutes"],
+  [FocusMode.EXECUTION, "executionMinutes"],
+  [FocusMode.SHALLOW, "shallowMinutes"],
+];
+
+const SOUND_NAMES: Record<BellSound, string> = {
+  bowl: "Bowl",
+  wood: "Wood",
+  chime: "Chime",
+};
+
+type Props = {
+  client: LedgerClient;
+  data: TodayData;
+  timeZone: string;
+  retryDelaysMs?: readonly number[];
+  /** Called after a server write, so that Start uses the new lengths. */
+  onSaved: () => void;
+  onOpenStart: () => void;
+  onOpenTasks: () => void;
+  onSignOut: () => void;
+};
+
+/**
+ * The Settings page (board H-Settings-Stacked). There is no Save button: a
+ * change saves at once. SettingsPb fields go to the server, the rest to
+ * browser storage (browser-v2 README, rule 6).
+ */
+export function SettingsPage({
+  client,
+  data,
+  timeZone,
+  retryDelaysMs,
+  onSaved,
+  onOpenStart,
+  onOpenTasks,
+  onSignOut,
+}: Props) {
+  const now = useNow(30_000);
+  const [form, setForm] = useState<SettingsForm>(() => toForm(data.settings));
+  const [local, setLocal] = useState<LocalSettings>(loadLocalSettings);
+  const [error, setError] = useState<string>();
+  const saved = useRef<SettingsForm>(toForm(data.settings));
+  const latest = useRef(form);
+  useEffect(() => {
+    latest.current = form;
+  }, [form]);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const flush = useCallback(async () => {
+    timer.current = undefined;
+    const draft = latest.current;
+    const paths = changedPaths(saved.current, draft);
+    if (paths.length === 0) return;
+    try {
+      await withRetry(
+        () => client.updateSettings({ settings: draft, updateMask: { paths } }),
+        retryDelaysMs,
+      );
+      saved.current = draft;
+      setError(undefined);
+      onSaved();
+    } catch {
+      setError("The change was not saved. Check the connection and try again.");
+    }
+  }, [client, retryDelaysMs, onSaved]);
+
+  // Leaving the page sends a change that is still waiting.
+  useEffect(
+    () => () => {
+      if (timer.current !== undefined) {
+        clearTimeout(timer.current);
+        void flush();
+      }
+    },
+    [flush],
+  );
+
+  const change = (next: Partial<SettingsForm>) => {
+    setForm((current) => ({ ...current, ...next }));
+    if (timer.current !== undefined) clearTimeout(timer.current);
+    timer.current = setTimeout(() => void flush(), SAVE_DELAY_MS);
+  };
+
+  const changeLocal = (next: Partial<LocalSettings>) => {
+    const updated = { ...local, ...next };
+    setLocal(updated);
+    saveLocalSettings(updated);
+  };
+
+  return (
+    <div className="tasks-page settings-page" data-surface="page">
+      <ScreenHeader
+        now={now}
+        timeZone={timeZone}
+        email={data.email}
+        current="settings"
+        onOpenHome={onOpenStart}
+        onOpenTasks={onOpenTasks}
+        onOpenSettings={() => {}}
+        onSignOut={onSignOut}
+      />
+      <main className="settings-main">
+        {error && (
+          <p className="alert" role="alert">
+            {error}
+          </p>
+        )}
+        <section className="settings-card" aria-labelledby="settings-cycles">
+          <div className="settings-card-head">
+            <h2 id="settings-cycles">Cycles</h2>
+            <p>
+              Where the clock starts. You can still change it before pressing
+              Start.
+            </p>
+          </div>
+          <h3 className="settings-group">Focus</h3>
+          {MODE_FIELDS.map(([mode, field]) => (
+            <SettingRow
+              key={mode}
+              label={MODE_NAMES[mode]}
+              mark={modeKey(mode)}
+            >
+              <Stepper
+                label={`${MODE_NAMES[mode]} minutes`}
+                value={form[field] as number}
+                unit="min"
+                onStep={(sign) =>
+                  change({
+                    [field]: stepWithin(
+                      form[field] as number,
+                      sign * MODE_LENGTH.step,
+                      MODE_LENGTH,
+                    ),
+                  })
+                }
+              />
+            </SettingRow>
+          ))}
+          <h3 className="settings-group">Breaks</h3>
+          <SettingRow label="Short break" mark="break">
+            <Stepper
+              label="Short break minutes"
+              value={form.breakMinutes}
+              unit="min"
+              onStep={(sign) =>
+                change({
+                  breakMinutes: stepWithin(
+                    form.breakMinutes,
+                    sign * BREAK_LENGTH.step,
+                    BREAK_LENGTH,
+                  ),
+                })
+              }
+            />
+          </SettingRow>
+          <SettingRow label="Long break" mark="break">
+            <Stepper
+              label="Long break minutes"
+              value={local.longBreakMinutes}
+              unit="min"
+              onStep={(sign) =>
+                changeLocal({
+                  longBreakMinutes: stepWithin(
+                    local.longBreakMinutes,
+                    sign * LONG_BREAK_LENGTH.step,
+                    LONG_BREAK_LENGTH,
+                  ),
+                })
+              }
+            />
+          </SettingRow>
+          <SettingRow label="Long break every">
+            <Stepper
+              label="Long break every"
+              value={local.longBreakEvery}
+              unit="cycles"
+              narrow
+              onStep={(sign) =>
+                changeLocal({
+                  longBreakEvery: stepWithin(
+                    local.longBreakEvery,
+                    sign * LONG_BREAK_EVERY.step,
+                    LONG_BREAK_EVERY,
+                  ),
+                })
+              }
+            />
+          </SettingRow>
+        </section>
+        <section className="settings-card" aria-labelledby="settings-bell">
+          <div className="settings-card-head">
+            <h2 id="settings-bell">The bell</h2>
+            <p>
+              Plays once, when a cycle or break runs out. Nothing starts on its
+              own.
+            </p>
+          </div>
+          <SettingRow label="Sound" labelId="settings-sound">
+            <span
+              className="settings-chips"
+              role="radiogroup"
+              aria-labelledby="settings-sound"
+            >
+              {(["bowl", "wood", "chime"] as const).map((sound) => (
+                <button
+                  key={sound}
+                  type="button"
+                  role="radio"
+                  aria-checked={form.soundEnabled && local.sound === sound}
+                  className="settings-chip"
+                  onClick={() => {
+                    changeLocal({ sound });
+                    if (!form.soundEnabled) change({ soundEnabled: true });
+                  }}
+                >
+                  <PlayIcon />
+                  {SOUND_NAMES[sound]}
+                </button>
+              ))}
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!form.soundEnabled}
+                className="settings-chip"
+                onClick={() => {
+                  if (form.soundEnabled) change({ soundEnabled: false });
+                }}
+              >
+                <PlayIcon />
+                Silent
+              </button>
+            </span>
+          </SettingRow>
+          <SettingRow label="Volume" labelId="settings-volume">
+            <span className="settings-volume">
+              <SpeakerIcon />
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                aria-labelledby="settings-volume"
+                value={Math.round(local.volume * 100)}
+                style={
+                  {
+                    "--fill": `${Math.round(local.volume * 100)}%`,
+                  } as React.CSSProperties
+                }
+                onChange={(event) =>
+                  changeLocal({ volume: Number(event.target.value) / 100 })
+                }
+              />
+            </span>
+          </SettingRow>
+          <SettingRow
+            label="Show a notification when it rings"
+            hint="Even when Ekagra is in another tab"
+            labelId="settings-notify"
+          >
+            <Switch
+              labelledBy="settings-notify"
+              on={form.notificationsEnabled}
+              onToggle={() =>
+                change({ notificationsEnabled: !form.notificationsEnabled })
+              }
+            />
+          </SettingRow>
+          <SettingRow label="Ring when a break ends" labelId="settings-ring">
+            <Switch
+              labelledBy="settings-ring"
+              on={local.ringWhenBreakEnds}
+              onToggle={() =>
+                changeLocal({ ringWhenBreakEnds: !local.ringWhenBreakEnds })
+              }
+            />
+          </SettingRow>
+        </section>
+      </main>
+    </div>
+  );
+}
+
+function SettingRow({
+  label,
+  hint,
+  mark,
+  labelId,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  /** A mode key or "break": draws the mark bar before the label. */
+  mark?: string;
+  labelId?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="settings-row" data-hint={hint !== undefined || undefined}>
+      <span className="settings-label">
+        {mark && (
+          <span className="settings-mark" data-mode={mark} aria-hidden="true" />
+        )}
+        <span className="settings-label-text">
+          <span id={labelId}>{label}</span>
+          {hint && <span className="settings-hint">{hint}</span>}
+        </span>
+      </span>
+      {children}
+    </div>
+  );
+}
+
+function Stepper({
+  label,
+  value,
+  unit,
+  narrow = false,
+  onStep,
+}: {
+  label: string;
+  value: number;
+  unit: string;
+  narrow?: boolean;
+  onStep: (sign: 1 | -1) => void;
+}) {
+  return (
+    <span className="settings-stepper">
+      <span className="estimate-edit-stepper" role="group" aria-label={label}>
+        <button
+          type="button"
+          aria-label={`${label}: less`}
+          onClick={() => onStep(-1)}
+        >
+          −
+        </button>
+        <output aria-label={label} data-narrow={narrow || undefined}>
+          {value}
+        </output>
+        <button
+          type="button"
+          aria-label={`${label}: more`}
+          onClick={() => onStep(1)}
+        >
+          +
+        </button>
+      </span>
+      <span
+        className="settings-unit"
+        data-wide={unit === "cycles" || undefined}
+      >
+        {unit}
+      </span>
+    </span>
+  );
+}
+
+function Switch({
+  labelledBy,
+  on,
+  onToggle,
+}: {
+  labelledBy: string;
+  on: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      className="settings-switch"
+      aria-checked={on}
+      aria-labelledby={labelledBy}
+      onClick={onToggle}
+    >
+      <span aria-hidden="true" />
+    </button>
+  );
+}
+
+function PlayIcon() {
+  return (
+    <svg
+      width="9"
+      height="10"
+      viewBox="0 0 9 10"
+      fill="currentColor"
+      aria-hidden="true"
+    >
+      <path d="M1 1v8l7-4z" />
+    </svg>
+  );
+}
+
+function SpeakerIcon() {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 6h3l4-3v10l-4-3H2z" />
+    </svg>
+  );
+}

@@ -9,6 +9,8 @@ type Props = {
   email: string;
   /** Without it, Tasks in the header is inert, as while a cycle runs. */
   onOpenTasks?: () => void;
+  /** Without it, Settings is inert, as while a cycle runs. */
+  onOpenSettings?: () => void;
   onSignOut: () => void;
   /** The middle of the screen: the modes on the left, the clock on the right. */
   children: ReactNode;
@@ -25,6 +27,7 @@ export function ModeScreenFrame({
   timeZone,
   email,
   onOpenTasks,
+  onOpenSettings,
   onSignOut,
   children,
   strip,
@@ -45,6 +48,7 @@ export function ModeScreenFrame({
           timeZone={timeZone}
           email={email}
           onOpenTasks={onOpenTasks}
+          onOpenSettings={onOpenSettings}
           onSignOut={onSignOut}
         />
         <div className="start-main">{children}</div>
