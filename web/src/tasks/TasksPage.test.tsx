@@ -207,31 +207,28 @@ describe("Tasks page", () => {
     expect(await parentOf(recording.client, "Taxes")).toBeUndefined();
   });
 
-  test("tasks_rowClick_opensTheEditDialogAndSaves", async () => {
-    const recording = recordingClient(exampleNodesWithNothingRunning());
-    await openTasksPage(recording.client);
+  test("tasks_rowClick_opensTheTaskPage", async () => {
+    await openTasksPage(
+      recordingClient(exampleNodesWithNothingRunning()).client,
+    );
 
     fireEvent.click(row("Admin"));
-    expect(screen.getByRole("dialog", { name: "Edit task" })).toBeDefined();
-    fireEvent.change(screen.getByRole("textbox", { name: "Task name" }), {
-      target: { value: "Paperwork" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(
-      await screen.findByRole("listitem", { name: "Paperwork" }),
+      screen.getByRole("button", { name: "Edit task, Admin" }),
     ).toBeDefined();
-    expect(recording.updateNodeMasks).toEqual([["name"]]);
+    expect(screen.queryByRole("list", { name: "Tasks" })).toBeNull();
   });
 
-  test("tasks_chevronClick_doesNotOpenTheDialog", async () => {
+  test("tasks_chevronClick_doesNotOpenTheTaskPage", async () => {
     await openTasksPage(
       recordingClient(exampleNodesWithNothingRunning()).client,
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Collapse Book" }));
 
-    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(screen.getByRole("list", { name: "Tasks" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: /^Edit task/ })).toBeNull();
   });
 
   test("tasks_header_opensReportSettingsAndStart", async () => {
