@@ -84,7 +84,7 @@ describe("Start", () => {
 
     fireEvent.click(within(nav).getByRole("button", { name: "Tasks" }));
 
-    expect(await screen.findByRole("list", { name: "Nodes" })).toBeDefined();
+    expect(await screen.findByRole("list", { name: "Tasks" })).toBeDefined();
   });
 
   test("start_mode_colorsTheWholeScreenAndSetsItsLength", async () => {

@@ -35,7 +35,7 @@ export function flattenTree(rows: readonly TreeRow[]): TreeRow[] {
 }
 
 /** What a move of the row carries (FR-7.6), or undefined when it has no logged cycle. */
-export function moveSummary(row: TreeRow): string | undefined {
+export function moveSummary(row: Pick<TreeRow, "rollUp">): string | undefined {
   const { doneCycles, minutes } = row.rollUp.rolledUp;
   if (doneCycles === 0) return undefined;
   const cycles = doneCycles === 1 ? "1 cycle" : `${doneCycles} cycles`;

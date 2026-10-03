@@ -8,55 +8,60 @@ type Props = {
   email: string;
   /** Without it, Tasks is shown but does nothing, as while a cycle runs. */
   onOpenTasks?: () => void;
+  /** Report and Settings open only from the Tasks page until their v2 pages exist. */
+  onOpenReport?: () => void;
+  onOpenSettings?: () => void;
+  /** The brand goes to Start. The Tasks page has no other way back. */
+  onOpenHome?: () => void;
+  /** The view this header sits on. */
+  current?: "tasks";
   onSignOut: () => void;
 };
 
 /**
- * The header of the mode screens. Report and Settings have no v2 board yet,
- * so they are shown but do nothing (browser-v2 README).
+ * The header of the mode screens and of the Tasks page. Report and Settings
+ * have no v2 page yet, so on Start and Running they are shown but do nothing
+ * (browser-v2 README).
  */
 export function ScreenHeader({
   now,
   timeZone,
   email,
   onOpenTasks,
+  onOpenReport,
+  onOpenSettings,
+  current,
+  onOpenHome,
   onSignOut,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   return (
     <header className="screen-header">
       <span className="screen-brand">
-        <h1 className="screen-brand-name">{PRODUCT_NAME}</h1>
+        <h1 className="screen-brand-name">
+          {onOpenHome ? (
+            <button
+              type="button"
+              className="screen-home"
+              aria-label={`${PRODUCT_NAME}, back to Start`}
+              onClick={onOpenHome}
+            >
+              {PRODUCT_NAME}
+            </button>
+          ) : (
+            PRODUCT_NAME
+          )}
+        </h1>
         <span className="screen-label">{formatDayLabel(now, timeZone)}</span>
       </span>
       <nav className="screen-nav" aria-label="Views">
-        <span
-          className="screen-nav-item"
-          aria-disabled="true"
-          title="Not in this version yet"
-        >
-          Report
-        </span>
-        {onOpenTasks ? (
-          <button
-            type="button"
-            className="screen-nav-item"
-            onClick={onOpenTasks}
-          >
-            Tasks
-          </button>
-        ) : (
-          <span className="screen-nav-item" aria-disabled="true">
-            Tasks
-          </span>
-        )}
-        <span
-          className="screen-nav-item"
-          aria-disabled="true"
-          title="Not in this version yet"
-        >
-          Settings
-        </span>
+        <NavItem label="Report" onOpen={onOpenReport} />
+        <NavItem
+          label="Tasks"
+          onOpen={onOpenTasks}
+          current={current === "tasks"}
+        />
+        <NavItem label="Settings" onOpen={onOpenSettings} />
         <span className="screen-account">
           <button
             type="button"
@@ -78,5 +83,34 @@ export function ScreenHeader({
         </span>
       </nav>
     </header>
+  );
+}
+
+function NavItem({
+  label,
+  onOpen,
+  current = false,
+}: {
+  label: string;
+  onOpen?: () => void;
+  current?: boolean;
+}) {
+  return onOpen ? (
+    <button
+      type="button"
+      className="screen-nav-item"
+      aria-current={current ? "page" : undefined}
+      onClick={onOpen}
+    >
+      {label}
+    </button>
+  ) : (
+    <span
+      className="screen-nav-item"
+      aria-disabled="true"
+      aria-current={current ? "page" : undefined}
+    >
+      {label}
+    </span>
   );
 }

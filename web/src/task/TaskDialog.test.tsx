@@ -172,6 +172,22 @@ describe("New task", () => {
     expect(parentButton().textContent).toContain("None");
   });
 
+  test("newTask_responseLost_retriesWithTheSameRequestId", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await openNewTask(recording.client);
+    typeName("Migrations");
+
+    recording.loseNextResponse();
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    expect(
+      await screen.findByText("Migrations", { selector: ".task-strip-name" }),
+    ).toBeDefined();
+    expect(recording.createNodeRequestIds).toHaveLength(2);
+    expect(new Set(recording.createNodeRequestIds).size).toBe(1);
+    expect(await createdNodes(recording.client, "Migrations")).toHaveLength(1);
+  });
+
   test("newTask_noName_cannotCreate", async () => {
     await openNewTask(recordingClient(exampleNodesWithNothingRunning()).client);
 
