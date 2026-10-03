@@ -184,7 +184,7 @@ describe("Start", () => {
         initialNodeId={INBOX_ID}
         onStart={() => {}}
         onBreak={() => {}}
-        onNewTask={() => {}}
+        onSaveTask={async () => undefined}
         onOpenTasks={() => {}}
         onSignOut={() => {}}
       />,

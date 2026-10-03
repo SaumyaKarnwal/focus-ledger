@@ -1,9 +1,10 @@
 import { type ReactNode, useState } from "react";
-import { FocusMode } from "../gen/focusledger/v1/model_pb";
+import { FocusMode, type NodePb } from "../gen/focusledger/v1/model_pb";
 import { LOGGED_MODES, type LoggedMode } from "../ledger/rollup";
 import { modeKey } from "../modes/modes";
 import {
   INBOX_ID,
+  knownNodes,
   MODE_NAMES,
   plannedMinutesFor,
   type TodayData,
@@ -13,6 +14,9 @@ import { useNow } from "../useNow";
 import { ModeScreenFrame } from "./ModeScreenFrame";
 import { taskStrip } from "./startModel";
 import { TaskPicker } from "./TaskPicker";
+import type { TaskSave } from "../task/saveTask";
+import { TaskDialog } from "../task/TaskDialog";
+import { parentChoiceOf } from "../task/taskDialogModel";
 
 const LENGTH_STEP = 5;
 const LENGTH_MIN = 5;
@@ -29,7 +33,8 @@ type Props = {
   overlay?: ReactNode;
   onStart: (nodeId: string, mode: LoggedMode, plannedMinutes: number) => void;
   onBreak: (nodeId: string, mode: LoggedMode) => void;
-  onNewTask: () => void;
+  /** Writes a task from the New task dialog and reloads the data. */
+  onSaveTask: (save: TaskSave) => Promise<NodePb | undefined>;
   onOpenTasks?: () => void;
   onSignOut: () => void;
 };
@@ -44,7 +49,7 @@ export function StartScreen({
   overlay,
   onStart,
   onBreak,
-  onNewTask,
+  onSaveTask,
   onOpenTasks,
   onSignOut,
 }: Props) {
@@ -61,6 +66,7 @@ export function StartScreen({
   );
   const strip = taskStrip(data, nodeId);
   const [picking, setPicking] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const chooseMode = (next: LoggedMode) => {
     setMode(next);
@@ -108,22 +114,36 @@ export function StartScreen({
         </>
       }
       overlay={
-        overlay ??
-        (picking && (
-          <TaskPicker
+        (overlay ??
+          (picking && (
+            <TaskPicker
+              data={data}
+              now={now}
+              timeZone={timeZone}
+              currentNodeId={nodeId}
+              onPick={(picked) => {
+                setNodeId(picked);
+                setPicking(false);
+              }}
+              onNewTask={() => {
+                setPicking(false);
+                setCreating(true);
+              }}
+              onClose={() => setPicking(false)}
+            />
+          ))) ||
+        (creating && (
+          <TaskDialog
             data={data}
-            now={now}
-            timeZone={timeZone}
-            currentNodeId={nodeId}
-            onPick={(picked) => {
-              setNodeId(picked);
-              setPicking(false);
+            initialParent={parentChoiceOf(
+              knownNodes(data).find((node) => node.id === nodeId),
+            )}
+            onSave={onSaveTask}
+            onDone={(node) => {
+              setNodeId(node.id);
+              setCreating(false);
             }}
-            onNewTask={() => {
-              setPicking(false);
-              onNewTask();
-            }}
-            onClose={() => setPicking(false)}
+            onClose={() => setCreating(false)}
           />
         ))
       }

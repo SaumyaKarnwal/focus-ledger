@@ -27,6 +27,7 @@ import { PageHeader } from "./ui/PageHeader";
 import { useNow } from "./useNow";
 import { loadToday } from "./today/loadToday";
 import { taskStrip } from "./start/startModel";
+import { type TaskSave, writeTask } from "./task/saveTask";
 import { StartScreen } from "./start/StartScreen";
 import {
   cycleContext,
@@ -208,6 +209,13 @@ export function App({
     () => withRetry(refresh, retryDelaysMs),
     [refresh, retryDelaysMs],
   );
+
+  const saveTask = async (save: TaskSave) => {
+    const node = await writeTask(client, save, retryDelaysMs);
+    // The task is saved. A failed reload must not show the save as failed.
+    await refreshWithRetry().catch(() => undefined);
+    return node;
+  };
 
   const start = (nodeId: string, mode: LoggedMode, plannedMinutes: number) =>
     act(async () => {
@@ -409,7 +417,7 @@ export function App({
               void start(nodeId, mode, plannedMinutes)
             }
             onBreak={(nodeId, mode) => breakFromStart(data, nodeId, mode)}
-            onNewTask={() => openView("tree")}
+            onSaveTask={saveTask}
             onOpenTasks={() => openView("tree")}
             onSignOut={signOut}
           />

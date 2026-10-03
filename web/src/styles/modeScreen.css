@@ -586,3 +586,273 @@
   font-size: 14px;
   color: var(--on-screen);
 }
+
+/* The New task and Edit task dialog */
+
+.task-dialog {
+  width: 580px;
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 32px 32px 28px;
+  background: var(--dialog-bg);
+  color: var(--dialog-fg);
+  border-radius: 14px;
+  box-shadow: 0 32px 80px var(--dialog-shadow);
+}
+.task-dialog-name {
+  min-height: 64px;
+  padding: 0 18px;
+  background: var(--dialog-field-bg);
+  border: 1.5px solid var(--accent);
+  border-radius: 10px;
+  outline: 0;
+  font-size: 21px;
+  color: var(--dialog-fg);
+  caret-color: var(--accent);
+}
+.task-dialog-name::placeholder {
+  color: var(--dialog-placeholder);
+}
+.task-dialog-parent {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 56px;
+  padding: 0 18px;
+  background: var(--dialog-inset-bg);
+  border: 0;
+  border-radius: 9px;
+  text-align: left;
+  color: var(--dialog-faint);
+}
+.task-dialog-label {
+  font-size: 15px;
+  color: var(--dialog-muted);
+}
+.task-dialog-parent-path {
+  margin-left: auto;
+  font-size: 15.5px;
+  color: var(--dialog-fg);
+}
+.task-dialog-estimate {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.task-dialog-estimate-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 2px;
+}
+.task-dialog-hint {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dialog-faint);
+}
+.task-estimate {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 11px 14px;
+  background: var(--dialog-bg);
+  border: 1px solid var(--dialog-rule);
+  border-radius: 8px;
+}
+.task-estimate:focus-within {
+  padding: 10.5px 13.5px;
+  background: var(--dialog-focus-bg);
+  border: 1.5px solid var(--dialog-mode);
+}
+.task-estimate-bar {
+  width: 6px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  background: var(--dialog-mode);
+}
+.task-estimate-name {
+  width: 108px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.estimate-stepper {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.estimate-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: 19px;
+  font-weight: 300;
+  color: var(--dialog-step);
+}
+.estimate-value {
+  min-width: 34px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.estimate-value[data-narrow] {
+  min-width: 22px;
+}
+.task-estimate-unit {
+  font-size: 11.5px;
+  color: var(--dialog-faint);
+}
+.task-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.task-dialog-actions .bell-outline {
+  min-height: 54px;
+}
+.task-dialog-save {
+  min-height: 54px;
+  padding: 0 30px;
+  background: var(--accent);
+  border: 0;
+  border-radius: 9px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--dialog-bg);
+}
+.task-dialog-save:disabled {
+  opacity: 0.45;
+}
+
+/* The parent tree */
+
+.task-parent {
+  width: 580px;
+}
+.task-parent-list {
+  flex-grow: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+.parent-row {
+  display: flex;
+  align-items: stretch;
+  min-height: 56px;
+  padding: 0 20px 0 26px;
+}
+.parent-row:hover {
+  background: var(--dialog-inset-bg);
+}
+.parent-row[data-adding] {
+  background: var(--dialog-focus-bg);
+}
+.parent-pick {
+  flex-grow: 1;
+  display: flex;
+  align-items: stretch;
+  padding: 0;
+  background: none;
+  border: 0;
+  text-align: left;
+  color: var(--dialog-fg);
+}
+.parent-row[data-none] .parent-pick {
+  color: var(--dialog-faint);
+}
+.parent-name {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+  padding-left: 6px;
+  font-size: 16px;
+}
+.parent-row[data-none] .parent-name,
+.parent-pick > .parent-name:first-child {
+  padding-left: 0;
+}
+.parent-pick[aria-pressed="true"] .parent-name {
+  font-weight: 600;
+}
+.parent-path {
+  margin-left: 6px;
+  font-size: 13.5px;
+  font-weight: 400;
+  color: var(--dialog-faint);
+}
+.parent-time {
+  align-self: center;
+  margin-right: 14px;
+  font-family: var(--mono);
+  font-size: 12.5px;
+  white-space: nowrap;
+  color: var(--dialog-faint);
+}
+.parent-add {
+  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--dialog-step);
+  opacity: 0;
+}
+.parent-row:hover .parent-add,
+.parent-add:focus-visible {
+  opacity: 1;
+}
+.parent-guide,
+.parent-elbow {
+  position: relative;
+  width: 24px;
+  flex-shrink: 0;
+}
+.parent-guide[data-line]::before,
+.parent-elbow::before,
+.parent-elbow::after {
+  content: "";
+  position: absolute;
+  left: 11px;
+  background: var(--dialog-guide);
+}
+.parent-guide[data-line]::before,
+.parent-elbow::before {
+  top: 0;
+  bottom: 0;
+  width: 1px;
+}
+.parent-elbow[data-last]::before {
+  bottom: 50%;
+}
+.parent-elbow::after {
+  top: 50%;
+  width: 11px;
+  height: 1px;
+}
+.parent-new-name {
+  flex-grow: 1;
+  min-width: 0;
+  padding: 0 0 0 6px;
+  background: none;
+  border: 0;
+  outline: 0;
+  font-size: 16px;
+  color: var(--dialog-fg);
+  caret-color: var(--accent);
+}

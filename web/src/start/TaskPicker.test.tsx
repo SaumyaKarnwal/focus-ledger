@@ -183,12 +183,13 @@ describe("Task picker", () => {
     ).toBeDefined();
   });
 
-  test("picker_newTask_opensTheTasksPage", async () => {
+  test("picker_newTask_opensTheNewTaskDialog", async () => {
     await openPicker(recordingClient(exampleNodesWithNothingRunning()).client);
 
     fireEvent.click(screen.getByRole("button", { name: "New task" }));
 
-    expect(await screen.findByRole("list", { name: "Nodes" })).toBeDefined();
+    expect(screen.getByRole("dialog", { name: "New task" })).toBeDefined();
+    expect(screen.queryByRole("dialog", { name: "Choose a task" })).toBeNull();
   });
 
   test("picker_noTasks_showsOnlyNotSureYet", async () => {
