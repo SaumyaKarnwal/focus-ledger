@@ -139,7 +139,7 @@ function CrossIcon() {
       height="17"
       viewBox="0 0 16 16"
       fill="none"
-      stroke="var(--faint)"
+      stroke="var(--ink-faint)"
       strokeWidth="1.6"
       strokeLinecap="round"
       aria-hidden="true"
