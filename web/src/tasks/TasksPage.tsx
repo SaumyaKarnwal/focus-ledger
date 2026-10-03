@@ -7,6 +7,7 @@ import { modeKey } from "../modes/modes";
 import { ScreenHeader } from "../start/ScreenHeader";
 import type { TaskSave } from "../task/saveTask";
 import { TaskDialog } from "../task/TaskDialog";
+import { TaskPage } from "../taskPage/TaskPage";
 import { formatMinutes, MODE_NAMES, type TodayData } from "../today/todayModel";
 import { moveSummary } from "../tree/treeModel";
 import { useAction } from "../useAction";
@@ -72,6 +73,7 @@ export function TasksPage({
   );
   const [allUntagged, setAllUntagged] = useState(false);
   const [dialog, setDialog] = useState<{ editing?: NodePb }>();
+  const [openNodeId, setOpenNodeId] = useState<string>();
   const [dragging, setDragging] = useState<Dragging>();
   const [dropTarget, setDropTarget] = useState<string | null>();
   const [pointer, setPointer] = useState<{ x: number; y: number }>();
@@ -81,6 +83,7 @@ export function TasksPage({
   const tree = taskTree(all);
   const rows = visibleRows(tree, collapsed);
   const inbox = untagged(all);
+  const openRow = findRow(tree, openNodeId);
   const draggedTask =
     dragging?.kind === "task" ? findRow(tree, dragging.nodeId) : undefined;
 
@@ -93,7 +96,7 @@ export function TasksPage({
     });
 
   const write = (call: () => Promise<unknown>) =>
-    void run(async () => {
+    run(async () => {
       try {
         await withRetry(call, retryDelaysMs);
       } finally {
@@ -102,7 +105,7 @@ export function TasksPage({
     });
 
   const moveTask = (row: TaskRow, parentId: string | undefined) =>
-    write(() =>
+    void write(() =>
       client.updateNode({
         nodeId: row.node.id,
         parentId,
@@ -111,7 +114,7 @@ export function TasksPage({
     );
 
   const fileCycle = (cycle: CyclePb, nodeId: string) =>
-    write(() =>
+    void write(() =>
       client.updateCycle({
         cycleId: cycle.id,
         nodeId,
@@ -208,180 +211,218 @@ export function TasksPage({
         onOpenSettings={onOpenSettings}
         onSignOut={onSignOut}
       />
-      <main className="tasks-main">
-        <div className="tasks-bar">
-          <button
-            type="button"
-            className="tasks-new"
-            onClick={() => setDialog({})}
-          >
-            <PlusIcon />
-            New task
-          </button>
-        </div>
-        {(error || loadError) && (
-          <p className="alert" role="alert">
-            {error ?? loadError}
-          </p>
-        )}
-        <section
-          className="tasks-panel"
-          aria-label="Tasks"
-          data-empty={noTasks || undefined}
-          onDragOver={(event) =>
-            dragging && setPointer({ x: event.clientX, y: event.clientY })
-          }
-        >
-          <div className="tasks-head" aria-hidden="true">
-            <span className="tasks-col-name">Name</span>
-            <span className="tasks-col">Logged</span>
-            <span className="tasks-col">Estimate</span>
-            <span className="tasks-col tasks-col-last">
-              Last worked
-              <SortIcon />
-            </span>
-            <span className="tasks-col-end" />
+      {openRow ? (
+        <main className="tasks-main task-page-main">
+          {(error || loadError) && (
+            <p className="alert" role="alert">
+              {error ?? loadError}
+            </p>
+          )}
+          <TaskPage
+            row={openRow}
+            path={openRow.path}
+            settings={data.settings}
+            now={now}
+            timeZone={timeZone}
+            busy={busy}
+            onBack={() => setOpenNodeId(undefined)}
+            onEdit={() => setDialog({ editing: openRow.node })}
+            onSetCompleted={(completed) =>
+              void write(() =>
+                client.updateNode({
+                  nodeId: openRow.node.id,
+                  closed: completed,
+                  updateMask: { paths: ["closed"] },
+                }),
+              )
+            }
+            onSaveEstimate={(estimates) =>
+              write(() =>
+                client.updateNode({
+                  nodeId: openRow.node.id,
+                  estimates,
+                  updateMask: { paths: ["estimates"] },
+                }),
+              )
+            }
+          />
+        </main>
+      ) : (
+        <main className="tasks-main">
+          <div className="tasks-bar">
+            <button
+              type="button"
+              className="tasks-new"
+              onClick={() => setDialog({})}
+            >
+              <PlusIcon />
+              New task
+            </button>
           </div>
-          <ul className="tasks-rows" aria-label="Tasks">
-            {draggedTask && draggedTask.node.parentId !== undefined && (
-              <li
-                className="tasks-row tasks-top-zone"
-                data-drop-target={dropTarget === null}
-                {...dropProps(undefined)}
-              >
-                Move to the top level
-              </li>
-            )}
-            <li aria-label="Untagged" className="tasks-group">
-              <div className="tasks-row" data-untagged="true">
-                <span className="tasks-col-name">
-                  {inbox.cycles.length > 0 ? (
-                    <button
-                      type="button"
-                      className="tasks-chevron"
-                      aria-label={
-                        untaggedOpen ? "Collapse Untagged" : "Expand Untagged"
-                      }
-                      aria-expanded={untaggedOpen}
-                      onClick={() => toggle(UNTAGGED_KEY)}
-                    >
-                      <Chevron open={untaggedOpen} />
-                    </button>
-                  ) : (
-                    <span className="tasks-chevron-space" />
-                  )}
-                  <span className="tasks-name-stack">
-                    <span className="tasks-name">Untagged</span>
-                    {noTasks && (
-                      <span className="tasks-hint">
-                        Cycles you run without picking a task land here.
-                      </span>
-                    )}
-                  </span>
-                </span>
-                <span className="tasks-col tasks-logged">
-                  {formatMinutes(inbox.minutes)}
-                </span>
-                <span className="tasks-col" />
-                <span className="tasks-col tasks-col-last tasks-when">
-                  {inbox.latest
-                    ? formatUntaggedLatest(inbox.latest, now, timeZone)
-                    : ""}
-                </span>
-                <span className="tasks-col-end" />
-              </div>
-              {untaggedOpen && (
-                <ul aria-label="Untagged cycles">
-                  {inboxShown.map((cycle) => (
-                    <li
-                      key={cycle.id}
-                      className="tasks-row tasks-cycle"
-                      aria-label={`${MODE_NAMES[cycle.mode as LoggedMode]}, ${cycle.minutes} min`}
-                      data-dragging={
-                        dragging?.kind === "cycle" &&
-                        dragging.cycle.id === cycle.id
-                      }
-                      draggable
-                      onDragStart={(event) =>
-                        startDrag(event, { kind: "cycle", cycle })
-                      }
-                      onDragEnd={endDrag}
-                    >
-                      <span className="tasks-col-name" data-depth="1">
-                        <span className="tasks-chevron-space" />
-                        <span
-                          className="tasks-dot"
-                          data-mode={modeKey(cycle.mode)}
-                          aria-hidden="true"
-                        />
-                        <span className="tasks-cycle-mode">
-                          {MODE_NAMES[cycle.mode as LoggedMode]}
-                        </span>
-                      </span>
-                      <span className="tasks-col tasks-logged tasks-muted">
-                        {cycle.minutes}m
-                      </span>
-                      <span className="tasks-col" />
-                      <span className="tasks-col tasks-col-last tasks-when">
-                        {formatWhen(cycleStart(cycle), now, timeZone)}
-                      </span>
-                      <span className="tasks-col-end">
-                        <Grip />
-                      </span>
-                    </li>
-                  ))}
-                  {!allUntagged && inbox.cycles.length > UNTAGGED_SHOWN && (
-                    <li className="tasks-row tasks-cycle">
-                      <span className="tasks-col-name" data-depth="1">
-                        <span className="tasks-chevron-space" />
-                        <button
-                          type="button"
-                          className="tasks-older"
-                          onClick={() => setAllUntagged(true)}
-                        >
-                          {inbox.cycles.length - UNTAGGED_SHOWN} older
-                        </button>
-                      </span>
-                    </li>
-                  )}
-                </ul>
-              )}
-            </li>
-            {rows.map((row) => (
-              <TaskLine
-                key={row.node.id}
-                row={row}
-                now={now}
-                timeZone={timeZone}
-                open={!collapsed.has(row.node.id)}
-                dragging={
-                  dragging?.kind === "task" && dragging.nodeId === row.node.id
-                }
-                dropTarget={dropTarget === row.node.id}
-                onToggle={() => toggle(row.node.id)}
-                onOpen={() => setDialog({ editing: row.node })}
-                onDragStart={(event) =>
-                  startDrag(event, { kind: "task", nodeId: row.node.id })
-                }
-                onDragEnd={endDrag}
-                dropProps={row.closed ? {} : dropProps(row.node.id)}
-              />
-            ))}
-          </ul>
-          {noTasks && (
-            <div className="tasks-empty">
-              <p className="tasks-empty-title">No tasks yet</p>
-              <p className="tasks-empty-text">
-                Use New task above. Each task gets a row here, with the time you
-                log against it and how that compares to your estimate.
-              </p>
+          {(error || loadError) && (
+            <p className="alert" role="alert">
+              {error ?? loadError}
+            </p>
+          )}
+          <section
+            className="tasks-panel"
+            aria-label="Tasks"
+            data-empty={noTasks || undefined}
+            onDragOver={(event) =>
+              dragging && setPointer({ x: event.clientX, y: event.clientY })
+            }
+          >
+            <div className="tasks-head" aria-hidden="true">
+              <span className="tasks-col-name">Name</span>
+              <span className="tasks-col">Logged</span>
+              <span className="tasks-col">Estimate</span>
+              <span className="tasks-col tasks-col-last">
+                Last worked
+                <SortIcon />
+              </span>
+              <span className="tasks-col-end" />
             </div>
-          )}
-          {nodes === undefined && !loadError && (
-            <p className="tasks-empty-text">Loading…</p>
-          )}
-        </section>
-      </main>
+            <ul className="tasks-rows" aria-label="Tasks">
+              {draggedTask && draggedTask.node.parentId !== undefined && (
+                <li
+                  className="tasks-row tasks-top-zone"
+                  data-drop-target={dropTarget === null}
+                  {...dropProps(undefined)}
+                >
+                  Move to the top level
+                </li>
+              )}
+              <li aria-label="Untagged" className="tasks-group">
+                <div className="tasks-row" data-untagged="true">
+                  <span className="tasks-col-name">
+                    {inbox.cycles.length > 0 ? (
+                      <button
+                        type="button"
+                        className="tasks-chevron"
+                        aria-label={
+                          untaggedOpen ? "Collapse Untagged" : "Expand Untagged"
+                        }
+                        aria-expanded={untaggedOpen}
+                        onClick={() => toggle(UNTAGGED_KEY)}
+                      >
+                        <Chevron open={untaggedOpen} />
+                      </button>
+                    ) : (
+                      <span className="tasks-chevron-space" />
+                    )}
+                    <span className="tasks-name-stack">
+                      <span className="tasks-name">Untagged</span>
+                      {noTasks && (
+                        <span className="tasks-hint">
+                          Cycles you run without picking a task land here.
+                        </span>
+                      )}
+                    </span>
+                  </span>
+                  <span className="tasks-col tasks-logged">
+                    {formatMinutes(inbox.minutes)}
+                  </span>
+                  <span className="tasks-col" />
+                  <span className="tasks-col tasks-col-last tasks-when">
+                    {inbox.latest
+                      ? formatUntaggedLatest(inbox.latest, now, timeZone)
+                      : ""}
+                  </span>
+                  <span className="tasks-col-end" />
+                </div>
+                {untaggedOpen && (
+                  <ul aria-label="Untagged cycles">
+                    {inboxShown.map((cycle) => (
+                      <li
+                        key={cycle.id}
+                        className="tasks-row tasks-cycle"
+                        aria-label={`${MODE_NAMES[cycle.mode as LoggedMode]}, ${cycle.minutes} min`}
+                        data-dragging={
+                          dragging?.kind === "cycle" &&
+                          dragging.cycle.id === cycle.id
+                        }
+                        draggable
+                        onDragStart={(event) =>
+                          startDrag(event, { kind: "cycle", cycle })
+                        }
+                        onDragEnd={endDrag}
+                      >
+                        <span className="tasks-col-name" data-depth="1">
+                          <span className="tasks-chevron-space" />
+                          <span
+                            className="tasks-dot"
+                            data-mode={modeKey(cycle.mode)}
+                            aria-hidden="true"
+                          />
+                          <span className="tasks-cycle-mode">
+                            {MODE_NAMES[cycle.mode as LoggedMode]}
+                          </span>
+                        </span>
+                        <span className="tasks-col tasks-logged tasks-muted">
+                          {cycle.minutes}m
+                        </span>
+                        <span className="tasks-col" />
+                        <span className="tasks-col tasks-col-last tasks-when">
+                          {formatWhen(cycleStart(cycle), now, timeZone)}
+                        </span>
+                        <span className="tasks-col-end">
+                          <Grip />
+                        </span>
+                      </li>
+                    ))}
+                    {!allUntagged && inbox.cycles.length > UNTAGGED_SHOWN && (
+                      <li className="tasks-row tasks-cycle">
+                        <span className="tasks-col-name" data-depth="1">
+                          <span className="tasks-chevron-space" />
+                          <button
+                            type="button"
+                            className="tasks-older"
+                            onClick={() => setAllUntagged(true)}
+                          >
+                            {inbox.cycles.length - UNTAGGED_SHOWN} older
+                          </button>
+                        </span>
+                      </li>
+                    )}
+                  </ul>
+                )}
+              </li>
+              {rows.map((row) => (
+                <TaskLine
+                  key={row.node.id}
+                  row={row}
+                  now={now}
+                  timeZone={timeZone}
+                  open={!collapsed.has(row.node.id)}
+                  dragging={
+                    dragging?.kind === "task" && dragging.nodeId === row.node.id
+                  }
+                  dropTarget={dropTarget === row.node.id}
+                  onToggle={() => toggle(row.node.id)}
+                  onOpen={() => setOpenNodeId(row.node.id)}
+                  onDragStart={(event) =>
+                    startDrag(event, { kind: "task", nodeId: row.node.id })
+                  }
+                  onDragEnd={endDrag}
+                  dropProps={row.closed ? {} : dropProps(row.node.id)}
+                />
+              ))}
+            </ul>
+            {noTasks && (
+              <div className="tasks-empty">
+                <p className="tasks-empty-title">No tasks yet</p>
+                <p className="tasks-empty-text">
+                  Use New task above. Each task gets a row here, with the time
+                  you log against it and how that compares to your estimate.
+                </p>
+              </div>
+            )}
+            {nodes === undefined && !loadError && (
+              <p className="tasks-empty-text">Loading…</p>
+            )}
+          </section>
+        </main>
+      )}
       {dragging && pointer && (
         <span
           className="tasks-drag-chip"

@@ -8,6 +8,7 @@ import "./theme/scope.css";
 import "./styles/app.css";
 import "./styles/modeScreen.css";
 import "./styles/tasksPage.css";
+import "./styles/taskPage.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

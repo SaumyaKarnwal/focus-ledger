@@ -100,6 +100,9 @@
   --badge-bg: rgb(42 39 36 / 0.1);
   --control-hover: rgb(42 39 36 / 0.08);
   --drag-outline: rgb(42 39 36 / 0.22);
+  /* The task page (boards E-Task-*) */
+  --track: rgb(42 39 36 / 0.07);
+  --axis: rgb(42 39 36 / 0.16);
 
   /* Dialog: task picker, bell, new task, edit task */
   --dialog-bg: var(--plum-50);
