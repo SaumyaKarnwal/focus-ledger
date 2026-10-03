@@ -8,6 +8,7 @@ import {
 } from "../start/ModeScreenFrame";
 import { MODE_NAMES } from "../today/todayModel";
 import { useNow } from "../useNow";
+import { unlockAudio } from "../bell/bell";
 import { loadLocalSettings } from "../settings/localSettings";
 import { formatCountdown } from "./timer";
 
@@ -39,7 +40,10 @@ type Props = {
   breakMinutes: number;
   email: string;
   timeZone: string;
-  onDone: () => void;
+  /** `ranOut` is true when the break clock reached zero. */
+  onDone: (ranOut?: boolean) => void;
+  /** Long after every Nth cycle of the day (Settings). */
+  initialKind?: BreakKind;
   onSignOut: () => void;
 };
 
@@ -50,11 +54,16 @@ export function BreakScreen({
   email,
   timeZone,
   onDone,
+  initialKind = "short",
   onSignOut,
 }: Props) {
   const now = useNow();
-  const [kind, setKind] = useState<BreakKind>("short");
-  const [totalMinutes, setTotalMinutes] = useState(breakMinutes);
+  const [kind, setKind] = useState<BreakKind>(initialKind);
+  const [totalMinutes, setTotalMinutes] = useState(() =>
+    initialKind === "long"
+      ? loadLocalSettings().longBreakMinutes
+      : breakMinutes,
+  );
   const [startedAt, setStartedAt] = useState<number>();
   const totalMs = totalMinutes * MINUTE_MS;
   const elapsedMs =
@@ -67,7 +76,7 @@ export function BreakScreen({
   useEffect(() => {
     if (startedAt !== undefined && remaining === 0 && !doneHandled.current) {
       doneHandled.current = true;
-      onDone();
+      onDone(true);
     }
   }, [startedAt, remaining, onDone]);
 
@@ -155,14 +164,17 @@ export function BreakScreen({
                 type="button"
                 className="screen-cta"
                 aria-label="Start the break"
-                onClick={() => setStartedAt(now.getTime())}
+                onClick={() => {
+                  unlockAudio();
+                  setStartedAt(now.getTime());
+                }}
               >
                 START
               </button>
               <button
                 type="button"
                 className="screen-outline screen-outline-soft"
-                onClick={onDone}
+                onClick={() => onDone()}
               >
                 Start a cycle
               </button>
@@ -197,7 +209,7 @@ export function BreakScreen({
               <button
                 type="button"
                 className="screen-outline screen-outline-soft"
-                onClick={onDone}
+                onClick={() => onDone()}
               >
                 Start a cycle
               </button>

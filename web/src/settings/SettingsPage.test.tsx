@@ -9,6 +9,7 @@ import {
   exampleNodesWithNothingRunning,
   recordingClient,
 } from "../testing/appHarness";
+import { fakeBell } from "../testing/fakeBell";
 import { openFromTasks, startCycleOn } from "../testing/navigation";
 import {
   LOCAL_DEFAULTS,
@@ -30,7 +31,12 @@ afterEach(() => {
 function renderApp(client: LedgerClient) {
   return render(
     <StrictMode>
-      <App client={client} timeZone="UTC" retryDelaysMs={[0]} />
+      <App
+        client={client}
+        timeZone="UTC"
+        retryDelaysMs={[0]}
+        bell={fakeBell().deps}
+      />
     </StrictMode>,
   );
 }

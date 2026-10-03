@@ -18,6 +18,7 @@ import {
   exampleNodesWithNothingRunning,
   recordingClient,
 } from "./testing/appHarness";
+import { LOCAL_DEFAULTS, saveLocalSettings } from "./settings/localSettings";
 import { openOnStart, pressStart, startCycleOn } from "./testing/navigation";
 
 const MINUTE_MS = 60_000;
@@ -500,6 +501,8 @@ describe("Bell and extension", () => {
 
 describe("Break", () => {
   async function takeBreak() {
+    // The 4th cycle of the example day would pre-select the long break.
+    saveLocalSettings({ ...LOCAL_DEFAULTS, longBreakEvery: 12 });
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
     await startCycleOn("Book");
     fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));

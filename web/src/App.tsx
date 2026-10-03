@@ -3,6 +3,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { LedgerClient } from "./api/ledgerClient";
 import { newRequestId } from "./api/requestId";
 import { withRetry } from "./api/retry";
+import {
+  type BellDeps,
+  type BellEvent,
+  browserBell,
+  ringBell,
+  unlockAudio,
+} from "./bell/bell";
+import { longBreakDue } from "./bell/rhythm";
 import { BellScreen } from "./cycle/BellScreen";
 import { BreakScreen, type ComingBackTo } from "./cycle/BreakScreen";
 import { ExtensionScreen } from "./cycle/ExtensionScreen";
@@ -19,6 +27,7 @@ import type { CyclePb } from "./gen/focusledger/v1/model_pb";
 import { browserTimeZone, formatHeaderTime } from "./ledger/period";
 import type { LoggedMode } from "./ledger/rollup";
 import { ReportScreen } from "./report/ReportScreen";
+import { loadLocalSettings } from "./settings/localSettings";
 import { SettingsPage } from "./settings/SettingsPage";
 import { SignInScreen } from "./signIn/SignInScreen";
 import type { SignInMethod } from "./signIn/signInMethod";
@@ -26,6 +35,7 @@ import { TasksPage } from "./tasks/TasksPage";
 import { PageHeader } from "./ui/PageHeader";
 import { useNow } from "./useNow";
 import { loadToday } from "./today/loadToday";
+import { PRODUCT_NAME } from "./productName";
 import { taskStrip } from "./start/startModel";
 import { type TaskSave, writeTask } from "./task/saveTask";
 import { StartScreen } from "./start/StartScreen";
@@ -33,6 +43,7 @@ import {
   cycleContext,
   INBOX_ID,
   knownCycles,
+  MODE_NAMES,
   taskAfterCycle,
   type TodayData,
   todayModel,
@@ -78,6 +89,8 @@ type Props = {
   retryDelaysMs?: readonly number[];
   /** main.tsx passes Google for the real backend. The default suits the fake. */
   signInMethod?: SignInMethod;
+  /** The sound and the notification. Tests pass their own. */
+  bell?: BellDeps;
 };
 
 function isUnauthenticated(reason: unknown): boolean {
@@ -89,6 +102,7 @@ export function App({
   timeZone = browserTimeZone(),
   retryDelaysMs,
   signInMethod = { kind: "fake" },
+  bell = browserBell,
 }: Props) {
   const [data, setData] = useState<TodayData>();
   const [screen, setScreen] = useState<Screen>({ kind: "loading" });
@@ -203,8 +217,26 @@ export function App({
     return node;
   };
 
+  const ring = (event: BellEvent, cycle?: CyclePb) => {
+    if (!data) return;
+    const mode = cycle ? MODE_NAMES[cycle.mode as LoggedMode] : "Break";
+    const task = cycle ? cycleContext(data, cycle).nodeName : "";
+    ringBell(
+      event,
+      data.settings,
+      loadLocalSettings(),
+      {
+        title: `${PRODUCT_NAME}: ${mode} cycle done`,
+        body: task === "Inbox" || task === "" ? "Not sure yet" : task,
+      },
+      bell,
+    );
+  };
+
   const start = (nodeId: string, mode: LoggedMode, plannedMinutes: number) =>
     act(async () => {
+      // START is a user gesture: the browser then lets the bell play later.
+      unlockAudio();
       const request = {
         requestId: newRequestId(),
         nodeId: nodeId === INBOX_ID ? undefined : nodeId,
@@ -252,12 +284,11 @@ export function App({
   );
 
   const runningCycle = screen.kind === "running" ? screen.cycle : undefined;
-  const stop = useCallback(
-    (minutes: number) => {
-      if (runningCycle) void writeMinutes(runningCycle, minutes);
-    },
-    [runningCycle, writeMinutes],
-  );
+  const stop = (minutes: number, ranOut = false) => {
+    if (!runningCycle) return;
+    if (ranOut) ring("cycle", runningCycle);
+    void writeMinutes(runningCycle, minutes);
+  };
 
   const startExtension = (cycle: CyclePb, moreMinutes: number) => {
     const extension: PendingExtension = {
@@ -271,18 +302,16 @@ export function App({
   };
 
   const extendedCycle = screen.kind === "extension" ? screen.cycle : undefined;
-  const stopExtension = useCallback(
-    (totalMinutes: number) => {
-      if (!extendedCycle) return;
-      if (totalMinutes > (extendedCycle.minutes ?? 0)) {
-        void writeMinutes(extendedCycle, totalMinutes);
-      } else {
-        clearExtension();
-        setScreen({ kind: "bell", cycle: extendedCycle });
-      }
-    },
-    [extendedCycle, writeMinutes],
-  );
+  const stopExtension = (totalMinutes: number, ranOut = false) => {
+    if (!extendedCycle) return;
+    if (ranOut) ring("cycle", extendedCycle);
+    if (totalMinutes > (extendedCycle.minutes ?? 0)) {
+      void writeMinutes(extendedCycle, totalMinutes);
+    } else {
+      clearExtension();
+      setScreen({ kind: "bell", cycle: extendedCycle });
+    }
+  };
 
   const [preselectedNodeId, setPreselectedNodeId] = useState<string>();
   const [preselectedMode, setPreselectedMode] = useState<LoggedMode>();
@@ -438,6 +467,7 @@ export function App({
           {alert}
           <SettingsPage
             client={client}
+            bell={bell}
             data={data}
             timeZone={timeZone}
             retryDelaysMs={retryDelaysMs}
@@ -513,9 +543,20 @@ export function App({
           breakMinutes={data.settings.breakMinutes}
           email={data.email}
           timeZone={timeZone}
-          onDone={() =>
-            backToStart(screen.comingBackTo.nodeId, screen.comingBackTo.mode)
+          initialKind={
+            longBreakDue(
+              data,
+              new Date(),
+              timeZone,
+              loadLocalSettings().longBreakEvery,
+            )
+              ? "long"
+              : "short"
           }
+          onDone={(ranOut) => {
+            if (ranOut) ring("break");
+            backToStart(screen.comingBackTo.nodeId, screen.comingBackTo.mode);
+          }}
           onSignOut={signOut}
         />
       )}
