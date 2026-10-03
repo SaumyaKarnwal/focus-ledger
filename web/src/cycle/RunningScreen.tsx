@@ -71,12 +71,16 @@ export function RunningScreen({
     }
   }, [ended, tooLong, minutes, cycle.plannedMinutes, onStop]);
 
-  const togglePause = () =>
+  // The stamps use the clock that the countdown shows. With Date.now(), the two
+  // clocks can differ by up to a second, and the countdown then jumps by one.
+  const togglePause = () => {
+    const at = now.getTime();
     setPause((current) =>
       current.sinceMs === undefined
-        ? { ...current, sinceMs: Date.now() }
-        : { totalMs: current.totalMs + Date.now() - current.sinceMs },
+        ? { ...current, sinceMs: at }
+        : { totalMs: current.totalMs + at - current.sinceMs },
     );
+  };
 
   const elapsedMinutes = Math.floor(elapsedMs(cycle, now, paused) / 60_000);
   const mode = cycle.mode as LoggedMode;

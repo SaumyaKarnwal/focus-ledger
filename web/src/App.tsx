@@ -366,7 +366,7 @@ export function App({
               void start(nodeId, mode, plannedMinutes)
             }
             onBreak={() => setScreen({ kind: "break" })}
-            onPickTask={() => openView("tree")}
+            onNewTask={() => openView("tree")}
             onOpenTasks={() => openView("tree")}
             onSignOut={signOut}
           />

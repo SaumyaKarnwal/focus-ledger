@@ -175,15 +175,6 @@ describe("Start", () => {
     ).toBeDefined();
   });
 
-  test("start_stripButton_opensTheTasksPageUntilThePickerExists", async () => {
-    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
-    await screen.findByRole("button", { name: "Start" });
-
-    fireEvent.click(screen.getByRole("button", { name: /Working on/ }));
-
-    expect(await screen.findByRole("list", { name: "Nodes" })).toBeDefined();
-  });
-
   test("start_noTask_showsTheEmptyStrip", () => {
     render(
       <StartScreen
@@ -193,7 +184,7 @@ describe("Start", () => {
         initialNodeId={INBOX_ID}
         onStart={() => {}}
         onBreak={() => {}}
-        onPickTask={() => {}}
+        onNewTask={() => {}}
         onOpenTasks={() => {}}
         onSignOut={() => {}}
       />,
