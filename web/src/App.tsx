@@ -22,7 +22,7 @@ import { ReportScreen } from "./report/ReportScreen";
 import { SettingsScreen } from "./settings/SettingsScreen";
 import { SignInScreen } from "./signIn/SignInScreen";
 import type { SignInMethod } from "./signIn/signInMethod";
-import { TreeScreen } from "./tree/TreeScreen";
+import { TasksPage } from "./tasks/TasksPage";
 import { PageHeader } from "./ui/PageHeader";
 import { useNow } from "./useNow";
 import { loadToday } from "./today/loadToday";
@@ -300,11 +300,6 @@ export function App({
 
   const [preselectedNodeId, setPreselectedNodeId] = useState<string>();
   const [preselectedMode, setPreselectedMode] = useState<LoggedMode>();
-  const openOnToday = (nodeId: string) => {
-    setPreselectedNodeId(nodeId);
-    setPreselectedMode(undefined);
-    openView("today");
-  };
   /** Back to Start with the task and mode of the cycle before, as the bell shows them. */
   const backToStart = (nodeId: string | undefined, mode: LoggedMode) => {
     setPreselectedNodeId(nodeId);
@@ -426,13 +421,16 @@ export function App({
       {!firstRun && screen.kind === "today" && data && view === "tree" && (
         <>
           {alert}
-          <TreeScreen
+          <TasksPage
             client={client}
-            settings={data.settings}
+            data={data}
             timeZone={timeZone}
             retryDelaysMs={retryDelaysMs}
-            nav={nav}
-            onOpenOnToday={openOnToday}
+            onSaveTask={saveTask}
+            onOpenStart={() => openView("today")}
+            onOpenReport={() => openView("report")}
+            onOpenSettings={openSettings}
+            onSignOut={signOut}
           />
         </>
       )}

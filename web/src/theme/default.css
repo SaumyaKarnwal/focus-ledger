@@ -14,6 +14,7 @@
   --mark-rose: #c47f86;
   --mark-sage: #6fa7a1;
   --paper-100: #f4f1ea;
+  --paper-75: #f5f2ea;
   --paper-50: #fffdf8;
   --ink-900: #2a2724;
   --plum-950: #241a22;
@@ -88,6 +89,17 @@
   --rule: rgb(42 39 36 / 0.085);
   --rule-strong: rgb(42 39 36 / 0.18);
   --row-hover: rgb(42 39 36 / 0.055);
+  /* The Tasks page (boards G-Tasks-*) */
+  --row-hover-bg: var(--paper-75);
+  --panel-border: rgb(42 39 36 / 0.12);
+  --panel-clear: rgb(255 253 248 / 0);
+  --ink-soft: rgb(42 39 36 / 0.78);
+  --ink-nav: rgb(42 39 36 / 0.6);
+  --ink-icon: rgb(42 39 36 / 0.52);
+  --ink-date: rgb(42 39 36 / 0.45);
+  --badge-bg: rgb(42 39 36 / 0.1);
+  --control-hover: rgb(42 39 36 / 0.08);
+  --drag-outline: rgb(42 39 36 / 0.22);
 
   /* Dialog: task picker, bell, new task, edit task */
   --dialog-bg: var(--plum-50);

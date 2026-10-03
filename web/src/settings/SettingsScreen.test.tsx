@@ -78,7 +78,7 @@ describe("Settings", () => {
     fireEvent.click(screen.getByRole("checkbox", { name: /Notifications/ }));
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
 
-    expect(await screen.findByRole("list", { name: "Nodes" })).toBeDefined();
+    expect(await screen.findByRole("list", { name: "Tasks" })).toBeDefined();
     expect(update).toHaveBeenCalledTimes(1);
     expect(update.mock.calls[0][0].updateMask?.paths).toEqual([
       "deep_focus_minutes",
@@ -89,12 +89,7 @@ describe("Settings", () => {
       deepFocusMinutes: 95,
       notificationsEnabled: true,
     });
-    fireEvent.click(
-      within(screen.getByRole("navigation", { name: "Views" })).getByRole(
-        "button",
-        { name: "Today" },
-      ),
-    );
+    fireEvent.click(screen.getByRole("button", { name: /back to Start/ }));
     expect(
       (await screen.findByRole("status", { name: "Length" })).textContent,
     ).toBe("95:00");
@@ -107,7 +102,7 @@ describe("Settings", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
 
-    expect(await screen.findByRole("list", { name: "Nodes" })).toBeDefined();
+    expect(await screen.findByRole("list", { name: "Tasks" })).toBeDefined();
     expect(update).not.toHaveBeenCalled();
   });
 
@@ -124,7 +119,7 @@ describe("Settings", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Done" }));
 
-    await screen.findByRole("list", { name: "Nodes" });
+    await screen.findByRole("list", { name: "Tasks" });
     expect(update).not.toHaveBeenCalled();
   });
 

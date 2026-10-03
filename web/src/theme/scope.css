@@ -29,3 +29,11 @@
   --screen-cta-fg: var(--screen-bg);
   --screen-on: var(--on-screen);
 }
+/* The light page surface (Tasks): the shared header reads the ink tokens. */
+[data-surface="page"] {
+  --on-screen-strong: var(--ink-strong);
+  --on-screen: var(--ink-nav);
+  --on-screen-faint: var(--ink-date);
+  --on-screen-chip: var(--badge-bg);
+  --on-screen-chip-border: var(--rule-strong);
+}
