@@ -41,7 +41,6 @@ import {
 } from "./session/sessionTimer";
 import { modeKey } from "./modes/modes";
 import { RunningScreen } from "./cycle/RunningScreen";
-import { FirstRunScreen } from "./firstRun/FirstRunScreen";
 import type { CyclePb } from "./gen/focusledger/v1/model_pb";
 import { browserTimeZone, formatHeaderTime } from "./ledger/period";
 import type { LoggedMode } from "./ledger/rollup";
@@ -558,7 +557,6 @@ export function App({
       {error}
     </p>
   );
-  const firstRun = screen.kind === "today" && data && isFirstRun(data);
   const showPage = screen.kind === "today" || (session && away);
   const showSession = session && !away;
 
@@ -591,23 +589,7 @@ export function App({
           )}
         </>
       )}
-      {firstRun && (
-        <>
-          {alert}
-          <FirstRunScreen
-            client={client}
-            settings={data.settings}
-            retryDelaysMs={retryDelaysMs}
-            onStarted={(cycle) => {
-              setScreen({ kind: "running", cycle });
-              void refreshWithRetry().catch((reason: unknown) =>
-                setError(String(reason)),
-              );
-            }}
-          />
-        </>
-      )}
-      {!firstRun && screen.kind === "today" && data && view === "today" && (
+      {screen.kind === "today" && data && view === "today" && (
         <>
           {alert}
           <StartScreen
@@ -628,7 +610,7 @@ export function App({
           />
         </>
       )}
-      {!firstRun && showPage && data && view === "tree" && (
+      {showPage && data && view === "tree" && (
         <>
           {alert}
           <TasksPage
@@ -645,7 +627,7 @@ export function App({
           />
         </>
       )}
-      {!firstRun && showPage && data && view === "report" && (
+      {showPage && data && view === "report" && (
         <>
           {alert}
           <ReportScreen
@@ -663,7 +645,7 @@ export function App({
           />
         </>
       )}
-      {!firstRun && showPage && data && view === "settings" && (
+      {showPage && data && view === "settings" && (
         <>
           {alert}
           <SettingsPage
@@ -767,13 +749,6 @@ export function App({
         />
       )}
     </div>
-  );
-}
-
-/** No node and no cycle yet: the first run (FR-1). */
-function isFirstRun(data: TodayData): boolean {
-  return data.allTimeNodes.every(
-    (node) => node.id === INBOX_ID && node.cycles.length === 0,
   );
 }
 
