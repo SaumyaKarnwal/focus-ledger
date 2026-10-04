@@ -84,7 +84,7 @@ The mask is required. A missing or empty mask returns `INVALID_ARGUMENT`. This d
 | RPC | What it does |
 |---|---|
 | `GetSettings` | Returns the mode lengths, break length, sound, and notifications. |
-| `UpdateSettings` | Changes the fields in the mask. |
+| `UpdateSettings` | Changes the fields in the mask. The mask paths are the `SettingsPb` field names. A value outside its range, or an `*_UNSPECIFIED` enum in the mask, returns `INVALID_ARGUMENT`. `sound_enabled = false` is the Silent choice; `bell_sound` keeps the last real sound. |
 
 ### Nodes
 
@@ -255,6 +255,22 @@ message AccountPb {
   google.protobuf.Timestamp created_at = 3;
 }
 
+enum BellSound {
+  BELL_SOUND_UNSPECIFIED = 0;
+  BELL_SOUND_BOWL = 1;
+  BELL_SOUND_WOOD = 2;
+  BELL_SOUND_CHIME = 3;
+}
+
+enum FocusSound {
+  FOCUS_SOUND_UNSPECIFIED = 0;
+  FOCUS_SOUND_NONE = 1;
+  FOCUS_SOUND_TICKING_FAST = 2;
+  FOCUS_SOUND_TICKING_SLOW = 3;
+  FOCUS_SOUND_WHITE_NOISE = 4;
+  FOCUS_SOUND_BROWN_NOISE = 5;
+}
+
 message SettingsPb {
   int32 deep_focus_minutes = 1;
   int32 execution_minutes = 2;
@@ -262,6 +278,14 @@ message SettingsPb {
   int32 break_minutes = 4;
   bool sound_enabled = 5;
   bool notifications_enabled = 6;
+  int32 long_break_minutes = 7;
+  int32 long_break_every = 8;
+  BellSound bell_sound = 9;
+  int32 bell_volume = 10;
+  int32 bell_repeat = 11;
+  bool ring_after_break = 12;
+  FocusSound focus_sound = 13;
+  int32 focus_sound_volume = 14;
 }
 
 message EstimatePb {
