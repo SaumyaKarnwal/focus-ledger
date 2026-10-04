@@ -224,6 +224,28 @@ describe("Task page", () => {
     expect((await nodeNamed(client, "Chapter 2"))?.closed).toBe(true);
   });
 
+  test("taskPage_noEstimate_barsShowEachModesShareOfTheLoggedTime", async () => {
+    await openTaskPage(
+      recordingClient(exampleNodesWithNothingRunning()).client,
+      "Notes",
+    );
+
+    const execution = screen.getByRole("progressbar", {
+      name: "Execution share of the logged time",
+    });
+    expect(execution.getAttribute("aria-valuenow")).toBe("100");
+    expect((execution.firstElementChild as HTMLElement).style.width).toBe(
+      "100%",
+    );
+    expect(
+      screen
+        .getByRole("progressbar", {
+          name: "Deep Focus share of the logged time",
+        })
+        .getAttribute("aria-valuenow"),
+    ).toBe("0");
+  });
+
   test("taskPage_estimate_showsTheRollUpAndThePartsLine", async () => {
     await openTaskPage(
       recordingClient(exampleNodesWithNothingRunning()).client,

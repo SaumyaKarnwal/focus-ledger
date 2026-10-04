@@ -18,6 +18,7 @@ import {
   chartHours,
   type DayBar,
   estimateFigures,
+  modeBarPercent,
   lastSevenDays,
   ringParts,
 } from "./taskPageModel";
@@ -217,16 +218,20 @@ function EstimateCard({
               <div
                 className="estimate-track"
                 role="progressbar"
-                aria-label={`${MODE_NAMES[mode]} against the estimate`}
+                aria-label={
+                  estimate > 0
+                    ? `${MODE_NAMES[mode]} against the estimate`
+                    : `${MODE_NAMES[mode]} share of the logged time`
+                }
                 aria-valuemin={0}
                 aria-valuemax={100}
-                aria-valuenow={
-                  estimate > 0 ? Math.round((logged / estimate) * 100) : 0
-                }
+                aria-valuenow={Math.round(
+                  modeBarPercent(logged, estimate, figures.logged),
+                )}
               >
                 <span
                   style={{
-                    width: `${estimate > 0 ? Math.min(100, (logged / estimate) * 100) : 0}%`,
+                    width: `${modeBarPercent(logged, estimate, figures.logged)}%`,
                   }}
                 />
               </div>
