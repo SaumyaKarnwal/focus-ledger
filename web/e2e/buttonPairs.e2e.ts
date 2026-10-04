@@ -56,6 +56,9 @@ for (const [width, height] of [
     await page.getByRole("button", { name: "Take a break" }).click();
     await expectEqualPair(page, "Start the break", "Start a cycle");
 
+    await page.getByRole("button", { name: "Start the break" }).click();
+    await expectEqualPair(page, "+5 min", "Start a cycle");
+
     await page.getByRole("button", { name: "Start a cycle" }).click();
     await page.getByRole("button", { name: "Start" }).click();
     await expectEqualPair(page, "Pause", /Stop and log/);

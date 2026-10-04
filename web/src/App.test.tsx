@@ -588,7 +588,19 @@ describe("Break", () => {
     const timer = await takeBreak();
 
     expect(timer.textContent).toBe("05:00");
-    expect(screen.getByText(/^0 of 5 min/)).toBeDefined();
+    expect(screen.queryByText(/Breaks are not logged/)).toBeNull();
+    expect(screen.queryByText(/of 5 min/)).toBeNull();
+  });
+
+  test("break_plusFiveIsThePrimaryPlate_startACycleStaysOutlined", async () => {
+    await takeBreak();
+
+    expect(screen.getByRole("button", { name: "+5 min" }).className).toBe(
+      "screen-cta",
+    );
+    expect(
+      screen.getByRole("button", { name: "Start a cycle" }).className,
+    ).toBe("screen-outline screen-outline-soft");
   });
 
   test("break_plusFive_addsFiveMinutes", async () => {
@@ -597,7 +609,6 @@ describe("Break", () => {
     fireEvent.click(screen.getByRole("button", { name: "+5 min" }));
 
     expect(timer.textContent).toBe("10:00");
-    expect(screen.getByText(/^0 of 10 min/)).toBeDefined();
   });
 
   test("break_startACycle_landsOnTodayWithNothingRunning", async () => {
