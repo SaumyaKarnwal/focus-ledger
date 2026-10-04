@@ -46,7 +46,7 @@ A builder who needs a token that is not in this table adds it with a purpose-bas
 
 ## Fonts
 
-Font families are tokens too: `--font-ui` (IBM Plex Sans), `--font-display` (Newsreader), `--font-figures` (IBM Plex Mono), `--font-timer` and `--font-cta` (Nunito 800). A component never names a font family.
+Font families are tokens too: `--font-ui` (IBM Plex Sans), `--font-display` (Newsreader), `--font-figures` (IBM Plex Mono), `--font-timer` (Inter Tight 700) and `--font-cta` (Nunito 800). A component never names a font family.
 
 ## Themes
 
