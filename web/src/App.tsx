@@ -1,6 +1,13 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LedgerClient } from "./api/ledgerClient";
+import {
+  type Address,
+  HOME,
+  parseAddress,
+  pathOf,
+  type View,
+} from "./addresses";
 import { newRequestId } from "./api/requestId";
 import { withRetry } from "./api/retry";
 import {
@@ -101,7 +108,20 @@ function pendingExtensionFor(
   return { cycle, extension };
 }
 
-type View = "today" | "tree" | "report" | "settings";
+/** Moves the browser to an address without a page load. */
+function pushAddress(address: Address) {
+  const path = pathOf(address);
+  if (path === window.location.pathname) return;
+  window.history.pushState(null, "", path + window.location.search);
+}
+
+function replaceAddress(address: Address) {
+  window.history.replaceState(
+    null,
+    "",
+    pathOf(address) + window.location.search,
+  );
+}
 
 const VIEWS: readonly [View, string][] = [
   ["today", "Today"],
@@ -171,24 +191,39 @@ export function App({
       setScreen(screenFor(await refreshWithRetry()));
     });
 
-  const [view, setView] = useState<View>("today");
+  // The address is the page (README "Addresses"). A wrong address goes home.
+  const [address, setAddress] = useState<Address>(() => {
+    const parsed = parseAddress(window.location.pathname);
+    if (!parsed) replaceAddress(HOME);
+    return parsed ?? HOME;
+  });
+  const view = address.view;
+  const navigate = (next: Address) => {
+    pushAddress(next);
+    setAddress(next);
+  };
+  const goHome = () => navigate(HOME);
+  useEffect(() => {
+    // Back and Forward change only the page; a cycle or break runs on.
+    const followHistory = () => {
+      const parsed = parseAddress(window.location.pathname);
+      if (!parsed) replaceAddress(HOME);
+      setAddress(parsed ?? HOME);
+    };
+    window.addEventListener("popstate", followHistory);
+    return () => window.removeEventListener("popstate", followHistory);
+  }, []);
   const [preselectedNodeId, setPreselectedNodeId] = useState<string>();
   const [preselectedMode, setPreselectedMode] = useState<LoggedMode>();
   // A page shows over a cycle or break that keeps running (README rule 7).
-  const [away, setAway] = useState(false);
+  const away = view !== "today";
   const session = isSession(screen);
   const openView = (next: View) => {
-    if (next === "today" && session) {
-      setAway(false);
-      return;
-    }
-    setView(next);
-    if (next === "today") void showToday();
-    else {
-      setAway(true);
+    navigate({ view: next });
+    if (next !== "today") {
       setPreselectedNodeId(undefined);
       setPreselectedMode(undefined);
-    }
+    } else if (!session) void showToday();
   };
 
   const openSettings = () => openView("settings");
@@ -226,7 +261,7 @@ export function App({
         retryDelaysMs,
       );
       setScreen({ kind: "loading" });
-      setView("today");
+      goHome();
       setLoadAttempt((attempt) => attempt + 1);
     });
 
@@ -295,7 +330,7 @@ export function App({
         retryDelaysMs,
       );
       if (cycle) {
-        setAway(false);
+        goHome();
         setScreen({ kind: "running", cycle });
       }
       await refreshWithRetry();
@@ -341,8 +376,7 @@ export function App({
   const homeAfter = (cycle: CyclePb) => () => {
     setPreselectedNodeId(data && taskAfterCycle(data, cycle));
     setPreselectedMode(cycle.mode as LoggedMode);
-    setAway(false);
-    setView("today");
+    goHome();
     setScreen({ kind: "today" });
   };
 
@@ -351,7 +385,7 @@ export function App({
     if (!runningCycle || writing.current) return;
     if (ranOut) {
       ring("cycle", runningCycle);
-      setAway(false);
+      goHome();
     }
     void writeMinutes(
       runningCycle,
@@ -376,7 +410,7 @@ export function App({
     if (!extendedCycle || writing.current) return;
     if (ranOut) {
       ring("cycle", extendedCycle);
-      setAway(false);
+      goHome();
     }
     const after = ranOut ? showBell : homeAfter(extendedCycle);
     if (totalMinutes > (extendedCycle.minutes ?? 0)) {
@@ -391,8 +425,7 @@ export function App({
   const backToStart = (nodeId: string | undefined, mode: LoggedMode) => {
     setPreselectedNodeId(nodeId);
     setPreselectedMode(mode);
-    setAway(false);
-    setView("today");
+    goHome();
     void showToday();
   };
   const breakAfterCycle = (loaded: TodayData, cycle: CyclePb) => {
@@ -509,7 +542,7 @@ export function App({
   );
 
   const timerChip = ((): TimerChip | undefined => {
-    const onOpen = () => setAway(false);
+    const onOpen = goHome;
     if (runningCycle && runningPause) {
       const mode = runningCycle.mode as LoggedMode;
       return {
@@ -626,6 +659,12 @@ export function App({
             timeZone={timeZone}
             retryDelaysMs={retryDelaysMs}
             onSaveTask={saveTask}
+            openTaskId={address.taskId}
+            onOpenTask={(taskId) => navigate({ view: "tree", taskId })}
+            onUnknownTask={() => {
+              replaceAddress(HOME);
+              setAddress(HOME);
+            }}
             onOpenStart={() => openView("today")}
             onOpenReport={() => openView("report")}
             onOpenSettings={openSettings}
