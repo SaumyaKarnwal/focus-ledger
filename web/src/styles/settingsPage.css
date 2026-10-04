@@ -232,15 +232,14 @@
   width: 40px;
   height: 23px;
   flex-shrink: 0;
-  padding: 1px;
+  padding: 2px;
   background: var(--control-edge);
-  border: 1px solid var(--control-edge-strong);
+  border: 0;
   border-radius: 12px;
 }
 .settings-switch[aria-checked="true"] {
   justify-content: flex-end;
   background: var(--accent);
-  border-color: var(--accent);
 }
 .settings-switch span {
   width: 19px;
