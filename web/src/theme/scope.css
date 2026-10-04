@@ -28,6 +28,11 @@
 }
 [data-mode] {
   --screen-cta-fg: var(--screen-bg);
+  --screen-cta-ledge: color-mix(
+    in srgb,
+    var(--screen-cta-bg) 70%,
+    var(--screen-bg)
+  );
   --screen-on: var(--on-screen);
 }
 /* The light page surface (Tasks): the shared header reads the ink tokens. */

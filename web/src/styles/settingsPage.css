@@ -25,7 +25,7 @@
 }
 .settings-card-head h2 {
   margin: 0;
-  font-family: var(--serif);
+  font-family: var(--font-display);
   font-size: 21px;
   font-weight: 400;
   color: var(--ink-strong);
@@ -38,7 +38,7 @@
 .settings-group {
   margin: 0;
   padding: 12px 0 2px;
-  font-family: var(--mono);
+  font-family: var(--font-figures);
   font-size: 10px;
   font-weight: 400;
   letter-spacing: 0.16em;
