@@ -55,9 +55,6 @@ export function extensionTotalMinutes(extension: Extension, now: Date): number {
   );
 }
 
-/** A pause longer than this stops the cycle (FR-3.6). */
-export const PAUSE_LIMIT_MS = 10 * MINUTE_MS;
-
 /** The paused time so far, and the start of the pause that is open now. */
 export type PauseState = { totalMs: number; sinceMs?: number };
 
@@ -65,13 +62,6 @@ export function pausedMs(pause: PauseState, now: Date): number {
   return (
     pause.totalMs +
     (pause.sinceMs === undefined ? 0 : now.getTime() - pause.sinceMs)
-  );
-}
-
-export function pauseTooLong(pause: PauseState, now: Date): boolean {
-  return (
-    pause.sinceMs !== undefined &&
-    now.getTime() - pause.sinceMs >= PAUSE_LIMIT_MS
   );
 }
 

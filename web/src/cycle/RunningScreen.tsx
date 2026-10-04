@@ -20,7 +20,6 @@ import {
   minutesToLog,
   type PauseState,
   pausedMs,
-  pauseTooLong,
   plannedMs,
   remainingMs,
 } from "./timer";
@@ -63,21 +62,15 @@ export function RunningScreen({
   const paused = pausedMs(pause, now);
   const isPaused = pause.sinceMs !== undefined;
   const ended = !isPaused && hasEnded(cycle, now, paused);
-  const tooLong = pauseTooLong(pause, now);
   const minutes = minutesToLog(cycle, now, paused);
   useFocusSound(!isPaused && !ended, bell);
   const endHandled = useRef(false);
 
   useEffect(() => {
-    if (endHandled.current) return;
-    if (ended) {
-      endHandled.current = true;
-      onStop(cycle.plannedMinutes, true);
-    } else if (tooLong) {
-      endHandled.current = true;
-      onStop(minutes);
-    }
-  }, [ended, tooLong, minutes, cycle.plannedMinutes, onStop]);
+    if (endHandled.current || !ended) return;
+    endHandled.current = true;
+    onStop(cycle.plannedMinutes, true);
+  }, [ended, cycle.plannedMinutes, onStop]);
 
   // The stamps use the clock that the countdown shows. With Date.now(), the two
   // clocks can differ by up to a second, and the countdown then jumps by one.
@@ -115,7 +108,7 @@ export function RunningScreen({
           note={
             isPaused && (
               <p className="screen-note" role="status">
-                Paused. After 10 minutes the cycle stops and logs {minutes} min.
+                Paused
               </p>
             )
           }

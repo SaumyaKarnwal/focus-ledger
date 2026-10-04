@@ -228,13 +228,35 @@ describe("Pause", () => {
     expect(recording.updateCycleMinutes).toEqual([9]);
   });
 
-  test("pause_overTenMinutes_stopsTheCycleAndLogsTheMinutesThatRan", async () => {
+  test("pause_twoHours_doesNotStopTheCycle_andResumeLogsOnlyTheWork", async () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     await startShallow(recording.client);
     await advance(7 * MINUTE_MS + 20_000);
     fireEvent.click(screen.getByRole("button", { name: "Pause" }));
 
-    await advance(10 * MINUTE_MS + 1000);
+    await advance(2 * 60 * MINUTE_MS);
+
+    expect(timeLeft()).toBe("17:40");
+    expect(screen.getByRole("status").textContent).toBe("Paused");
+    expect(recording.updateCycleMinutes).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Resume" }));
+    await advance(3 * MINUTE_MS);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Stop and log 10 min" }),
+    );
+
+    expect(await screen.findByText("10 min logged")).toBeDefined();
+    expect(recording.updateCycleMinutes).toEqual([10]);
+  });
+
+  test("pause_twoHours_stopWhilePaused_logsOnlyTheWork", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await startShallow(recording.client);
+    await advance(7 * MINUTE_MS + 20_000);
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+    await advance(2 * 60 * MINUTE_MS);
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop and log 7 min" }));
 
     expect(await screen.findByText("7 min logged")).toBeDefined();
     expect(recording.updateCycleMinutes).toEqual([7]);
@@ -268,7 +290,7 @@ describe("Pause", () => {
     ).toBe("19:00");
   });
 
-  test("pause_reloadDuringAPause_staysPausedAndKeepsItsLimit", async () => {
+  test("pause_reloadDuringAPause_staysPausedWithNoLimit", async () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     await startShallow(recording.client);
     await advance(5 * MINUTE_MS);
@@ -282,8 +304,9 @@ describe("Pause", () => {
       (await screen.findByRole("timer", { name: "Time left" })).textContent,
     ).toBe("20:00");
     expect(screen.getByRole("button", { name: "Resume" })).toBeDefined();
-    await advance(6 * MINUTE_MS + 1000);
-    expect(await screen.findByText("5 min logged")).toBeDefined();
+    await advance(60 * MINUTE_MS);
+    expect(timeLeft()).toBe("20:00");
+    expect(recording.updateCycleMinutes).toEqual([]);
   });
 
   test("pause_stop_removesTheStoredPause", async () => {
