@@ -44,6 +44,10 @@ The values come from the boards in `browser-v2/`. The builder reads each value f
 
 A builder who needs a token that is not in this table adds it with a purpose-based name and lists it in the PR description.
 
+## Default theme values the owner set
+
+- Page (`--paper`, palette `--paper-100`): `#F7F0EC`, a warmer, slightly pink paper, in place of the boards' `#F4F1EA` (owner, #228). It covers every light page: Tasks, the task page, Report, Settings.
+
 ## Fonts
 
 Font families are tokens too: `--font-ui` (IBM Plex Sans), `--font-display` (Newsreader), `--font-figures` (IBM Plex Mono), `--font-timer` (Nunito 700) and `--font-cta` (Nunito 800). A component never names a font family.
