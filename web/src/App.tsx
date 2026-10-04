@@ -21,7 +21,25 @@ import {
   type PendingExtension,
   saveExtension,
 } from "./cycle/extensionStore";
-import { clearPause } from "./cycle/pauseStore";
+import { clearPause, loadPause, savePause } from "./cycle/pauseStore";
+import {
+  extensionRemainingMs,
+  formatCountdown,
+  hasEnded,
+  type PauseState,
+  pausedMs,
+  remainingMs,
+} from "./cycle/timer";
+import { useFocusSound } from "./bell/useFocusSound";
+import { useClock } from "./session/useClock";
+import {
+  BREAK_NAMES,
+  type BreakTimer,
+  breakRemainingMs,
+  breakTimerFor,
+  type TimerChip,
+} from "./session/sessionTimer";
+import { modeKey } from "./modes/modes";
 import { RunningScreen } from "./cycle/RunningScreen";
 import { FirstRunScreen } from "./firstRun/FirstRunScreen";
 import type { CyclePb } from "./gen/focusledger/v1/model_pb";
@@ -57,7 +75,17 @@ type Screen =
   | { kind: "running"; cycle: CyclePb }
   | { kind: "bell"; cycle: CyclePb }
   | { kind: "extension"; cycle: CyclePb; extension: PendingExtension }
-  | { kind: "break"; comingBackTo: ComingBackTo };
+  | { kind: "break"; comingBackTo: ComingBackTo; timer: BreakTimer };
+
+/** The screens of a cycle or a break. They stay alive while another page shows. */
+function isSession(screen: Screen): boolean {
+  return (
+    screen.kind === "running" ||
+    screen.kind === "bell" ||
+    screen.kind === "extension" ||
+    screen.kind === "break"
+  );
+}
 
 /** The extension to resume after a reload, if its cycle still has the minutes it started with. */
 function pendingExtensionFor(
@@ -146,10 +174,18 @@ export function App({
     });
 
   const [view, setView] = useState<View>("today");
+  // A page shows over a cycle or break that keeps running (README rule 7).
+  const [away, setAway] = useState(false);
+  const session = isSession(screen);
   const openView = (next: View) => {
+    if (next === "today" && session) {
+      setAway(false);
+      return;
+    }
     setView(next);
     if (next === "today") void showToday();
     else {
+      setAway(true);
       setPreselectedNodeId(undefined);
       setPreselectedMode(undefined);
     }
@@ -258,7 +294,10 @@ export function App({
         () => client.createCycle(request),
         retryDelaysMs,
       );
-      if (cycle) setScreen({ kind: "running", cycle });
+      if (cycle) {
+        setAway(false);
+        setScreen({ kind: "running", cycle });
+      }
       await refreshWithRetry();
     });
 
@@ -297,7 +336,10 @@ export function App({
   const runningCycle = screen.kind === "running" ? screen.cycle : undefined;
   const stop = (minutes: number, ranOut = false) => {
     if (!runningCycle) return;
-    if (ranOut) ring("cycle", runningCycle);
+    if (ranOut) {
+      ring("cycle", runningCycle);
+      setAway(false);
+    }
     void writeMinutes(runningCycle, minutes);
   };
 
@@ -315,7 +357,10 @@ export function App({
   const extendedCycle = screen.kind === "extension" ? screen.cycle : undefined;
   const stopExtension = (totalMinutes: number, ranOut = false) => {
     if (!extendedCycle) return;
-    if (ranOut) ring("cycle", extendedCycle);
+    if (ranOut) {
+      ring("cycle", extendedCycle);
+      setAway(false);
+    }
     if (totalMinutes > (extendedCycle.minutes ?? 0)) {
       void writeMinutes(extendedCycle, totalMinutes);
     } else {
@@ -330,7 +375,9 @@ export function App({
   const backToStart = (nodeId: string | undefined, mode: LoggedMode) => {
     setPreselectedNodeId(nodeId);
     setPreselectedMode(mode);
-    openView("today");
+    setAway(false);
+    setView("today");
+    void showToday();
   };
   const breakAfterCycle = (loaded: TodayData, cycle: CyclePb) => {
     const { nodeName, path } = cycleContext(loaded, cycle);
@@ -343,6 +390,7 @@ export function App({
         path,
         nodeId: taskAfterCycle(loaded, cycle),
       },
+      timer: firstBreakTimer(loaded),
     });
   };
   const breakFromStart = (
@@ -359,8 +407,137 @@ export function App({
         path: strip?.path ?? [],
         nodeId,
       },
+      timer: firstBreakTimer(loaded),
     });
   };
+
+  // Long after every Nth cycle of the day (Settings).
+  const firstBreakTimer = (loaded: TodayData): BreakTimer =>
+    breakTimerFor(
+      longBreakDue(
+        loaded,
+        new Date(),
+        timeZone,
+        loadLocalSettings().longBreakEvery,
+      )
+        ? "long"
+        : "short",
+      loaded.settings.breakMinutes,
+    );
+
+  // The timer store above the routes: one clock, the pause of each cycle, and
+  // the time-out check, so that a cycle or break runs on while a page shows.
+  // Each time-out fires once, from whatever page shows.
+  const handledTimeOut = useRef<string>(undefined);
+  const checkTimeOut = (at: Date) => {
+    const timedOut = timeOutOf(screen, at);
+    if (timedOut === undefined || handledTimeOut.current === timedOut) return;
+    handledTimeOut.current = timedOut;
+    if (screen.kind === "running") stop(screen.cycle.plannedMinutes, true);
+    else if (screen.kind === "extension")
+      stopExtension(
+        screen.extension.loggedMinutes + screen.extension.minutes,
+        true,
+      );
+    else if (screen.kind === "break") {
+      ring("break");
+      backToStart(screen.comingBackTo.nodeId, screen.comingBackTo.mode);
+    }
+  };
+  const timeOutOf = (current: Screen, at: Date): string | undefined => {
+    if (current.kind === "running") {
+      const pause = pauseOf(current.cycle.id);
+      return pause.sinceMs === undefined &&
+        hasEnded(current.cycle, at, pausedMs(pause, at))
+        ? `cycle:${current.cycle.id}`
+        : undefined;
+    }
+    if (current.kind === "extension")
+      return extensionRemainingMs(current.extension, at) === 0
+        ? `extension:${current.cycle.id}:${current.extension.startedAtMs}`
+        : undefined;
+    if (current.kind === "break" && current.timer.startedAt !== undefined)
+      return breakRemainingMs(current.timer, at) === 0
+        ? `break:${current.timer.startedAt}`
+        : undefined;
+    return undefined;
+  };
+  const now = useClock(session ? 1000 : 60_000, checkTimeOut);
+  const [pauses, setPauses] = useState<Record<string, PauseState>>({});
+  const pauseOf = (cycleId: string): PauseState =>
+    pauses[cycleId] ?? loadPause(cycleId) ?? { totalMs: 0 };
+  // The stamps use the clock that the countdown shows. With Date.now(), the two
+  // clocks can differ by up to a second, and the countdown then jumps by one.
+  const togglePause = (cycleId: string) => {
+    const at = now.getTime();
+    const current = pauseOf(cycleId);
+    const next =
+      current.sinceMs === undefined
+        ? { ...current, sinceMs: at }
+        : { totalMs: current.totalMs + at - current.sinceMs };
+    savePause(cycleId, next);
+    setPauses((all) => ({ ...all, [cycleId]: next }));
+  };
+
+  const runningPause = runningCycle ? pauseOf(runningCycle.id) : undefined;
+  const runningPaused =
+    runningPause !== undefined && runningPause.sinceMs !== undefined;
+  const runningEnded =
+    runningCycle !== undefined &&
+    runningPause !== undefined &&
+    !runningPaused &&
+    hasEnded(runningCycle, now, pausedMs(runningPause, now));
+  const extensionLeft =
+    screen.kind === "extension"
+      ? extensionRemainingMs(screen.extension, now)
+      : undefined;
+  const breakLeft =
+    screen.kind === "break" && screen.timer.startedAt !== undefined
+      ? breakRemainingMs(screen.timer, now)
+      : undefined;
+
+  useFocusSound(
+    (runningCycle !== undefined && !runningPaused && !runningEnded) ||
+      (extensionLeft !== undefined && extensionLeft > 0),
+    bell,
+  );
+
+  const timerChip = ((): TimerChip | undefined => {
+    const onOpen = () => setAway(false);
+    if (runningCycle && runningPause) {
+      const mode = runningCycle.mode as LoggedMode;
+      return {
+        label: MODE_NAMES[mode],
+        text: formatCountdown(
+          remainingMs(runningCycle, now, pausedMs(runningPause, now)),
+        ),
+        modeKey: modeKey(mode),
+        onOpen,
+      };
+    }
+    if (screen.kind === "extension" && extensionLeft !== undefined) {
+      const mode = screen.cycle.mode as LoggedMode;
+      return {
+        label: MODE_NAMES[mode],
+        text: formatCountdown(extensionLeft),
+        modeKey: modeKey(mode),
+        onOpen,
+      };
+    }
+    if (screen.kind === "break" && breakLeft !== undefined) {
+      return {
+        label: BREAK_NAMES[screen.timer.kind],
+        text: formatCountdown(breakLeft),
+        modeKey: "break",
+        onOpen,
+      };
+    }
+    return undefined;
+  })();
+  const pageSession =
+    session && away
+      ? { timer: timerChip, homeLabel: "back to the timer" }
+      : undefined;
 
   const nav = (
     <nav className="nav" aria-label="Views">
@@ -382,6 +559,8 @@ export function App({
     </p>
   );
   const firstRun = screen.kind === "today" && data && isFirstRun(data);
+  const showPage = screen.kind === "today" || (session && away);
+  const showSession = session && !away;
 
   return (
     <div
@@ -449,7 +628,7 @@ export function App({
           />
         </>
       )}
-      {!firstRun && screen.kind === "today" && data && view === "tree" && (
+      {!firstRun && showPage && data && view === "tree" && (
         <>
           {alert}
           <TasksPage
@@ -462,10 +641,11 @@ export function App({
             onOpenReport={() => openView("report")}
             onOpenSettings={openSettings}
             onSignOut={signOut}
+            session={pageSession}
           />
         </>
       )}
-      {!firstRun && screen.kind === "today" && data && view === "report" && (
+      {!firstRun && showPage && data && view === "report" && (
         <>
           {alert}
           <ReportScreen
@@ -473,11 +653,17 @@ export function App({
             timeZone={timeZone}
             retryDelaysMs={retryDelaysMs}
             nav={nav}
-            headerEnd={<HeaderClock timeZone={timeZone} />}
+            headerEnd={
+              timerChip && pageSession ? (
+                <HeaderTimer chip={timerChip} />
+              ) : (
+                <HeaderClock timeZone={timeZone} />
+              )
+            }
           />
         </>
       )}
-      {!firstRun && screen.kind === "today" && data && view === "settings" && (
+      {!firstRun && showPage && data && view === "settings" && (
         <>
           {alert}
           <SettingsPage
@@ -494,10 +680,11 @@ export function App({
             onOpenStart={() => openView("today")}
             onOpenTasks={() => openView("tree")}
             onSignOut={signOut}
+            session={pageSession}
           />
         </>
       )}
-      {screen.kind === "running" && data && (
+      {showSession && screen.kind === "running" && data && (
         <>
           {alert}
           <RunningScreen
@@ -508,13 +695,17 @@ export function App({
             email={data.email}
             timeZone={timeZone}
             busy={busy}
-            onStop={stop}
-            bell={bell}
+            now={now}
+            pause={pauseOf(screen.cycle.id)}
+            onTogglePause={() => togglePause(screen.cycle.id)}
+            onStop={(minutes) => stop(minutes)}
+            onOpenTasks={() => openView("tree")}
+            onOpenSettings={openSettings}
             onSignOut={signOut}
           />
         </>
       )}
-      {screen.kind === "bell" && data && (
+      {showSession && screen.kind === "bell" && data && (
         <>
           {alert}
           <BellScreen
@@ -532,11 +723,13 @@ export function App({
                 screen.cycle.mode as LoggedMode,
               )
             }
+            onOpenTasks={() => openView("tree")}
+            onOpenSettings={openSettings}
             onSignOut={signOut}
           />
         </>
       )}
-      {screen.kind === "extension" && data && (
+      {showSession && screen.kind === "extension" && data && (
         <>
           {alert}
           <ExtensionScreen
@@ -548,32 +741,28 @@ export function App({
             email={data.email}
             timeZone={timeZone}
             busy={busy}
-            onStop={stopExtension}
-            bell={bell}
+            now={now}
+            onStop={(total) => stopExtension(total)}
+            onOpenTasks={() => openView("tree")}
+            onOpenSettings={openSettings}
             onSignOut={signOut}
           />
         </>
       )}
-      {screen.kind === "break" && data && (
+      {showSession && screen.kind === "break" && data && (
         <BreakScreen
           comingBackTo={screen.comingBackTo}
+          timer={screen.timer}
           breakMinutes={data.settings.breakMinutes}
           email={data.email}
           timeZone={timeZone}
-          initialKind={
-            longBreakDue(
-              data,
-              new Date(),
-              timeZone,
-              loadLocalSettings().longBreakEvery,
-            )
-              ? "long"
-              : "short"
+          now={now}
+          onTimerChange={(timer) => setScreen({ ...screen, timer })}
+          onDone={() =>
+            backToStart(screen.comingBackTo.nodeId, screen.comingBackTo.mode)
           }
-          onDone={(ranOut) => {
-            if (ranOut) ring("break");
-            backToStart(screen.comingBackTo.nodeId, screen.comingBackTo.mode);
-          }}
+          onOpenTasks={() => openView("tree")}
+          onOpenSettings={openSettings}
           onSignOut={signOut}
         />
       )}
@@ -585,6 +774,21 @@ export function App({
 function isFirstRun(data: TodayData): boolean {
   return data.allTimeNodes.every(
     (node) => node.id === INBOX_ID && node.cycles.length === 0,
+  );
+}
+
+function HeaderTimer({ chip }: { chip: TimerChip }) {
+  return (
+    <button
+      type="button"
+      className="screen-timer"
+      data-mode={chip.modeKey}
+      onClick={chip.onOpen}
+    >
+      <span className="screen-timer-mark" aria-hidden="true" />
+      {chip.label}
+      <span className="screen-timer-time">{chip.text}</span>
+    </button>
   );
 }
 

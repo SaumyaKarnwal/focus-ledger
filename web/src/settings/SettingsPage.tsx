@@ -6,6 +6,7 @@ import type { Playing } from "../bell/sounds";
 import { FocusMode } from "../gen/focusledger/v1/model_pb";
 import type { LoggedMode } from "../ledger/rollup";
 import { modeKey } from "../modes/modes";
+import type { TimerChip } from "../session/sessionTimer";
 import { ScreenHeader } from "../start/ScreenHeader";
 import { MODE_NAMES, type TodayData } from "../today/todayModel";
 import { stepWithin } from "../tree/estimateModel";
@@ -65,6 +66,8 @@ type Props = {
   onOpenStart: () => void;
   onOpenTasks: () => void;
   onSignOut: () => void;
+  /** While a cycle or break runs: the chip, and the brand goes back to it. */
+  session?: { timer?: TimerChip; homeLabel: string };
 };
 
 /**
@@ -82,6 +85,7 @@ export function SettingsPage({
   onOpenStart,
   onOpenTasks,
   onSignOut,
+  session,
 }: Props) {
   const now = useNow(30_000);
   const [form, setForm] = useState<SettingsForm>(() => toForm(data.settings));
@@ -194,6 +198,8 @@ export function SettingsPage({
         onOpenTasks={onOpenTasks}
         onOpenSettings={() => {}}
         onSignOut={onSignOut}
+        timer={session?.timer}
+        homeLabel={session?.homeLabel}
       />
       <main className="settings-main">
         {error && (

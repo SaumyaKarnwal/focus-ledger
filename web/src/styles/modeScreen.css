@@ -856,3 +856,38 @@
   color: var(--dialog-fg);
   caret-color: var(--accent);
 }
+
+/* While a dialog covers a mode screen, only the content is inert. The header keeps its place in the layout. */
+.mode-screen-content {
+  display: contents;
+}
+.picker-scrim[data-pass-through] {
+  pointer-events: none;
+}
+.picker-scrim[data-pass-through] > * {
+  pointer-events: auto;
+}
+/* The chip with the time left, on any other page while a cycle runs. */
+.screen-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 14px 0 10px;
+  background: var(--on-screen-chip);
+  border: 1px solid var(--on-screen-chip-border);
+  border-radius: 16px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--on-screen-strong);
+}
+.screen-timer-mark {
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--mode, var(--on-screen-strong));
+}
+.screen-timer-time {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}

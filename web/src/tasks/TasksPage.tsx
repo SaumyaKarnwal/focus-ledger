@@ -4,6 +4,7 @@ import { withRetry } from "../api/retry";
 import type { CyclePb, NodePb } from "../gen/focusledger/v1/model_pb";
 import { cycleStart, type LoggedMode } from "../ledger/rollup";
 import { modeKey } from "../modes/modes";
+import type { TimerChip } from "../session/sessionTimer";
 import { ScreenHeader } from "../start/ScreenHeader";
 import type { TaskSave } from "../task/saveTask";
 import { TaskDialog } from "../task/TaskDialog";
@@ -40,6 +41,8 @@ type Props = {
   onOpenReport: () => void;
   onOpenSettings: () => void;
   onSignOut: () => void;
+  /** While a cycle or break runs: the chip, and the brand goes back to it. */
+  session?: { timer?: TimerChip; homeLabel: string };
 };
 
 type Dragging =
@@ -56,6 +59,7 @@ export function TasksPage({
   onOpenReport,
   onOpenSettings,
   onSignOut,
+  session,
 }: Props) {
   const now = useNow(30_000);
   // Completed tasks are listed too, muted.
@@ -195,6 +199,8 @@ export function TasksPage({
         onOpenReport={onOpenReport}
         onOpenSettings={onOpenSettings}
         onSignOut={onSignOut}
+        timer={session?.timer}
+        homeLabel={session?.homeLabel}
       />
       {openRow ? (
         <main className="tasks-main task-page-main">

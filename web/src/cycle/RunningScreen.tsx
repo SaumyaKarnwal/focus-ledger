@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import type { CyclePb } from "../gen/focusledger/v1/model_pb";
 import type { LoggedMode } from "../ledger/rollup";
 import { modeKey } from "../modes/modes";
@@ -9,14 +8,9 @@ import {
   ScreenClock,
 } from "../start/ModeScreenFrame";
 import { MODE_NAMES } from "../today/todayModel";
-import type { BellDeps } from "../bell/bell";
-import { useFocusSound } from "../bell/useFocusSound";
-import { useNow } from "../useNow";
-import { loadPause, savePause } from "./pauseStore";
 import {
   elapsedMs,
   formatCountdown,
-  hasEnded,
   minutesToLog,
   type PauseState,
   pausedMs,
@@ -32,13 +26,21 @@ type Props = {
   email: string;
   timeZone: string;
   busy: boolean;
-  /** `ranOut` is true when the clock reached zero: the bell rings then. */
-  onStop: (minutes: number, ranOut?: boolean) => void;
+  /** The app's clock. The time-out check above the routes uses the same one. */
+  now: Date;
+  pause: PauseState;
+  onTogglePause: () => void;
+  onStop: (minutes: number) => void;
+  onOpenTasks: () => void;
+  onOpenSettings: () => void;
   onSignOut: () => void;
-  bell: BellDeps;
 };
 
-/** The running cycle (board C-Desk-Run): the clock, PAUSE, and Stop and log. */
+/**
+ * The running cycle (board C-Desk-Run): the clock, PAUSE, and Stop and log.
+ * The clock, the pause, and the time-out live above the routes, so they keep
+ * going while another page shows.
+ */
 export function RunningScreen({
   cycle,
   nodeName,
@@ -46,43 +48,17 @@ export function RunningScreen({
   email,
   timeZone,
   busy,
+  now,
+  pause,
+  onTogglePause,
   onStop,
+  onOpenTasks,
+  onOpenSettings,
   onSignOut,
-  bell,
 }: Props) {
-  const now = useNow();
-  // The server knows nothing of a pause. Browser storage keeps it over a reload.
-  const [pause, setPause] = useState<PauseState>(
-    () => loadPause(cycle.id) ?? { totalMs: 0 },
-  );
-  useEffect(() => {
-    if (pause.totalMs > 0 || pause.sinceMs !== undefined)
-      savePause(cycle.id, pause);
-  }, [cycle.id, pause]);
   const paused = pausedMs(pause, now);
   const isPaused = pause.sinceMs !== undefined;
-  const ended = !isPaused && hasEnded(cycle, now, paused);
   const minutes = minutesToLog(cycle, now, paused);
-  useFocusSound(!isPaused && !ended, bell);
-  const endHandled = useRef(false);
-
-  useEffect(() => {
-    if (endHandled.current || !ended) return;
-    endHandled.current = true;
-    onStop(cycle.plannedMinutes, true);
-  }, [ended, cycle.plannedMinutes, onStop]);
-
-  // The stamps use the clock that the countdown shows. With Date.now(), the two
-  // clocks can differ by up to a second, and the countdown then jumps by one.
-  const togglePause = () => {
-    const at = now.getTime();
-    setPause((current) =>
-      current.sinceMs === undefined
-        ? { ...current, sinceMs: at }
-        : { totalMs: current.totalMs + at - current.sinceMs },
-    );
-  };
-
   const mode = cycle.mode as LoggedMode;
   const isInbox = nodeName === "Inbox";
 
@@ -91,6 +67,8 @@ export function RunningScreen({
       modeKey={modeKey(mode)}
       timeZone={timeZone}
       email={email}
+      onOpenTasks={onOpenTasks}
+      onOpenSettings={onOpenSettings}
       onSignOut={onSignOut}
       strip={
         <BoundTask
@@ -119,7 +97,7 @@ export function RunningScreen({
             className="screen-cta"
             aria-label={isPaused ? "Resume" : "Pause"}
             disabled={busy}
-            onClick={togglePause}
+            onClick={onTogglePause}
           >
             {isPaused ? <PlayIcon /> : <PauseIcon />}
             {isPaused ? "RESUME" : "PAUSE"}

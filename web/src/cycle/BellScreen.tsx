@@ -20,6 +20,8 @@ type Props = {
   onExtend: (moreMinutes: number) => void;
   onBreak: () => void;
   onNewCycle: () => void;
+  onOpenTasks: () => void;
+  onOpenSettings: () => void;
   onSignOut: () => void;
 };
 
@@ -36,6 +38,8 @@ export function BellScreen({
   onExtend,
   onBreak,
   onNewCycle,
+  onOpenTasks,
+  onOpenSettings,
   onSignOut,
 }: Props) {
   const [moreMinutes, setMoreMinutes] = useState("");
@@ -58,11 +62,11 @@ export function BellScreen({
   };
 
   const dialog = (
-    <div className="picker-scrim">
+    // The header stays usable over the scrim: clicks outside the dialog pass through.
+    <div className="picker-scrim" data-pass-through="true">
       <section
         className="bell"
         role="dialog"
-        aria-modal="true"
         aria-labelledby="bell-heading"
         data-mode={modeKey(mode)}
       >
@@ -148,6 +152,8 @@ export function BellScreen({
       onStart={() => {}}
       onBreak={() => {}}
       onSaveTask={async () => undefined}
+      onOpenTasks={onOpenTasks}
+      onOpenSettings={onOpenSettings}
       onSignOut={onSignOut}
     />
   );
