@@ -50,7 +50,9 @@ export function ModeScreenFrame({
           inert={inert}
           aria-hidden={inert || undefined}
         >
-          <div className="start-main">{children}</div>
+          <div className="start-main">
+            <div className="start-layout">{children}</div>
+          </div>
           <footer className="task-strip">{strip}</footer>
         </div>
       </div>
