@@ -40,6 +40,14 @@ Report is not designed yet. The header shows it, but the link stays inert. The o
    | Bell sound Silent or not | `SettingsPb.sound_enabled` |
    | Show a notification when it rings | `SettingsPb.notifications_enabled` |
    | Long break, long break every N cycles, the sound choice, volume, ring when a break ends | browser local storage |
+   | Alarm repeat (1–5 rings, default 3) | browser local storage |
+   | Focus sound (None, Ticking fast, Ticking slow, White noise, Brown noise; default None) and its volume (default 40%) | browser local storage |
+
+   Two additions that `H-Settings-Stacked` does not show yet. Both reuse the board's own row, stepper, chip, and slider styles:
+   - **Repeat:** a stepper row in The bell card, under the sound chips: "Ring" N "times". The bell rings N times, then stops.
+   - **Focus sound:** a third card under The bell, titled "Focus sound", with the line "Plays only while a cycle runs." It holds the five chips (a chip click previews the sound for 3 seconds) and a Volume slider. The sound starts with a cycle, stops on Pause and resumes after it, and stops at the bell, at Stop, and on a break. The browser generates all five sounds with the Web Audio API, so the app ships no audio files.
+
+   Auto start, auto check, themes, and other settings are not in this release.
 
    The numbers on the boards (60, 45, 30) are sample values. The defaults stay as in `prd.md`.
 7. No color literal outside the theme files. See [`../theming.md`](../theming.md).
