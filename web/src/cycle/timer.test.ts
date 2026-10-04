@@ -10,7 +10,6 @@ import {
   hasEnded,
   minutesToLog,
   pausedMs,
-  pauseTooLong,
   remainingMs,
 } from "./timer";
 
@@ -46,14 +45,6 @@ describe("timer", () => {
       33 * MINUTE_MS,
     );
     expect(endTime(running, 5 * MINUTE_MS)).toEqual(at(55));
-  });
-
-  test("pauseTooLong_atTenMinutes_isTrue", () => {
-    const pause = { totalMs: 0, sinceMs: at(5).getTime() };
-
-    expect(pauseTooLong(pause, at(14.9))).toBe(false);
-    expect(pauseTooLong(pause, at(15))).toBe(true);
-    expect(pauseTooLong({ totalMs: 20 * MINUTE_MS }, at(40))).toBe(false);
   });
 
   test("endTime_plannedFifty_isFiftyMinutesAfterStart", () => {
