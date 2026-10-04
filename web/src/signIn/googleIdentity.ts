@@ -64,8 +64,8 @@ export async function renderGoogleButton(
     type: "standard",
     theme: "filled_black",
     size: "large",
-    shape: "rectangular",
-    text: "signin_with",
-    width: 358,
+    shape: "pill",
+    text: "continue_with",
+    width: 300,
   });
 }

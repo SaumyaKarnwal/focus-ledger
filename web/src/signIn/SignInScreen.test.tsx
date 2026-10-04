@@ -9,6 +9,11 @@ import {
   recordingClient,
 } from "../testing/appHarness";
 import { openFromTasks } from "../testing/navigation";
+import {
+  PRODUCT_NAME,
+  PRODUCT_NAME_MEANING,
+  PRODUCT_NAME_NATIVE,
+} from "../productName";
 import { FAKE_ID_TOKEN, type SignInMethod } from "./signInMethod";
 
 beforeEach(() => {
@@ -57,9 +62,24 @@ describe("Sign-in", () => {
     ).toBeDefined();
     expect(
       screen.getAllByRole("button").map((button) => button.textContent),
-    ).toEqual(["Sign in with Google"]);
+    ).toEqual(["Continue with Google"]);
     expect(screen.queryByRole("navigation")).toBeNull();
     expect(screen.queryByRole("textbox")).toBeNull();
+  });
+
+  test("signIn_screen_showsTheBoardsCardAndNoGuestLink", async () => {
+    renderApp(signedOutClient().client);
+
+    expect(
+      await screen.findByRole("heading", { name: PRODUCT_NAME }),
+    ).toBeDefined();
+    expect(screen.getByText(PRODUCT_NAME_NATIVE).getAttribute("lang")).toBe(
+      "sa",
+    );
+    expect(screen.getByText(PRODUCT_NAME_MEANING)).toBeDefined();
+    expect(screen.getByText(/every cycle you name follows you/)).toBeDefined();
+    expect(screen.queryByText(/without an account/i)).toBeNull();
+    expect(screen.queryByRole("link")).toBeNull();
   });
 
   test("signIn_google_sendsTheIdTokenAndOpensToday", async () => {
@@ -68,7 +88,7 @@ describe("Sign-in", () => {
     renderApp(client);
 
     fireEvent.click(
-      await screen.findByRole("button", { name: "Sign in with Google" }),
+      await screen.findByRole("button", { name: "Continue with Google" }),
     );
 
     expect(await screen.findByRole("button", { name: "Start" })).toBeDefined();
@@ -83,7 +103,7 @@ describe("Sign-in", () => {
     renderApp(signedOutClient([]).client);
 
     fireEvent.click(
-      await screen.findByRole("button", { name: "Sign in with Google" }),
+      await screen.findByRole("button", { name: "Continue with Google" }),
     );
 
     expect(await screen.findByRole("button", { name: "Start" })).toBeDefined();
@@ -102,7 +122,7 @@ describe("Sign-in", () => {
       "GOOGLE_CLIENT_ID",
     );
     expect(
-      screen.queryByRole("button", { name: "Sign in with Google" }),
+      screen.queryByRole("button", { name: "Continue with Google" }),
     ).toBeNull();
   });
 

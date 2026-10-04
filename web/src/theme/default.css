@@ -137,6 +137,9 @@
   --scrim: rgb(33 23 31 / 0.58);
   /* Behind a small question on any screen, such as Sign out. */
   --scrim-light: rgb(42 39 36 / 0.28);
+  /* The frosted card on the sign-in image. */
+  --signin-card-bg: rgb(255 253 248 / 0.78);
+  --signin-card-shadow: rgb(94 68 89 / 0.14);
   --dialog-shadow: rgb(20 12 18 / 0.44);
 
   /* Accent: links, the New task pill, a dialog's primary button */
@@ -164,6 +167,7 @@
   --font-figures: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   /* The timer digits and the main button (README rule 8). The app bundles Nunito. */
   --font-timer: "Nunito", system-ui, sans-serif;
+  --font-devanagari: "Tiro Devanagari Sanskrit", serif;
   --font-cta: Nunito, ui-rounded, sans-serif;
   color-scheme: light;
 }
