@@ -78,6 +78,7 @@ type Props = {
   onSaved: () => void;
   onOpenStart: () => void;
   onOpenTasks: () => void;
+  onOpenReport: () => void;
   onSignOut: () => void;
   /** While a cycle or break runs: the chip, and the brand goes back to it. */
   session?: { timer?: TimerChip; homeLabel: string };
@@ -97,6 +98,7 @@ export function SettingsPage({
   onSaved,
   onOpenStart,
   onOpenTasks,
+  onOpenReport,
   onSignOut,
   session,
 }: Props) {
@@ -209,6 +211,7 @@ export function SettingsPage({
         current="settings"
         onOpenHome={onOpenStart}
         onOpenTasks={onOpenTasks}
+        onOpenReport={onOpenReport}
         onOpenSettings={() => {}}
         onSignOut={onSignOut}
         timer={session?.timer}

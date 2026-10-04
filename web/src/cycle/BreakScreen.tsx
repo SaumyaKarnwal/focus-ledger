@@ -48,6 +48,7 @@ type Props = {
   onDone: () => void;
   onOpenTasks: () => void;
   onOpenSettings: () => void;
+  onOpenReport?: () => void;
   onSignOut: () => void;
 };
 
@@ -63,6 +64,7 @@ export function BreakScreen({
   onDone,
   onOpenTasks,
   onOpenSettings,
+  onOpenReport,
   onSignOut,
 }: Props) {
   const { kind, totalMinutes, startedAt } = timer;
@@ -94,6 +96,7 @@ export function BreakScreen({
       email={email}
       onOpenTasks={onOpenTasks}
       onOpenSettings={onOpenSettings}
+      onOpenReport={onOpenReport}
       onSignOut={onSignOut}
       strip={
         <BoundTask

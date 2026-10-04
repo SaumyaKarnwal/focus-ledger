@@ -143,6 +143,12 @@
   /* The Report's change beside the total: more time, or less. */
   --report-up: #4f8a6b;
   --report-down: var(--red-600);
+  /* Your year: no focus, then four steps of minutes in a day (board R-Report-Week). */
+  --heat-0: rgb(42 39 36 / 0.06);
+  --heat-1: #e8dee6;
+  --heat-2: #cdb7c8;
+  --heat-3: #9e7c97;
+  --heat-4: var(--aubergine-600);
   --dialog-shadow: rgb(20 12 18 / 0.44);
 
   /* Accent: links, the New task pill, a dialog's primary button */

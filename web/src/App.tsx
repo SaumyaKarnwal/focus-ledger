@@ -624,6 +624,7 @@ export function App({
             onSaveTask={saveTask}
             onOpenTasks={() => openView("tree")}
             onOpenSettings={openSettings}
+            onOpenReport={() => openView("report")}
             onSignOut={signOut}
           />
         </>
@@ -683,6 +684,7 @@ export function App({
             }
             onOpenStart={() => openView("today")}
             onOpenTasks={() => openView("tree")}
+            onOpenReport={() => openView("report")}
             onSignOut={signOut}
             session={pageSession}
           />
@@ -705,6 +707,7 @@ export function App({
             onStop={(minutes) => stop(minutes)}
             onOpenTasks={() => openView("tree")}
             onOpenSettings={openSettings}
+            onOpenReport={() => openView("report")}
             onSignOut={signOut}
           />
         </>
@@ -729,6 +732,7 @@ export function App({
             }
             onOpenTasks={() => openView("tree")}
             onOpenSettings={openSettings}
+            onOpenReport={() => openView("report")}
             onSignOut={signOut}
           />
         </>
@@ -749,6 +753,7 @@ export function App({
             onStop={(total) => stopExtension(total)}
             onOpenTasks={() => openView("tree")}
             onOpenSettings={openSettings}
+            onOpenReport={() => openView("report")}
             onSignOut={signOut}
           />
         </>
@@ -767,6 +772,7 @@ export function App({
           }
           onOpenTasks={() => openView("tree")}
           onOpenSettings={openSettings}
+          onOpenReport={() => openView("report")}
           onSignOut={signOut}
         />
       )}

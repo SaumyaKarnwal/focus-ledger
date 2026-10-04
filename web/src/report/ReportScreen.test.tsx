@@ -144,6 +144,28 @@ describe("Report v2 (boards R-Report-*)", () => {
     ).toBeDefined();
   });
 
+  test("report_part2_showsSetAndDoFinishedBarsAndYourYear", async () => {
+    await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
+
+    expect(
+      (await card("What you set, what you do").findAllByRole("listitem")).length,
+    ).toBe(3);
+    expect(card("Cycles you finished").getAllByText(/^\d+ of \d+$/)).toHaveLength(3);
+    expect(card("Your week").getAllByRole("listitem")).toHaveLength(7);
+    const year = await screen.findByRole("region", { name: "Your year" });
+    expect(within(year).getByText("days in a row")).toBeDefined();
+    expect(within(year).getByText(/days with focus since last/)).toBeDefined();
+  });
+
+  test("report_smallCard_followsTheRange", async () => {
+    await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
+
+    pickRange("Today");
+    expect(await screen.findByRole("region", { name: "This week so far" })).toBeDefined();
+    pickRange("Month");
+    expect(await screen.findByRole("region", { name: "Week by week" })).toBeDefined();
+  });
+
   test("report_header_marksReportAsTheCurrentPage", async () => {
     await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
 

@@ -22,6 +22,7 @@ type Props = {
   onNewCycle: () => void;
   onOpenTasks: () => void;
   onOpenSettings: () => void;
+  onOpenReport?: () => void;
   onSignOut: () => void;
 };
 
@@ -40,6 +41,7 @@ export function BellScreen({
   onNewCycle,
   onOpenTasks,
   onOpenSettings,
+  onOpenReport,
   onSignOut,
 }: Props) {
   const [moreMinutes, setMoreMinutes] = useState("");
@@ -154,6 +156,7 @@ export function BellScreen({
       onSaveTask={async () => undefined}
       onOpenTasks={onOpenTasks}
       onOpenSettings={onOpenSettings}
+      onOpenReport={onOpenReport}
       onSignOut={onSignOut}
     />
   );

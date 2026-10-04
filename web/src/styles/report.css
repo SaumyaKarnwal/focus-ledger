@@ -232,3 +232,210 @@
   border-radius: 5px;
   background: var(--mode);
 }
+
+/* The third row: set and done, finished cycles, and the small bars */
+.report-row-three {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 0.8fr);
+}
+@media (width < 1100px) {
+  .report-row-three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.report-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+.report-set-tick {
+  width: 2px;
+  height: 13px;
+  background: var(--ink-strong);
+}
+.report-set-figures {
+  grid-column: 3 / -1;
+  font-size: 12.5px;
+  text-align: right;
+  color: var(--ink-muted);
+}
+.report-set-figures strong {
+  font-family: var(--font-figures);
+  font-weight: 500;
+  color: var(--ink-strong);
+}
+.report-kind-track {
+  position: relative;
+}
+.report-set-mark {
+  position: absolute;
+  top: -5px;
+  width: 2px;
+  height: 20px;
+  background: var(--ink-strong);
+}
+.report-finished {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+.report-finished li {
+  display: grid;
+  grid-template-columns: 100px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+.report-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.report-mark {
+  width: 24px;
+  height: 14px;
+  border: 1.5px solid var(--mode, var(--ink-muted));
+  border-radius: 4px;
+}
+.report-mark[data-filled] {
+  background: var(--mode, var(--ink-muted));
+}
+.report-key .report-mark {
+  width: 14px;
+  height: 9px;
+  border-radius: 3px;
+  margin-left: 8px;
+}
+.report-finished-count {
+  font-family: var(--font-figures);
+  font-size: 13.5px;
+  color: var(--ink-muted);
+}
+.report-bars {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 12px;
+  height: 160px;
+}
+.report-bars li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.report-bar-value {
+  min-height: 15px;
+  font-family: var(--font-figures);
+  font-size: 11.5px;
+  white-space: nowrap;
+  color: var(--ink-muted);
+}
+.report-bar-column {
+  flex-grow: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+.report-bar-column span {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 6px;
+  background: var(--heat-2);
+}
+.report-bars li[data-current] .report-bar-column span {
+  background: var(--accent);
+}
+.report-bar-label {
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+
+/* Your year */
+.report-streak {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+.report-streak > strong {
+  font-family: var(--font-figures);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--ink-strong);
+}
+.report-streak-best {
+  margin-left: 12px;
+  padding-left: 12px;
+  border-left: 1px solid var(--rule);
+}
+.report-streak-best strong {
+  color: var(--ink-strong);
+}
+.report-year {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+}
+.report-year-days,
+.report-year-week {
+  display: grid;
+  grid-template-rows: 18px repeat(7, 11px);
+  gap: 3px;
+}
+.report-year-days {
+  margin-right: 6px;
+  font-size: 10.5px;
+  color: var(--ink-faint);
+}
+.report-year-days span:first-child {
+  grid-row: 2;
+}
+.report-year-month {
+  font-size: 10.5px;
+  white-space: nowrap;
+  color: var(--ink-faint);
+}
+.report-year-day {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  background: var(--heat-0);
+}
+.report-year-day[data-blank] {
+  background: none;
+}
+.report-year-day[data-level="1"] {
+  background: var(--heat-1);
+}
+.report-year-day[data-level="2"] {
+  background: var(--heat-2);
+}
+.report-year-day[data-level="3"] {
+  background: var(--heat-3);
+}
+.report-year-day[data-level="4"] {
+  background: var(--heat-4);
+}
+.report-year-foot {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+.report-year-scale {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+}

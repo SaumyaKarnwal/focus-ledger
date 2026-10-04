@@ -10,7 +10,6 @@ type Props = {
   email: string;
   /** Without it, Tasks is shown but does nothing, as while a cycle runs. */
   onOpenTasks?: () => void;
-  /** Report opens only from the Tasks page until it has a v2 page. */
   onOpenReport?: () => void;
   onOpenSettings?: () => void;
   /** The brand goes to Start, or back to the cycle while one runs. */

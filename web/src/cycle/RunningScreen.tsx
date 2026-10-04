@@ -33,6 +33,7 @@ type Props = {
   onStop: (minutes: number) => void;
   onOpenTasks: () => void;
   onOpenSettings: () => void;
+  onOpenReport?: () => void;
   onSignOut: () => void;
 };
 
@@ -54,6 +55,7 @@ export function RunningScreen({
   onStop,
   onOpenTasks,
   onOpenSettings,
+  onOpenReport,
   onSignOut,
 }: Props) {
   const paused = pausedMs(pause, now);
@@ -69,6 +71,7 @@ export function RunningScreen({
       email={email}
       onOpenTasks={onOpenTasks}
       onOpenSettings={onOpenSettings}
+      onOpenReport={onOpenReport}
       onSignOut={onSignOut}
       strip={
         <BoundTask
