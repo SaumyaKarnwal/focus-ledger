@@ -260,6 +260,29 @@ describe("Report v2 (boards R-Report-*)", () => {
     expect(status.textContent).toBe("");
   });
 
+  test("report_yourWeek_showsFiguresOnlyOnHoverWithTheCard", async () => {
+    await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
+    const week = await screen.findByRole("region", { name: "Your week" });
+
+    // At rest, no figure sits above a bar.
+    expect(week.textContent).not.toMatch(/\dh|\dm/);
+    expect(within(week).queryByRole("tooltip")).toBeNull();
+
+    const saturday = within(week).getByRole("listitem", { name: /^Sat: / });
+    fireEvent.mouseEnter(saturday);
+    const card = within(week).getByRole("tooltip");
+    const value = saturday.getAttribute("aria-label")?.replace("Sat: ", "");
+    expect(value).toMatch(/\d/);
+    expect(card.textContent).toBe(`Sat${value}`);
+    expect(
+      within(week)
+        .getAllByRole("listitem")
+        .filter((item) => item.dataset.dim === "true"),
+    ).toHaveLength(6);
+    fireEvent.mouseLeave(saturday);
+    expect(within(week).queryByRole("tooltip")).toBeNull();
+  });
+
   test("report_smallCard_followsTheRange", async () => {
     await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
 

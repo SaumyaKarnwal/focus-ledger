@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { LOGGED_MODES } from "../ledger/rollup";
 import { modeKey } from "../modes/modes";
+import { BarTip } from "../ui/BarTip";
+import { useBarFocus } from "../ui/useBarFocus";
 import { formatMinutes, MODE_NAMES } from "../today/todayModel";
 import type { PlacedCycle } from "./reportCards";
 import { type DayBar, finishedCycles, setAndDo, type Year } from "./reportYear";
@@ -135,6 +137,14 @@ export function BarsCard({
   bars: readonly DayBar[];
 }) {
   const most = Math.max(1, ...bars.map((bar) => bar.minutes));
+  const { active, barProps } = useBarFocus();
+  const activeBar = active === undefined ? undefined : bars[active];
+  const valueOf = (bar: DayBar) =>
+    bar.future
+      ? "to come"
+      : bar.minutes === 0
+        ? "No focus"
+        : formatMinutes(bar.minutes);
   return (
     <section className="task-card" aria-labelledby="report-bars">
       <div className="task-card-head">
@@ -142,25 +152,31 @@ export function BarsCard({
           {title}
         </h2>
       </div>
-      <ol className="report-bars">
-        {bars.map((bar) => (
-          <li
-            key={bar.label}
-            data-current={bar.current || undefined}
-            aria-label={`${bar.label}: ${bar.future ? "to come" : formatMinutes(bar.minutes)}`}
-          >
-            <span className="report-bar-value">
-              {bar.future || bar.minutes === 0
-                ? ""
-                : formatMinutes(bar.minutes)}
-            </span>
-            <span className="report-bar-column">
-              <span style={{ height: `${(bar.minutes / most) * 100}%` }} />
-            </span>
-            <span className="report-bar-label">{bar.label}</span>
-          </li>
-        ))}
-      </ol>
+      <div className="report-bars-chart">
+        <ol className="report-bars">
+          {bars.map((bar, index) => (
+            <li
+              key={bar.label}
+              data-current={bar.current || undefined}
+              aria-label={`${bar.label}: ${valueOf(bar)}`}
+              {...barProps(index)}
+            >
+              <span className="report-bar-column">
+                <span style={{ height: `${(bar.minutes / most) * 100}%` }} />
+              </span>
+              <span className="report-bar-label">{bar.label}</span>
+            </li>
+          ))}
+        </ol>
+        {activeBar && active !== undefined && (
+          <BarTip index={active} count={bars.length} className="report-bar-tip">
+            <div className="split-tip-head">
+              <span className="split-tip-name">{activeBar.label}</span>
+              <span className="split-minutes">{valueOf(activeBar)}</span>
+            </div>
+          </BarTip>
+        )}
+      </div>
     </section>
   );
 }

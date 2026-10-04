@@ -4,7 +4,9 @@ import { type ByMode, LOGGED_MODES, type LoggedMode } from "../ledger/rollup";
 import { modeKey } from "../modes/modes";
 import type { TaskRow } from "../tasks/tasksModel";
 import { formatMinutes, MODE_NAMES } from "../today/todayModel";
+import { BarTip } from "../ui/BarTip";
 import { SplitRing } from "../ui/SplitRing";
+import { useBarFocus } from "../ui/useBarFocus";
 import {
   ESTIMATE_COUNT,
   ESTIMATE_LENGTH,
@@ -373,7 +375,7 @@ function DaysCard({
   const pxPerHour = 140 / hours;
   const week = days.reduce((sum, day) => sum + day.total, 0);
   // The bar under the pointer, in focus, or tapped (README rule 10).
-  const [active, setActive] = useState<number>();
+  const { active, barProps } = useBarFocus();
   const activeDay = active === undefined ? undefined : days[active];
   return (
     <section className="task-card" aria-label="Last seven days">
@@ -405,15 +407,7 @@ function DaysCard({
             <li
               key={day.range.start.toISOString()}
               aria-label={`${dayLabel(day, timeZone)}: ${day.total > 0 ? formatMinutes(day.total) : "nothing"}`}
-              tabIndex={0}
-              data-dim={active !== undefined && active !== index}
-              onMouseEnter={() => setActive(index)}
-              onMouseLeave={() => setActive(undefined)}
-              onFocus={() => setActive(index)}
-              onBlur={() => setActive(undefined)}
-              onClick={() =>
-                setActive((current) => (current === index ? undefined : index))
-              }
+              {...barProps(index)}
             >
               <span className="days-total" data-none={day.total === 0}>
                 {day.total === 0 ? "—" : ""}
@@ -435,14 +429,7 @@ function DaysCard({
           ))}
         </ol>
         {activeDay && active !== undefined && (
-          <div
-            className="split-tip days-tip"
-            role="tooltip"
-            data-edge={active > 3 ? "end" : undefined}
-            style={{
-              left: `calc(30px + (100% - 30px) * ${(active + 0.5) / days.length})`,
-            }}
-          >
+          <BarTip index={active} count={days.length} axis="30px">
             <div className="split-tip-head">
               <span className="split-tip-name">
                 {dayLabel(activeDay, timeZone)}
@@ -465,7 +452,7 @@ function DaysCard({
                 </span>
               </div>
             ))}
-          </div>
+          </BarTip>
         )}
       </div>
       <div className="days-axis" />
