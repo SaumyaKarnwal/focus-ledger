@@ -21,6 +21,24 @@ Each file is plain HTML with inline styles. It needs the canvas runtime (`suppor
 
 Report is not designed yet. The header shows it, but the link stays inert. The owner ships without Report: when Settings and the other screens are merged, the build may deploy.
 
+
+## Addresses
+
+Every page has its own address, so a user can type it, bookmark it, reload it, and use Back and Forward (owner request):
+
+| Address | Page |
+|---|---|
+| `/` | Home (Start; Running or Break when one is active) |
+| `/tasks` | Tasks |
+| `/tasks/<node id>` | Task page |
+| `/settings` | Settings |
+| `/report` | Report (the interim page until its board exists) |
+
+- The header links and the wordmark change the address; they do not keep a hidden screen state.
+- A wrong or old address goes home. Another user's task ID also goes home: the server answers `NOT_FOUND`.
+- Moving between pages never pauses or stops a running cycle (rule 7).
+- The backend already returns `index.html` for any path that is not gRPC, `/mcp`, `/oauth/*`, or `/.well-known/*`, so a reload on any address works.
+
 ## Rules for the build
 
 1. The boards decide the look and the screen flow. Where a board differs from `prd.md`, the board wins on layout and flow; the data rules in `prd.md`, `schema.md`, and `api.md` still hold.
