@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
@@ -20,6 +20,16 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
 });
+
+/** Answers the Sign out question (board A-Signout) with Sign out. */
+function confirmSignOut() {
+  fireEvent.click(
+    within(screen.getByRole("alertdialog", { name: "Sign out?" })).getByRole(
+      "button",
+      { name: "Sign out" },
+    ),
+  );
+}
 
 function renderApp(client: LedgerClient, signInMethod?: SignInMethod) {
   return render(
@@ -104,6 +114,7 @@ describe("Sign-in", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Your account" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
+    confirmSignOut();
 
     expect(
       await screen.findByRole("heading", { name: "Sign in" }),
@@ -119,10 +130,63 @@ describe("Sign-in", () => {
     fireEvent.click(screen.getByRole("button", { name: "Your account" }));
     expect(screen.getByText("fake.user@example.com")).toBeDefined();
     fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
+    confirmSignOut();
 
     expect(
       await screen.findByRole("heading", { name: "Sign in" }),
     ).toBeDefined();
+  });
+
+  test("signOut_cancel_keepsTheSessionAndSendsNothing", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    const signOut = vi.spyOn(client, "signOut");
+    renderApp(client);
+    await screen.findByRole("button", { name: "Start" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Your account" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
+    const question = screen.getByRole("alertdialog", { name: "Sign out?" });
+    expect(question.textContent).toContain(
+      "Everything is saved to your account",
+    );
+    expect(document.activeElement?.textContent).toBe("Cancel");
+    fireEvent.click(within(question).getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(screen.queryByRole("menu")).toBeNull();
+    expect(screen.getByRole("button", { name: "Start" })).toBeDefined();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  test("signOut_escape_closesTheQuestion", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    const signOut = vi.spyOn(client, "signOut");
+    renderApp(client);
+    await screen.findByRole("button", { name: "Start" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Your account" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
+    fireEvent.keyDown(screen.getByRole("alertdialog"), { key: "Escape" });
+
+    expect(screen.queryByRole("alertdialog")).toBeNull();
+    expect(signOut).not.toHaveBeenCalled();
+  });
+
+  test("signOut_fromTheCompactMenu_asksFirst", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    const signOut = vi.spyOn(client, "signOut");
+    renderApp(client);
+    await screen.findByRole("button", { name: "Start" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
+    expect(signOut).not.toHaveBeenCalled();
+    confirmSignOut();
+
+    expect(
+      await screen.findByRole("heading", { name: "Sign in" }),
+    ).toBeDefined();
+    expect(signOut).toHaveBeenCalledTimes(1);
   });
 
   test("session_endsDuringUse_nextActionOpensSignIn", async () => {

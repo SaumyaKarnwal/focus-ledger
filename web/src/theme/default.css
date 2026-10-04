@@ -137,6 +137,8 @@
   --dialog-mode-execution-mark: var(--mark-rose-soft);
   --dialog-mode-shallow-mark: var(--mark-sage-soft);
   --scrim: rgb(33 23 31 / 0.58);
+  /* Behind a small question on any screen, such as Sign out. */
+  --scrim-light: rgb(42 39 36 / 0.28);
   --dialog-shadow: rgb(20 12 18 / 0.44);
 
   /* Accent: links, the New task pill, a dialog's primary button */

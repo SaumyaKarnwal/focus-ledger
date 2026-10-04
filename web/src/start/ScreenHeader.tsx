@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SignOutConfirm } from "./SignOutConfirm";
 import { formatDayLabel } from "../ledger/period";
 import { PRODUCT_NAME } from "../productName";
 import type { TimerChip } from "../session/sessionTimer";
@@ -41,6 +42,13 @@ export function ScreenHeader({
   onSignOut,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmingSignOut, setConfirmingSignOut] = useState(false);
+  // Sign out asks first (board A-Signout); the menus close behind the question.
+  const askSignOut = () => {
+    setMenuOpen(false);
+    setLinksOpen(false);
+    setConfirmingSignOut(true);
+  };
   const [linksOpen, setLinksOpen] = useState(false);
   const links = (role?: "menuitem") => (
     <>
@@ -107,7 +115,7 @@ export function ScreenHeader({
             <span className="screen-menu" role="menu">
               {links("menuitem")}
               <span className="screen-menu-email">{email}</span>
-              <button type="button" role="menuitem" onClick={onSignOut}>
+              <button type="button" role="menuitem" onClick={askSignOut}>
                 Sign out
               </button>
             </span>
@@ -126,13 +134,22 @@ export function ScreenHeader({
           {menuOpen && (
             <span className="screen-menu" role="menu">
               <span className="screen-menu-email">{email}</span>
-              <button type="button" role="menuitem" onClick={onSignOut}>
+              <button type="button" role="menuitem" onClick={askSignOut}>
                 Sign out
               </button>
             </span>
           )}
         </span>
       </nav>
+      {confirmingSignOut && (
+        <SignOutConfirm
+          onCancel={() => setConfirmingSignOut(false)}
+          onConfirm={() => {
+            setConfirmingSignOut(false);
+            onSignOut();
+          }}
+        />
+      )}
     </header>
   );
 }
