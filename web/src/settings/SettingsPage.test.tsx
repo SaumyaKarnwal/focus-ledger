@@ -11,6 +11,7 @@ import {
 } from "../testing/appHarness";
 import { fakeBell } from "../testing/fakeBell";
 import { openFromTasks } from "../testing/navigation";
+import { pickSound, soundPicker } from "../testing/soundPicker";
 import { LOCAL_DEFAULTS, loadLocalSettings } from "./localSettings";
 import { changedPaths, SAVE_DELAY_MS, toForm } from "./settingsModel";
 
@@ -71,10 +72,7 @@ describe("Settings page", () => {
     expect(value("Shallow minutes")).toBe("25");
     expect(value("Break minutes")).toBe("5");
     expect(screen.queryByText(/Long break/)).toBeNull();
-    expect(
-      (screen.getByRole("combobox", { name: "Sound" }) as HTMLSelectElement)
-        .value,
-    ).toBe("bowl");
+    expect(soundPicker("The bell").textContent).toBe("Bowl");
     expect(checked("switch", "Show a notification when it rings")).toBe(
       "false",
     );
@@ -180,9 +178,7 @@ describe("Settings page", () => {
     const update = vi.spyOn(recording.client, "updateSettings");
     await openSettings(recording.client);
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Sound" }), {
-      target: { value: "wood" },
-    });
+    pickSound("The bell", "Wood");
     fireEvent.change(screen.getByRole("slider", { name: "Volume" }), {
       target: { value: "40" },
     });
@@ -200,10 +196,7 @@ describe("Settings page", () => {
       focusSound: "none",
       focusVolume: 0.4,
     });
-    expect(
-      (screen.getByRole("combobox", { name: "Sound" }) as HTMLSelectElement)
-        .value,
-    ).toBe("wood");
+    expect(soundPicker("The bell").textContent).toBe("Wood");
   });
 
   test("settings_silentThenChime_togglesSoundEnabledAndKeepsTheChoiceLocal", async () => {
@@ -211,21 +204,14 @@ describe("Settings page", () => {
     const update = vi.spyOn(recording.client, "updateSettings");
     await openSettings(recording.client);
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Sound" }), {
-      target: { value: "silent" },
-    });
+    pickSound("The bell", "Silent");
     await waitForSave();
     expect(update.mock.calls.map((call) => call[0].updateMask?.paths)).toEqual([
       ["sound_enabled"],
     ]);
-    expect(
-      (screen.getByRole("combobox", { name: "Sound" }) as HTMLSelectElement)
-        .value,
-    ).toBe("silent");
+    expect(soundPicker("The bell").textContent).toBe("Silent");
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Sound" }), {
-      target: { value: "chime" },
-    });
+    pickSound("The bell", "Chime");
     await waitForSave();
 
     expect(update.mock.calls.map((call) => call[0].updateMask?.paths)).toEqual([

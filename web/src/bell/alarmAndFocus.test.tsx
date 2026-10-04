@@ -16,6 +16,7 @@ import {
 } from "../testing/appHarness";
 import { fakeBell } from "../testing/fakeBell";
 import { openFromTasks, startCycleOn } from "../testing/navigation";
+import { pickSound } from "../testing/soundPicker";
 import { ringBell } from "./bell";
 import { focusSamples } from "./focusSound";
 import { playRings, type SoundContext } from "./sounds";
@@ -298,10 +299,10 @@ describe("Settings: ring times and focus sound", () => {
     expect(loadLocalSettings().ringTimes).toBe(1);
   });
 
-  test("settings_focusChip_previewsForThreeSecondsAndStores", async () => {
+  test("settings_focusPick_previewsForThreeSecondsAndStores", async () => {
     const bell = await openSettings();
 
-    fireEvent.click(screen.getByRole("radio", { name: "Brown noise" }));
+    pickSound("Focus sound", "Brown noise");
     expect(bell.playingFocus()).toEqual([
       { sound: "brown-noise", volume: 0.4, stopped: false },
     ]);
@@ -311,16 +312,16 @@ describe("Settings: ring times and focus sound", () => {
     expect(bell.playingFocus()).toEqual([]);
   });
 
-  test("settings_anotherFocusChip_stopsThePreviewBefore", async () => {
+  test("settings_anotherFocusPick_stopsThePreviewBefore", async () => {
     const bell = await openSettings();
 
-    fireEvent.click(screen.getByRole("radio", { name: "White noise" }));
-    fireEvent.click(screen.getByRole("radio", { name: "Ticking fast" }));
+    pickSound("Focus sound", "White noise");
+    pickSound("Focus sound", "Ticking fast");
 
     expect(bell.playingFocus().map((record) => record.sound)).toEqual([
       "tick-fast",
     ]);
-    fireEvent.click(screen.getByRole("radio", { name: "None" }));
+    pickSound("Focus sound", "None");
     expect(bell.playingFocus()).toEqual([]);
     expect(loadLocalSettings().focusSound).toBe("none");
   });
