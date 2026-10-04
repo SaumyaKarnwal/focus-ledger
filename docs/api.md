@@ -278,7 +278,8 @@ message SettingsPb {
   int32 break_minutes = 4;
   bool sound_enabled = 5;
   bool notifications_enabled = 6;
-  reserved 7, 8;
+  int32 long_break_minutes = 7;
+  reserved 8;
   BellSound bell_sound = 9;
   int32 bell_volume = 10;
   int32 bell_repeat = 11;

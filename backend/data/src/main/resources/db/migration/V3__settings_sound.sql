@@ -2,6 +2,7 @@
 -- Existing rows take the defaults.
 
 ALTER TABLE account.user_settings
+  ADD COLUMN long_break_minutes  int     NOT NULL DEFAULT 15      CHECK (long_break_minutes BETWEEN 1 AND 60),
   ADD COLUMN bell_sound          text    NOT NULL DEFAULT 'bowl'  CHECK (bell_sound IN ('bowl', 'wood', 'chime')),
   ADD COLUMN bell_volume         int     NOT NULL DEFAULT 70      CHECK (bell_volume BETWEEN 0 AND 100),
   ADD COLUMN bell_repeat         int     NOT NULL DEFAULT 3       CHECK (bell_repeat BETWEEN 1 AND 5),
