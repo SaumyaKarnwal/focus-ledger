@@ -50,7 +50,7 @@ class ListNodesTest {
                 .nodes
 
         assertEquals(
-            listOf("Closed" to true, "Under closed" to false),
+            listOf("Closed" to true, "Under closed" to true),
             nodes.map { it.name to it.closed },
         )
     }

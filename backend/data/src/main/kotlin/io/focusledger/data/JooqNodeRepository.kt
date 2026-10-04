@@ -67,6 +67,9 @@ class JooqNodeRepository(private val database: LedgerDatabase) : NodeRepository 
     override fun update(userId: UserId, nodeId: NodeId, update: NodeUpdate): ServiceResult<Node> =
         PostgresErrors.mapped {
             database.transaction { dsl ->
+                val changesTree =
+                    NodeField.CLOSED in update.mask || NodeField.PARENT_ID in update.mask
+                if (changesTree) lockTree(dsl, userId)
                 val changes =
                     buildMap<org.jooq.Field<*>, Any?> {
                         if (NodeField.NAME in update.mask) put(NODE.NAME, update.name)
@@ -99,6 +102,7 @@ class JooqNodeRepository(private val database: LedgerDatabase) : NodeRepository 
                         ServiceError.NotFound(ServiceError.Resource.NODE, "node_id")
                     )
                 } else {
+                    if (changesTree) keepOpenNodesUnderOpenAncestors(dsl, userId, node)
                     if (NodeField.ESTIMATES in update.mask) {
                         replaceEstimates(dsl, userId, node.id, update.estimates)
                     }
@@ -166,6 +170,59 @@ class JooqNodeRepository(private val database: LedgerDatabase) : NodeRepository 
         val runningChain =
             running?.nodeId?.let { byId[it.value] }?.let(::ancestry).orEmpty().map { it.id }.toSet()
         return open + runningChain
+    }
+
+    /**
+     * The same per-user lock as the move trigger in V1, so that a close, a reopen, and a move of
+     * one user run one at a time. Without it, a parallel close of a parent and reopen of its child
+     * can deadlock, or leave an open node under a closed one.
+     */
+    private fun lockTree(dsl: DSLContext, userId: UserId) {
+        dsl.execute(
+            "SELECT pg_advisory_xact_lock(hashtext('ledger.node_reject_cycle'), hashtext(?))",
+            userId.value.toString(),
+        )
+    }
+
+    /**
+     * Keeps "an open node never has a closed ancestor" (docs/api.md, "Completing a task"). A closed
+     * [node] closes its open subtree. An open [node] reopens its closed ancestors up to the root.
+     */
+    private fun keepOpenNodesUnderOpenAncestors(dsl: DSLContext, userId: UserId, node: NodeRecord) {
+        if (node.closedAt != null) {
+            dsl.execute(
+                """
+                WITH RECURSIVE subtree AS (
+                  SELECT id FROM ledger.node WHERE user_id = ? AND parent_id = ?
+                  UNION
+                  SELECT n.id FROM ledger.node n JOIN subtree s ON n.user_id = ? AND n.parent_id = s.id
+                )
+                UPDATE ledger.node SET closed_at = CAST(? AS timestamptz)
+                WHERE user_id = ? AND closed_at IS NULL AND id IN (SELECT id FROM subtree)
+                """,
+                userId.value,
+                node.id,
+                userId.value,
+                node.closedAt.toString(),
+                userId.value,
+            )
+        } else if (node.parentId != null) {
+            dsl.execute(
+                """
+                WITH RECURSIVE ancestors AS (
+                  SELECT id, parent_id FROM ledger.node WHERE user_id = ? AND id = ?
+                  UNION
+                  SELECT n.id, n.parent_id FROM ledger.node n JOIN ancestors a ON n.user_id = ? AND n.id = a.parent_id
+                )
+                UPDATE ledger.node SET closed_at = NULL
+                WHERE user_id = ? AND closed_at IS NOT NULL AND id IN (SELECT id FROM ancestors)
+                """,
+                userId.value,
+                node.parentId,
+                userId.value,
+                userId.value,
+            )
+        }
     }
 
     private fun withEstimates(dsl: DSLContext, node: NodeRecord): Node =
