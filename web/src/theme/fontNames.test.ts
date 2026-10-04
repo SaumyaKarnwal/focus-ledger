@@ -19,7 +19,7 @@ describe("the bundled faces", () => {
     expect(stack("timer")).toMatch(/^"Nunito",/);
     expect(stack("cta")).toMatch(/^Nunito,/);
     expect(theme).not.toContain("Arial Rounded");
-    expect(main).toContain('import "@fontsource/nunito/600.css";');
+    expect(main).toContain('import "@fontsource/nunito/700.css";');
     expect(main).toContain('import "@fontsource/nunito/800.css";');
   });
 });
@@ -52,6 +52,7 @@ describe("the font rule", () => {
       );
 
     expect(rule(".start-time")).toContain("font-family: var(--font-timer)");
+    expect(rule(".start-time")).toContain("font-weight: 700;");
     expect(rule(".screen-cta")).toContain("font-family: var(--font-cta)");
     expect(rule(".screen-cta")).toContain("var(--screen-cta-ledge)");
   });

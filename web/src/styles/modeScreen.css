@@ -229,7 +229,7 @@
   font-family: var(--font-timer);
   /* The digits scale with the space, up to the boards' 150px. */
   font-size: clamp(48px, min(11cqw, 22cqh), 150px);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 0.88;
   letter-spacing: -0.045em;
   font-variant-numeric: tabular-nums;
