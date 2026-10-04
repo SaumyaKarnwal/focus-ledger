@@ -115,7 +115,7 @@ This screen is not looked at. It carries the minimum and offers two controls.
 3. **No extend.** The length cannot be increased while the clock runs (see FR-4).
 4. **No mode change.** The mode chip is text, not a control (I-2).
 5. Closing the tab does not lose the cycle; it resumes on reopen.
-6. A pause that runs past 10 minutes auto-stops and logs the minutes accrued.
+6. A pause has no time limit. The cycle stays paused until the user resumes or stops it. The paused screen shows no warning about a limit.
 
 **Acceptance criteria**
 
@@ -124,7 +124,7 @@ This screen is not looked at. It carries the minimum and offers two controls.
 - Stop writes a cycle of the minutes actually elapsed, rounded down to the minute, and routes to the bell.
 - Stopping under 1 minute writes no cycle and returns to Today.
 - Reloading the browser mid-cycle restores the countdown to the correct remaining time.
-- A cycle paused for 10 minutes is closed automatically with the elapsed minutes logged.
+- A cycle paused for any length of time stays paused, and nothing is logged until the user stops it.
 
 ## FR-4 — The bell
 
