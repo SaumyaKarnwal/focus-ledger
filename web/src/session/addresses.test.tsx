@@ -43,19 +43,17 @@ function header() {
   return within(screen.getByRole("navigation", { name: "Views" }));
 }
 
-async function goBack() {
+// jsdom moves through the history later, so wait until the address changes.
+async function traverse(move: () => void) {
+  const before = window.location.pathname;
   await act(async () => {
-    window.history.back();
-    await new Promise((resolve) => setTimeout(resolve, 20));
+    move();
+    await vi.waitFor(() => expect(window.location.pathname).not.toBe(before));
   });
 }
 
-async function goForward() {
-  await act(async () => {
-    window.history.forward();
-    await new Promise((resolve) => setTimeout(resolve, 20));
-  });
-}
+const goBack = () => traverse(() => window.history.back());
+const goForward = () => traverse(() => window.history.forward());
 
 describe("Addresses", () => {
   test("directLoad_slash_opensStart", async () => {

@@ -12,6 +12,8 @@ async function open(page: Page) {
   );
   await page.goto("/?backend=fake&fixture=today");
   await expect(page.getByRole("button", { name: "Start" })).toBeVisible();
+  // A late font swap would move the buttons between two measurements.
+  await page.evaluate(() => document.fonts.ready);
 }
 
 function shadow(button: Locator) {
@@ -19,6 +21,7 @@ function shadow(button: Locator) {
 }
 
 async function expectLedgeAndPress(page: Page, button: Locator) {
+  await page.evaluate(() => document.fonts.ready);
   // A 6px lower edge in a color, not "none".
   expect(await shadow(button)).toMatch(/^(rgb|color)\(.+\) 0px 6px 0px 0px$/);
   const rest = await button.boundingBox();
