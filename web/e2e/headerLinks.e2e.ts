@@ -42,3 +42,22 @@ for (const width of [1280, 900]) {
     });
   }
 }
+
+for (const view of ["Tasks", "Settings"]) {
+  test(`1440px: the ${view} header keeps its side space`, async ({ page }) => {
+    await openState(page, "Deep Focus", 1440);
+    await page
+      .getByRole("navigation", { name: "Views" })
+      .getByRole("button", { name: view })
+      .click();
+
+    const brand = await page.locator(".screen-brand").boundingBox();
+    const account = await page
+      .getByRole("button", { name: "Your account" })
+      .boundingBox();
+    expect(brand?.x).toBeGreaterThanOrEqual(16);
+    expect(
+      1440 - ((account?.x ?? 0) + (account?.width ?? 0)),
+    ).toBeGreaterThanOrEqual(16);
+  });
+}
