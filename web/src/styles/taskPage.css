@@ -593,3 +593,28 @@
   font-weight: 600;
   color: var(--ink-strong);
 }
+
+/* The seven-day chart: figures only on hover, focus, or tap (README rule 10). */
+.days-bars li {
+  cursor: default;
+  outline: none;
+}
+.days-bars li:focus-visible .days-stack {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+.days-stack {
+  transition: opacity 120ms;
+}
+.days-bars li[data-dim="true"] .days-stack {
+  opacity: 0.3;
+}
+/* The card sits beside the bar, so the bar stays in view: right of it, or left of the last bars. */
+.days-tip {
+  top: 0;
+  width: 200px;
+  transform: translateX(42px);
+}
+.days-tip[data-edge="end"] {
+  transform: translateX(calc(-100% - 42px));
+}
