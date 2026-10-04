@@ -184,17 +184,11 @@ export function BreakScreen({
               label="Break time left"
               text={formatCountdown(remaining)}
               progress={elapsedMs / totalMs}
-              note={
-                <p className="screen-note">
-                  {Math.floor(elapsedMs / MINUTE_MS)} of {totalMinutes} min.
-                  Breaks are not logged.
-                </p>
-              }
             />
             <div className="start-actions">
               <button
                 type="button"
-                className="screen-outline"
+                className="screen-cta"
                 onClick={() =>
                   onTimerChange({
                     ...timer,
