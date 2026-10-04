@@ -18,9 +18,17 @@ Each file is plain HTML with inline styles. It needs the canvas runtime (`suppor
 | Tasks | `G-Tasks`, `-Hover`, `-Unfiled`, `-Drag`, `-Empty` | The task table in a fixed panel. Untagged cycles at the top. Drag a cycle onto a task to file it; drag a task onto a task to change its parent. |
 | Task page | `E-Task`, `E-Task-Edit`, `E-Task-Pie`, `E-Task-Done` | Back arrow (bare arrow, as on `E-Task`), parent path above the name, Mark complete / Completed button, estimate card (editable: minutes × cycles per mode), "How it splits" ring of leaf tasks, and the last seven days. |
 | Settings | `H-Settings-Stacked` | Two cards in one 680px column: Cycles (mode lengths, short break, long break; no "long break every N cycles") and The bell (sound, volume, two switches). |
+| Report | `R-Report-Today`, `-Week`, `-Month`, `-Range` | One page per range (Today, Week, Month), same order every time. A sans title with the dates under it; ‹ › step one range, and › fades out at now. The two nearest steps have names (Today/Yesterday, This week/Last week, This month/Last month); older ones show their dates. One total beside the title with the change against the range before, in small green or red. Cards: When you focus (minutes per hour, one soft curve per mode; Today uses real minutes, Week and Month use averages), Kind of focus (mode bars), Where it went (ring of top-level tasks, Untagged included), What you set vs what you do (average cycle against the setting), Cycles you finished (one mark per cycle: filled = ran to the bell, outlined = stopped early), a third small card for the week, and Your year (always the last twelve months; the only place with a streak). |
+| Sign in | `A-Signin-OnePoint`, `signin-pastel.jpg` | The playful sign-in: the pastel image fills the screen; a frosted card on the left holds एकाग्र, Ekagra, "one-pointed attention", one line, and Continue with Google. Use Google's own sign-in button (Google Identity Services, pill shape), not the drawn "G". The "keep going without an account" link is **not** built: v1 requires an account, and a guest mode is a later decision. |
+| Account menu | `A-Account-Menu` | The round initial in the header opens a small menu: name, email, Sign out. Nothing else. |
+| Sign out | `A-Signout` | Asks once: "Sign out?" with the board's text, Cancel and Sign out. |
 
-Report is not designed yet. The header shows it, but the link stays inert. The owner ships without Report: when Settings and the other screens are merged, the build may deploy.
+Report is designed (`R-Report-*`). The palette tries (`P-Palettes`) are not part of the build; they are candidates for future themes.
 
+
+## Colors on light screens
+
+On every light screen (Report, the task page, the Tasks page, Settings, the dialogs) a mode mark uses the soft tint from the New task dialog: Deep Focus lilac `#C9A3C4`, Execution rose `#E9AFB4`, Shallow teal `#A6CFCB`. This is a value change of the `--mode-*-mark` tokens in the default theme only; no component changes. The timer screens keep their deep backgrounds. Task rings use soft tints too (`--chart-*`); a slice may share a hue with a mode, because the ring always has its own legend.
 
 ## Addresses
 
