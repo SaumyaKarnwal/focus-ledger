@@ -91,7 +91,7 @@
 .report-kinds {
   display: flex;
   padding: 4px;
-  background: var(--control-hover);
+  background: var(--plate-hover);
   border-radius: 12px;
 }
 .report-kinds button {

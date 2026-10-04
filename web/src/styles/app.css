@@ -204,7 +204,7 @@ button:disabled {
   color: var(--ink-muted);
 }
 .cancel-button:hover:not(:disabled) {
-  background: var(--control-hover);
+  background: var(--plate-hover);
 }
 
 .icon-button {
