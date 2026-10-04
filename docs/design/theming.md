@@ -47,6 +47,8 @@ A builder who needs a token that is not in this table adds it with a purpose-bas
 ## Default theme values the owner set
 
 - Page (`--paper`, palette `--paper-100`): `#F7F0EC`, a warmer, slightly pink paper, in place of the boards' `#F4F1EA` (owner, #228). It covers every light page: Tasks, the task page, Report, Settings.
+- Settings controls (steppers, dropdowns, switches' off track, slider track), owner request #230: `--control-bg` `#FBF2F4`, `--control-edge` `#EBC4C9`, `--control-hover` `#F6E3E6`. These are their own tokens, not mode tokens: a soft pink here is a surface, never a sign of the Execution mode.
+- Focus ring on those controls: `--focus-ring` stays the aubergine `#5E4459`. A ring in the Execution pink `#E9AFB4` would be under 2:1 against the page, and a focus ring needs 3:1 to be seen (WCAG 1.4.11).
 
 ## Fonts
 
