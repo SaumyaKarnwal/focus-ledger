@@ -5,6 +5,8 @@ import { modeKey } from "../modes/modes";
 import {
   INBOX_ID,
   knownNodes,
+  lastCycle,
+  taskAfterCycle,
   MODE_NAMES,
   plannedMinutesFor,
   type TodayData,
@@ -46,7 +48,7 @@ export function StartScreen({
   timeZone,
   busy,
   initialNodeId,
-  initialMode = FocusMode.DEEP_FOCUS,
+  initialMode,
   overlay,
   onStart,
   onBreak,
@@ -56,16 +58,26 @@ export function StartScreen({
   onSignOut,
 }: Props) {
   const now = useNow();
-  const [nodeId, setNodeId] = useState(
-    () =>
-      initialNodeId ??
-      todayModel(data, now, timeZone).rail[0]?.nodeId ??
-      INBOX_ID,
-  );
-  const [mode, setMode] = useState<LoggedMode>(initialMode);
-  const [minutes, setMinutes] = useState(() =>
-    plannedMinutesFor(data.settings, initialMode),
-  );
+  // Start remembers the last cycle (README rule 11).
+  const [first] = useState(() => {
+    const last = lastCycle(data);
+    const firstMode =
+      initialMode ??
+      (last?.mode as LoggedMode | undefined) ??
+      FocusMode.DEEP_FOCUS;
+    return {
+      nodeId:
+        initialNodeId ??
+        (last && taskAfterCycle(data, last)) ??
+        todayModel(data, now, timeZone).rail[0]?.nodeId ??
+        INBOX_ID,
+      mode: firstMode,
+      minutes: plannedMinutesFor(data.settings, firstMode),
+    };
+  });
+  const [nodeId, setNodeId] = useState(first.nodeId);
+  const [mode, setMode] = useState<LoggedMode>(first.mode);
+  const [minutes, setMinutes] = useState(first.minutes);
   const strip = taskStrip(data, nodeId);
   const [picking, setPicking] = useState(false);
   const [creating, setCreating] = useState(false);

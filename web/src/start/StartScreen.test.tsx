@@ -132,18 +132,18 @@ describe("Start", () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
     await screen.findByRole("button", { name: "Start" });
 
-    expect(screenRoot().dataset.mode).toBe("deep");
+    expect(screenRoot().dataset.mode).toBe("execution");
     expect(
       screen
-        .getByRole("radio", { name: "Deep Focus" })
+        .getByRole("radio", { name: "Execution" })
         .getAttribute("aria-checked"),
     ).toBe("true");
-    expect(length()).toBe("90:00");
-
-    fireEvent.click(screen.getByRole("radio", { name: "Execution" }));
-
-    expect(screenRoot().dataset.mode).toBe("execution");
     expect(length()).toBe("50:00");
+
+    fireEvent.click(screen.getByRole("radio", { name: "Deep Focus" }));
+
+    expect(screenRoot().dataset.mode).toBe("deep");
+    expect(length()).toBe("90:00");
     fireEvent.click(screen.getByRole("radio", { name: "Shallow" }));
     expect(screenRoot().dataset.mode).toBe("shallow");
     expect(length()).toBe("25:00");
