@@ -48,7 +48,7 @@ export const LONG_BREAK_EVERY = { min: 2, max: 12, step: 1 };
 export const RING_TIMES = { min: 1, max: 5, step: 1 };
 
 const KEY = "focus-ledger.settings";
-const SOUNDS: readonly BellSound[] = ["bowl", "wood", "chime"];
+export const BELL_SOUNDS: readonly BellSound[] = ["bowl", "wood", "chime"];
 
 // Browser storage can be missing, blocked, or hold an older shape. Each field
 // that does not read back as valid falls back to its default.
@@ -68,7 +68,7 @@ export function loadLocalSettings(): LocalSettings {
     longBreakEvery: inRange(stored.longBreakEvery, LONG_BREAK_EVERY)
       ? (stored.longBreakEvery as number)
       : LOCAL_DEFAULTS.longBreakEvery,
-    sound: SOUNDS.includes(stored.sound as BellSound)
+    sound: BELL_SOUNDS.includes(stored.sound as BellSound)
       ? (stored.sound as BellSound)
       : LOCAL_DEFAULTS.sound,
     volume: isVolume(stored.volume) ? stored.volume : LOCAL_DEFAULTS.volume,

@@ -76,7 +76,10 @@ describe("Settings page", () => {
     expect(value("Short break minutes")).toBe("5");
     expect(value("Long break minutes")).toBe("15");
     expect(value("Long break every")).toBe("4");
-    expect(checked("radio", "Bowl")).toBe("true");
+    expect(
+      (screen.getByRole("combobox", { name: "Sound" }) as HTMLSelectElement)
+        .value,
+    ).toBe("bowl");
     expect(checked("switch", "Show a notification when it rings")).toBe(
       "false",
     );
@@ -183,7 +186,9 @@ describe("Settings page", () => {
 
     step("Long break minutes", "more");
     step("Long break every", "less");
-    fireEvent.click(screen.getByRole("radio", { name: "Wood" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Sound" }), {
+      target: { value: "wood" },
+    });
     fireEvent.change(screen.getByRole("slider", { name: "Volume" }), {
       target: { value: "40" },
     });
@@ -203,7 +208,10 @@ describe("Settings page", () => {
       focusSound: "none",
       focusVolume: 0.4,
     });
-    expect(checked("radio", "Wood")).toBe("true");
+    expect(
+      (screen.getByRole("combobox", { name: "Sound" }) as HTMLSelectElement)
+        .value,
+    ).toBe("wood");
   });
 
   test("settings_silentThenChime_togglesSoundEnabledAndKeepsTheChoiceLocal", async () => {
@@ -211,14 +219,21 @@ describe("Settings page", () => {
     const update = vi.spyOn(recording.client, "updateSettings");
     await openSettings(recording.client);
 
-    fireEvent.click(screen.getByRole("radio", { name: "Silent" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Sound" }), {
+      target: { value: "silent" },
+    });
     await waitForSave();
     expect(update.mock.calls.map((call) => call[0].updateMask?.paths)).toEqual([
       ["sound_enabled"],
     ]);
-    expect(checked("radio", "Bowl")).toBe("false");
+    expect(
+      (screen.getByRole("combobox", { name: "Sound" }) as HTMLSelectElement)
+        .value,
+    ).toBe("silent");
 
-    fireEvent.click(screen.getByRole("radio", { name: "Chime" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Sound" }), {
+      target: { value: "chime" },
+    });
     await waitForSave();
 
     expect(update.mock.calls.map((call) => call[0].updateMask?.paths)).toEqual([

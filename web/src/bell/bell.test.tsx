@@ -325,13 +325,66 @@ describe("Bell in Settings", () => {
     return bell;
   }
 
-  test("settings_soundChip_previewsTheSound", async () => {
+  function chooseSound(value: string) {
+    fireEvent.change(screen.getByRole("combobox", { name: "Sound" }), {
+      target: { value },
+    });
+  }
+
+  test("settings_soundChoice_playsOnceAndSilentPlaysNothing", async () => {
     const bell = await openSettings();
 
-    fireEvent.click(screen.getByRole("radio", { name: "Wood" }));
-    fireEvent.click(screen.getByRole("radio", { name: "Silent" }));
+    chooseSound("wood");
+    chooseSound("silent");
 
     expect(bell.played).toEqual([["wood", 0.7, 1]]);
+  });
+
+  test("settings_soundSelect_listsTheThreeSoundsAndSilent", async () => {
+    await openSettings();
+
+    expect(
+      Array.from(
+        (screen.getByRole("combobox", { name: "Sound" }) as HTMLSelectElement)
+          .options,
+      ).map((option) => option.textContent),
+    ).toEqual(["Bowl", "Wood", "Chime", "Silent"]);
+    expect(screen.queryByRole("radio", { name: "Wood" })).toBeNull();
+  });
+
+  test("settings_playButton_previewsTheChosenSound", async () => {
+    const bell = await openSettings();
+    chooseSound("chime");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Play the bell sound" }),
+    );
+
+    expect(bell.played).toEqual([
+      ["chime", 0.7, 1],
+      ["chime", 0.7, 1],
+    ]);
+  });
+
+  test("settings_playButton_silent_isDisabledAndPlaysNothing", async () => {
+    const bell = await openSettings();
+    chooseSound("silent");
+
+    const play = screen.getByRole("button", {
+      name: "Play the bell sound",
+    }) as HTMLButtonElement;
+    fireEvent.click(play);
+
+    expect(play.disabled).toBe(true);
+    expect(bell.played).toEqual([]);
+  });
+
+  test("settings_focusSound_keepsItsChips", async () => {
+    await openSettings();
+
+    expect(
+      screen.getByRole("radiogroup", { name: "Sound" }).textContent,
+    ).toContain("Brown noise");
   });
 
   test("settings_notificationsOn_asksThenTurnsOn", async () => {
