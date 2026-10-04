@@ -158,11 +158,6 @@ export function TaskPicker({
             <PlusIcon />
             New task
           </button>
-          {!noTasks && (
-            <span className="picker-keys" aria-hidden="true">
-              ↑↓ move · ↵ pick · esc close
-            </span>
-          )}
         </footer>
       </section>
     </div>
