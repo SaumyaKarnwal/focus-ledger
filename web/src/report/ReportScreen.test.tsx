@@ -160,6 +160,23 @@ describe("Report v2 (boards R-Report-*)", () => {
     expect(within(year).getByText(/days with focus since last/)).toBeDefined();
   });
 
+  test("report_whatYouSet_hasNoKeyAndNamesTheSetLengthPerMode", async () => {
+    await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
+
+    const setCard = await screen.findByRole("region", {
+      name: "What you set, what you do",
+    });
+    expect(setCard.querySelector(".task-card-head")?.textContent).toBe(
+      "What you set, what you do",
+    );
+    const lines = [...setCard.querySelectorAll(".report-set-figures")].map(
+      (line) => line.textContent,
+    );
+    expect(lines.some((line) => /^set \d+m · avg \d+m$/.test(line ?? ""))).toBe(
+      true,
+    );
+  });
+
   test("report_smallCard_followsTheRange", async () => {
     await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
 
