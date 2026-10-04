@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from "react";
 import type { LoggedMode } from "../ledger/rollup";
 import {
   BoundTask,
@@ -7,9 +6,15 @@ import {
   ScreenClock,
 } from "../start/ModeScreenFrame";
 import { MODE_NAMES } from "../today/todayModel";
-import { useNow } from "../useNow";
 import { unlockAudio } from "../bell/bell";
-import { loadLocalSettings } from "../settings/localSettings";
+import {
+  BREAK_NAMES,
+  type BreakKind,
+  type BreakTimer,
+  breakElapsedMs,
+  breakRemainingMs,
+  breakTimerFor,
+} from "../session/sessionTimer";
 import { formatCountdown } from "./timer";
 
 const MINUTE_MS = 60_000;
@@ -17,12 +22,6 @@ const EXTRA_BREAK_MINUTES = 5;
 const LENGTH_STEP = 5;
 const LENGTH_MIN = 5;
 const LENGTH_MAX = 120;
-
-type BreakKind = "short" | "long";
-const BREAK_NAMES: Record<BreakKind, string> = {
-  short: "Short break",
-  long: "Long break",
-};
 
 /** The cycle to come back to after the break. */
 export type ComingBackTo = {
@@ -36,60 +35,51 @@ export type ComingBackTo = {
 
 type Props = {
   comingBackTo: ComingBackTo;
+  /** The kind, the length, and the start live above the routes. */
+  timer: BreakTimer;
   /** The short break length from the settings. */
   breakMinutes: number;
   email: string;
   timeZone: string;
-  /** `ranOut` is true when the break clock reached zero. */
-  onDone: (ranOut?: boolean) => void;
-  /** Long after every Nth cycle of the day (Settings). */
-  initialKind?: BreakKind;
+  /** The app's clock. The time-out check above the routes uses the same one. */
+  now: Date;
+  onTimerChange: (timer: BreakTimer) => void;
+  /** "Start a cycle": the break ends by hand. */
+  onDone: () => void;
+  onOpenTasks: () => void;
+  onOpenSettings: () => void;
   onSignOut: () => void;
 };
 
 /** The break (boards C-Desk-Break2 and -Break2-Long). A break is not written to the ledger (FR-5). */
 export function BreakScreen({
   comingBackTo,
+  timer,
   breakMinutes,
   email,
   timeZone,
+  now,
+  onTimerChange,
   onDone,
-  initialKind = "short",
+  onOpenTasks,
+  onOpenSettings,
   onSignOut,
 }: Props) {
-  const now = useNow();
-  const [kind, setKind] = useState<BreakKind>(initialKind);
-  const [totalMinutes, setTotalMinutes] = useState(() =>
-    initialKind === "long"
-      ? loadLocalSettings().longBreakMinutes
-      : breakMinutes,
-  );
-  const [startedAt, setStartedAt] = useState<number>();
+  const { kind, totalMinutes, startedAt } = timer;
   const totalMs = totalMinutes * MINUTE_MS;
-  const elapsedMs =
-    startedAt === undefined
-      ? 0
-      : Math.min(totalMs, Math.max(0, now.getTime() - startedAt));
-  const remaining = totalMs - elapsedMs;
-  const doneHandled = useRef(false);
+  const elapsedMs = breakElapsedMs(timer, now);
+  const remaining = breakRemainingMs(timer, now);
 
-  useEffect(() => {
-    if (startedAt !== undefined && remaining === 0 && !doneHandled.current) {
-      doneHandled.current = true;
-      onDone(true);
-    }
-  }, [startedAt, remaining, onDone]);
-
-  const chooseKind = (next: BreakKind) => {
-    setKind(next);
-    setTotalMinutes(
-      next === "short" ? breakMinutes : loadLocalSettings().longBreakMinutes,
-    );
-  };
+  const chooseKind = (next: BreakKind) =>
+    onTimerChange(breakTimerFor(next, breakMinutes));
   const step = (by: number) =>
-    setTotalMinutes((current) =>
-      Math.min(LENGTH_MAX, Math.max(LENGTH_MIN, current + by)),
-    );
+    onTimerChange({
+      ...timer,
+      totalMinutes: Math.min(
+        LENGTH_MAX,
+        Math.max(LENGTH_MIN, totalMinutes + by),
+      ),
+    });
 
   const backTo = comingBackTo.taskName
     ? [comingBackTo.taskName, comingBackTo.path.join(" / ")]
@@ -102,6 +92,8 @@ export function BreakScreen({
       modeKey="break"
       timeZone={timeZone}
       email={email}
+      onOpenTasks={onOpenTasks}
+      onOpenSettings={onOpenSettings}
       onSignOut={onSignOut}
       strip={
         <BoundTask
@@ -166,7 +158,7 @@ export function BreakScreen({
                 aria-label="Start the break"
                 onClick={() => {
                   unlockAudio();
-                  setStartedAt(now.getTime());
+                  onTimerChange({ ...timer, startedAt: now.getTime() });
                 }}
               >
                 START
@@ -201,7 +193,10 @@ export function BreakScreen({
                 type="button"
                 className="screen-outline"
                 onClick={() =>
-                  setTotalMinutes((minutes) => minutes + EXTRA_BREAK_MINUTES)
+                  onTimerChange({
+                    ...timer,
+                    totalMinutes: totalMinutes + EXTRA_BREAK_MINUTES,
+                  })
                 }
               >
                 +5 min

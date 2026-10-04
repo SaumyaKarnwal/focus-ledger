@@ -510,16 +510,6 @@ describe("Bell and extension", () => {
       await screen.findByRole("dialog", { name: "Deep Focus" }),
     ).toBeDefined();
   });
-
-  test("running_header_tasksIsInert", async () => {
-    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
-    await startCycleOn("Book");
-
-    expect(screen.queryByRole("button", { name: "Tasks" })).toBeNull();
-    expect(screen.getByText("Tasks").getAttribute("aria-disabled")).toBe(
-      "true",
-    );
-  });
 });
 
 describe("Break", () => {

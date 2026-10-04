@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { formatDayLabel } from "../ledger/period";
 import { PRODUCT_NAME } from "../productName";
+import type { TimerChip } from "../session/sessionTimer";
 
 type Props = {
   now: Date;
@@ -11,8 +12,12 @@ type Props = {
   /** Report opens only from the Tasks page until it has a v2 page. */
   onOpenReport?: () => void;
   onOpenSettings?: () => void;
-  /** The brand goes to Start. The Tasks page has no other way back. */
+  /** The brand goes to Start, or back to the cycle while one runs. */
   onOpenHome?: () => void;
+  /** What the brand says it does, after the product name. */
+  homeLabel?: string;
+  /** The time left of the cycle or break that runs while this page shows. */
+  timer?: TimerChip;
   /** The view this header sits on. */
   current?: "tasks" | "settings";
   onSignOut: () => void;
@@ -31,6 +36,8 @@ export function ScreenHeader({
   onOpenSettings,
   current,
   onOpenHome,
+  homeLabel = "back to Start",
+  timer,
   onSignOut,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -42,7 +49,7 @@ export function ScreenHeader({
             <button
               type="button"
               className="screen-home"
-              aria-label={`${PRODUCT_NAME}, back to Start`}
+              aria-label={`${PRODUCT_NAME}, ${homeLabel}`}
               onClick={onOpenHome}
             >
               {PRODUCT_NAME}
@@ -54,6 +61,18 @@ export function ScreenHeader({
         <span className="screen-label">{formatDayLabel(now, timeZone)}</span>
       </span>
       <nav className="screen-nav" aria-label="Views">
+        {timer && (
+          <button
+            type="button"
+            className="screen-timer"
+            data-mode={timer.modeKey}
+            onClick={timer.onOpen}
+          >
+            <span className="screen-timer-mark" aria-hidden="true" />
+            {timer.label}
+            <span className="screen-timer-time">{timer.text}</span>
+          </button>
+        )}
         <NavItem label="Report" onOpen={onOpenReport} />
         <NavItem
           label="Tasks"

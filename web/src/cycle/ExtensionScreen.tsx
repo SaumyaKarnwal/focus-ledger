@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import type { CyclePb } from "../gen/focusledger/v1/model_pb";
 import { localTimeString } from "../ledger/period";
 import type { LoggedMode } from "../ledger/rollup";
@@ -10,9 +9,6 @@ import {
   ModeScreenFrame,
   ScreenClock,
 } from "../start/ModeScreenFrame";
-import type { BellDeps } from "../bell/bell";
-import { useFocusSound } from "../bell/useFocusSound";
-import { useNow } from "../useNow";
 import {
   type Extension,
   extensionElapsedMs,
@@ -31,9 +27,12 @@ type Props = {
   email: string;
   timeZone: string;
   busy: boolean;
-  onStop: (totalMinutes: number, ranOut?: boolean) => void;
+  /** The app's clock. The time-out check above the routes uses the same one. */
+  now: Date;
+  onStop: (totalMinutes: number) => void;
+  onOpenTasks: () => void;
+  onOpenSettings: () => void;
   onSignOut: () => void;
-  bell: BellDeps;
 };
 
 /** The countdown of an extension from the bell. It has the layout of the running screen. */
@@ -45,22 +44,14 @@ export function ExtensionScreen({
   email,
   timeZone,
   busy,
+  now,
   onStop,
+  onOpenTasks,
+  onOpenSettings,
   onSignOut,
-  bell,
 }: Props) {
-  const now = useNow();
   const remaining = extensionRemainingMs(extension, now);
   const total = extensionTotalMinutes(extension, now);
-  useFocusSound(remaining > 0, bell);
-  const endHandled = useRef(false);
-
-  useEffect(() => {
-    if (remaining === 0 && !endHandled.current) {
-      endHandled.current = true;
-      onStop(extension.loggedMinutes + extension.minutes, true);
-    }
-  }, [remaining, extension, onStop]);
 
   const elapsed = extensionElapsedMs(extension, now);
   const endsAt = new Date(
@@ -73,6 +64,8 @@ export function ExtensionScreen({
       modeKey={modeKey(mode)}
       timeZone={timeZone}
       email={email}
+      onOpenTasks={onOpenTasks}
+      onOpenSettings={onOpenSettings}
       onSignOut={onSignOut}
       strip={
         <BoundTask

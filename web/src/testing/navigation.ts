@@ -1,4 +1,5 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
+import { expect } from "vitest";
 
 /** Opens the Tasks page from the header of any page. */
 export async function openTasks() {
@@ -20,6 +21,9 @@ export async function openFromTasks(view: "Report" | "Settings") {
 
 /** Shows the task on Start through the task picker, with the mode chosen. */
 export async function openOnStart(taskName: string, mode?: string) {
+  // After "Start a new cycle" the bell closes as Start loads. The bell's
+  // header works too, so wait for the bell to go before reading the page.
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   if (!screen.queryByRole("button", { name: "Start" })) {
     await openTasks();
     fireEvent.click(screen.getByRole("button", { name: /back to Start/ }));

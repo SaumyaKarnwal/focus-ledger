@@ -7,9 +7,7 @@ type Props = {
   modeKey: string;
   timeZone: string;
   email: string;
-  /** Without it, Tasks in the header is inert, as while a cycle runs. */
   onOpenTasks?: () => void;
-  /** Without it, Settings is inert, as while a cycle runs. */
   onOpenSettings?: () => void;
   onSignOut: () => void;
   /** The middle of the screen: the modes on the left, the clock on the right. */
@@ -17,7 +15,7 @@ type Props = {
   strip: ReactNode;
   /** A dialog over the screen, such as the bell. */
   overlay?: ReactNode;
-  /** True when a dialog covers the screen: the screen takes no input. */
+  /** True when a dialog covers the screen: the screen takes no input, but the header still does. */
   inert?: boolean;
 };
 
@@ -38,11 +36,7 @@ export function ModeScreenFrame({
   return (
     <div className="mode-screen" data-mode={modeKey}>
       <div className="mode-screen-glow" aria-hidden="true" />
-      <div
-        className="mode-screen-body"
-        inert={inert}
-        aria-hidden={inert || undefined}
-      >
+      <div className="mode-screen-body">
         <ScreenHeader
           now={now}
           timeZone={timeZone}
@@ -51,8 +45,14 @@ export function ModeScreenFrame({
           onOpenSettings={onOpenSettings}
           onSignOut={onSignOut}
         />
-        <div className="start-main">{children}</div>
-        <footer className="task-strip">{strip}</footer>
+        <div
+          className="mode-screen-content"
+          inert={inert}
+          aria-hidden={inert || undefined}
+        >
+          <div className="start-main">{children}</div>
+          <footer className="task-strip">{strip}</footer>
+        </div>
       </div>
       {overlay}
     </div>
