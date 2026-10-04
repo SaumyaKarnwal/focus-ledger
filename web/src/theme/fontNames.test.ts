@@ -9,6 +9,21 @@ const sources = readdirSync(SRC, { recursive: true, encoding: "utf8" })
   .filter((file) => !file.startsWith("theme/"))
   .map((file) => ({ file, text: readFileSync(SRC + file, "utf8") }));
 
+describe("the bundled faces", () => {
+  const theme = readFileSync(`${SRC}theme/default.css`, "utf8");
+  const stack = (token: string) =>
+    new RegExp(`--font-${token}:\\s*([^;]+);`).exec(theme)?.[1] ?? "";
+  const main = readFileSync(`${SRC}main.tsx`, "utf8");
+
+  test("theme_timerAndCtaStacks_startWithTheBundledFace", () => {
+    expect(stack("timer")).toMatch(/^"Inter Tight",/);
+    expect(stack("cta")).toMatch(/^Nunito,/);
+    expect(theme).not.toContain("Arial Rounded");
+    expect(main).toContain('import "@fontsource/inter-tight/700.css";');
+    expect(main).toContain('import "@fontsource/nunito/800.css";');
+  });
+});
+
 describe("the font rule", () => {
   test("theme_componentFiles_nameNoFontFamily", () => {
     const named = sources.flatMap(({ file, text }) =>
