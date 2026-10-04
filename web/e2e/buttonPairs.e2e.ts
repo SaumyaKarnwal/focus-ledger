@@ -1,7 +1,8 @@
 import { expect, type Page, test } from "@playwright/test";
 
-// README rule 11: the two buttons of a pair have the same width, plate, and
-// 6px ledge, with aligned edges; only the fill and the label weight differ.
+// README rule 11: the two buttons of a pair have the same 6px ledge and one
+// center line. The outline is a little larger than the plate (#225): an
+// outline looks smaller than a filled plate of the same size.
 
 async function open(page: Page, width: number, height: number) {
   await page.setViewportSize({ width, height });
@@ -16,7 +17,7 @@ async function open(page: Page, width: number, height: number) {
   await page.evaluate(() => document.fonts.ready);
 }
 
-async function expectEqualPair(
+async function expectMatchedPair(
   page: Page,
   primary: string,
   secondary: RegExp | string,
@@ -35,11 +36,16 @@ async function expectEqualPair(
   };
   const first = await boxOf(primary);
   const second = await boxOf(secondary);
+  // The plate is 230 board pixels wide, with no floor, so it gives the scale.
+  const unit = first.width / 230;
 
-  expect(second.width).toBeCloseTo(first.width, 0);
-  expect(second.height).toBeCloseTo(first.height, 0);
-  expect(second.y).toBeCloseTo(first.y, 0);
-  expect(second.y + second.height).toBeCloseTo(first.y + first.height, 0);
+  expect(first.height).toBeCloseTo(Math.max(40, 72 * unit), 0);
+  expect(second.width).toBeCloseTo(238 * unit, 0);
+  expect(second.height).toBeCloseTo(Math.max(40, 78 * unit), 0);
+  expect(second.y + second.height / 2).toBeCloseTo(
+    first.y + first.height / 2,
+    0,
+  );
   expect(first.ledge).toBe("6");
   expect(second.ledge).toBe("6");
 }
@@ -48,19 +54,19 @@ for (const [width, height] of [
   [1440, 900],
   [420, 520],
 ]) {
-  test(`${width}x${height}: each button pair is equal`, async ({ page }) => {
+  test(`${width}x${height}: each button pair matches`, async ({ page }) => {
     await open(page, width, height);
 
-    await expectEqualPair(page, "Start", "Take a break");
+    await expectMatchedPair(page, "Start", "Take a break");
 
     await page.getByRole("button", { name: "Take a break" }).click();
-    await expectEqualPair(page, "Start the break", "Start a cycle");
+    await expectMatchedPair(page, "Start the break", "Start a cycle");
 
     await page.getByRole("button", { name: "Start the break" }).click();
-    await expectEqualPair(page, "+5 min", "Start a cycle");
+    await expectMatchedPair(page, "+5 min", "Start a cycle");
 
     await page.getByRole("button", { name: "Start a cycle" }).click();
     await page.getByRole("button", { name: "Start" }).click();
-    await expectEqualPair(page, "Pause", /Stop and log/);
+    await expectMatchedPair(page, "Pause", /Stop and log/);
   });
 }

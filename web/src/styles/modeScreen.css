@@ -288,7 +288,6 @@
   transition:
     transform 60ms ease-out,
     box-shadow 60ms ease-out;
-  min-height: max(40px, calc(72 * var(--u, 1px)));
   padding: 0 max(12px, calc(26 * var(--u, 1px)));
   background: none;
   border: 1.5px solid var(--on-screen-outline);
@@ -301,8 +300,8 @@
 }
 /*
  * Every button on a mode screen has a ledge, a darker edge it moves onto when
- * pressed. The two buttons of a pair are equal: the same width, plate, and
- * 6px ledge; only the fill and the label weight differ (README rule 11).
+ * pressed. The two buttons of a pair have the same 6px ledge and share one
+ * center line; only the fill and the label weight differ (README rule 11).
  */
 .screen-cta,
 .screen-outline {
@@ -312,6 +311,11 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
+}
+/* An outline looks smaller than a filled plate of the same size, so it is a little larger. */
+.screen-outline {
+  width: calc(238 * var(--u, 1px));
+  min-height: max(40px, calc(78 * var(--u, 1px)));
 }
 
 /* Running, extension, and break */
