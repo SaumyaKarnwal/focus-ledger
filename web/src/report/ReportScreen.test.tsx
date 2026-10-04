@@ -1,15 +1,17 @@
-import { Code } from "@connectrpc/connect";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
 import type { LedgerClient } from "../api/ledgerClient";
-import { exampleExpected, exampleNow } from "../ledger/exampleData";
+import { exampleNow } from "../ledger/exampleData";
+import { weekRange } from "../ledger/period";
 import {
   exampleNodesWithNothingRunning,
   recordingClient,
 } from "../testing/appHarness";
-import { openFromTasks, openTasks } from "../testing/navigation";
+import { openFromTasks } from "../testing/navigation";
+import { formatMinutes } from "../today/todayModel";
+import { cyclesIn, minutesOf } from "./reportCards";
 
 beforeEach(() => {
   localStorage.clear();
@@ -21,186 +23,134 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function renderApp(client: LedgerClient) {
-  return render(
+async function openReport(client: LedgerClient) {
+  render(
     <StrictMode>
       <App client={client} timeZone="UTC" retryDelaysMs={[0]} />
     </StrictMode>,
   );
-}
-
-async function openReport(client: LedgerClient) {
-  renderApp(client);
   await openFromTasks("Report");
-  return screen.findByRole("table", { name: "Node × mode" });
+  return screen.findByRole("heading", { name: "This week", level: 1 });
 }
 
-function choosePeriod(label: string) {
+function pickRange(label: string) {
   fireEvent.click(
-    within(screen.getByRole("group", { name: "Period" })).getByRole("button", {
+    within(screen.getByRole("group", { name: "Range" })).getByRole("button", {
       name: label,
     }),
   );
 }
 
-/** The cells of the cross-tab row whose header starts with `name`. */
-function crossTabRow(table: HTMLElement, name: string) {
-  const row = within(table)
-    .getAllByRole("row")
-    .find((candidate) =>
-      within(candidate).queryByRole("rowheader")?.textContent?.startsWith(name),
-    );
-  if (!row) throw new Error(`no cross-tab row ${name}`);
-  return within(row)
-    .getAllByRole("cell")
-    .map((cell) => cell.textContent);
+function card(name: string) {
+  return within(screen.getByRole("region", { name }));
 }
 
-describe("Report", () => {
-  test("report_allTime_crossTabMatchesTheSharedExampleData", async () => {
+describe("Report v2 (boards R-Report-*)", () => {
+  test("report_opensOnThisWeek_withItsDatesAndTotal", async () => {
     await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
 
-    choosePeriod("All");
-
-    const table = await screen.findByRole("table", { name: "Node × mode" });
-    await vi.waitFor(() =>
-      expect(crossTabRow(table, "All")).toEqual([
-        "335",
-        "150",
-        "80",
-        "565",
-        "100%",
-      ]),
+    const thisWeek = cyclesIn(
+      exampleNodesWithNothingRunning(),
+      weekRange(exampleNow, "UTC"),
     );
-    const book = exampleExpected.tree[0].rolledUp;
-    expect(crossTabRow(table, "Book")).toEqual([
-      String(book.minutesByMode.FOCUS_MODE_DEEP_FOCUS),
-      String(book.minutesByMode.FOCUS_MODE_EXECUTION),
-      String(book.minutesByMode.FOCUS_MODE_SHALLOW),
-      String(book.minutes),
-      "87%",
-    ]);
-    expect(crossTabRow(table, "Inbox")).toEqual(["—", "50", "25", "75", "13%"]);
-  });
-
-  test("report_thisWeekInUtc_totalsMatchTheSharedWeekTotals", async () => {
-    const table = await openReport(
-      recordingClient(exampleNodesWithNothingRunning()).client,
-    );
-
-    const week = exampleExpected.periods[0].weekTotals;
-    await vi.waitFor(() =>
-      expect(crossTabRow(table, "All")[3]).toBe(String(week.minutes)),
-    );
-    expect(screen.getByRole("heading", { name: "This week" })).toBeDefined();
-    expect(screen.getByText(/26 Oct – 1 Nov/)).toBeDefined();
-  });
-
-  test("report_expandRow_showsItsChildrenIncludingClosedOnes", async () => {
-    await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
-    choosePeriod("All");
-    const table = await screen.findByRole("table", { name: "Node × mode" });
-    await vi.waitFor(() => expect(crossTabRow(table, "Book")).toBeDefined());
-    expect(within(table).queryByText("Chapter 2")).toBeNull();
-
-    fireEvent.click(within(table).getByRole("button", { name: "Book" }));
-
-    expect(crossTabRow(table, "Chapter 2")).toEqual([
-      "—",
-      "—",
-      "55",
-      "55",
-      "10%",
-    ]);
-    expect(within(table).getByText("Chapter 1")).toBeDefined();
-    expect(within(table).queryByText("Notes")).toBeNull();
-  });
-
-  test("report_estimatesAndPlanned_useTheRollUpCode", async () => {
-    await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
-    choosePeriod("All");
-
-    const estimated = await screen.findByRole("table", {
-      name: "Estimated against actual",
-    });
-    await vi.waitFor(() =>
-      expect(within(estimated).getAllByRole("row")[1].textContent).toBe(
-        "Book53-40%",
-      ),
-    );
-    const planned = screen.getByRole("table", {
-      name: "Planned against actual",
-    });
-    const deep = exampleExpected.plannedVsActual.FOCUS_MODE_DEEP_FOCUS;
-    expect(within(planned).getAllByRole("row")[1].textContent).toBe(
-      `Deep Focus${deep.doneCycles}6h 00m5h 35m-7%`,
-    );
-  });
-
-  test("report_lastWeek_sendsThePreviousWeekAsThePeriod", async () => {
-    const recording = recordingClient(exampleNodesWithNothingRunning());
-    const listNodes = vi.spyOn(recording.client, "listNodes");
-    await openReport(recording.client);
-
-    choosePeriod("Last week");
-
-    await vi.waitFor(() => {
-      const last = listNodes.mock.calls.at(-1)?.[0];
-      expect(last?.includeClosed).toBe(true);
-      expect(Number(last?.period?.start?.seconds)).toBe(
-        Date.parse("2026-10-19T00:00:00Z") / 1000,
-      );
-      expect(Number(last?.period?.end?.seconds)).toBe(
-        Date.parse("2026-10-26T00:00:00Z") / 1000,
-      );
-    });
-  });
-
-  test("report_customRange_coversTheChosenDays", async () => {
-    const table = await openReport(
-      recordingClient(exampleNodesWithNothingRunning()).client,
-    );
-    choosePeriod("Custom");
-
-    fireEvent.change(screen.getByLabelText("From"), {
-      target: { value: "2026-10-20" },
-    });
-    fireEvent.change(screen.getByLabelText("To"), {
-      target: { value: "2026-10-20" },
-    });
-
-    await vi.waitFor(() =>
-      expect(crossTabRow(table, "All")).toEqual([
-        "90",
-        "50",
-        "—",
-        "140",
-        "100%",
-      ]),
-    );
-  });
-
-  test("report_screen_hasNothingToEdit", async () => {
-    await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
-
-    expect(screen.queryAllByRole("textbox")).toEqual([]);
-    expect(screen.queryAllByRole("spinbutton")).toEqual([]);
-  });
-
-  test("report_loadFails_showsTheErrorAndThenRetries", async () => {
-    const recording = recordingClient(exampleNodesWithNothingRunning());
-    renderApp(recording.client);
-    await openTasks();
-    const nav = screen.getByRole("navigation", { name: "Views" });
-    // StrictMode runs the load effect twice, so both runs fail.
-    recording.failNext("ListNodes", Code.Internal, 2);
-
-    fireEvent.click(within(nav).getByRole("button", { name: "Report" }));
-
-    expect(await screen.findByRole("alert")).toBeDefined();
-    choosePeriod("All");
     expect(
-      await screen.findByRole("table", { name: "Node × mode" }),
+      screen.getByText("Mon 26 Oct – Sun 1 November, so far"),
     ).toBeDefined();
+    expect((await screen.findByLabelText("Total")).textContent).toBe(
+      formatMinutes(minutesOf(thisWeek)),
+    );
+  });
+
+  test("report_steps_earlierAndLater_laterStopsAtNow", async () => {
+    await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
+    const later = screen.getByRole("button", {
+      name: "Later",
+    }) as HTMLButtonElement;
+    expect(later.disabled).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Earlier" }));
+    expect(
+      screen.getByRole("heading", { name: "Last week", level: 1 }),
+    ).toBeDefined();
+    expect(later.disabled).toBe(false);
+    fireEvent.click(screen.getByRole("button", { name: "Earlier" }));
+    expect(screen.getByText("2 weeks ago")).toBeDefined();
+
+    fireEvent.click(later);
+    fireEvent.click(later);
+    expect(
+      screen.getByRole("heading", { name: "This week", level: 1 }),
+    ).toBeDefined();
+  });
+
+  test("report_today_showsTheKindOfFocusOfTheDay", async () => {
+    await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
+
+    pickRange("Today");
+
+    expect(
+      screen.getByRole("heading", { name: "Today", level: 1 }),
+    ).toBeDefined();
+    const kinds = await card("Kind of focus").findAllByRole("listitem");
+    expect(kinds.map((item) => item.textContent?.slice(0, 10))).toEqual([
+      expect.stringContaining("Deep Focus"),
+      expect.stringContaining("Execution"),
+      expect.stringContaining("Shallow"),
+    ]);
+  });
+
+  test("report_whereItWent_rollsUpToTopLevelTasksAndKeepsUntagged", async () => {
+    await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
+
+    const legend = await card("Where it went").findAllByRole("listitem");
+    const names = legend.map(
+      (item) => item.querySelector(".split-name")?.textContent,
+    );
+    expect(names).toContain("Book");
+    expect(names).toContain("Untagged");
+    expect(names).not.toContain("Notes");
+  });
+
+  test("report_whenYouFocus_drawsACurvePerModeAndNamesThePeak", async () => {
+    await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
+
+    const when = card("When you focus");
+    expect(await when.findByText(/ peaks /)).toBeDefined();
+    expect(
+      when
+        .getByRole("img", { name: /Minutes per hour/ })
+        .querySelectorAll(".report-curve"),
+    ).toHaveLength(3);
+  });
+
+  test("report_noCycles_saysSoInEachCard", async () => {
+    await openReport(recordingClient([]).client);
+
+    expect(await screen.findAllByText("No cycles in this range.")).toHaveLength(
+      3,
+    );
+  });
+
+  test("report_custom_showsTheDatesAndNamesTheSpan", async () => {
+    await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
+
+    pickRange("Custom");
+
+    expect(screen.getByLabelText("From")).toBeDefined();
+    expect(screen.getByLabelText("To")).toBeDefined();
+    expect(screen.getByText("7 days")).toBeDefined();
+    expect(
+      screen.getByRole("heading", { name: "26 Oct – 1 Nov", level: 1 }),
+    ).toBeDefined();
+  });
+
+  test("report_header_marksReportAsTheCurrentPage", async () => {
+    await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
+
+    expect(
+      within(screen.getByRole("navigation", { name: "Views" }))
+        .getByRole("button", { name: "Report" })
+        .getAttribute("aria-current"),
+    ).toBe("page");
   });
 });

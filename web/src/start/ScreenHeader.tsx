@@ -20,7 +20,7 @@ type Props = {
   /** The time left of the cycle or break that runs while this page shows. */
   timer?: TimerChip;
   /** The view this header sits on. */
-  current?: "tasks" | "settings";
+  current?: "tasks" | "settings" | "report";
   onSignOut: () => void;
 };
 
@@ -52,7 +52,12 @@ export function ScreenHeader({
   const [linksOpen, setLinksOpen] = useState(false);
   const links = (role?: "menuitem") => (
     <>
-      <NavItem label="Report" onOpen={onOpenReport} role={role} />
+      <NavItem
+        label="Report"
+        onOpen={onOpenReport}
+        current={current === "report"}
+        role={role}
+      />
       <NavItem
         label="Tasks"
         onOpen={onOpenTasks}

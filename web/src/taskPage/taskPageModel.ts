@@ -9,6 +9,7 @@ import {
 } from "../ledger/rollup";
 import { MODE_NAMES } from "../today/todayModel";
 import type { TaskRow } from "../tasks/tasksModel";
+import type { SplitPart } from "../ui/SplitRing";
 
 const RING_PARTS = 5;
 
@@ -39,13 +40,7 @@ export function estimateFigures(row: TaskRow): EstimateFigures {
   };
 }
 
-export type RingPart = {
-  name: string;
-  minutes: number;
-  byMode: ByMode<number>;
-  /** Set for a mode split, when the task has no parts. */
-  mode?: LoggedMode;
-};
+export type RingPart = SplitPart;
 
 /**
  * The ring: the leaf tasks under the task, largest first, five at most. Time
