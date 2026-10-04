@@ -442,4 +442,7 @@
 }
 .report-bar-tip .split-tip-head {
   gap: 10px;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom: 0;
 }
