@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { ledgerClient, selectBackend } from "./api/ledgerClient";
 import { App } from "./App";
 import { readGoogleClientId } from "./signIn/googleClientId";
-import "@fontsource/nunito/600.css";
+import "@fontsource/nunito/700.css";
 import "@fontsource/nunito/800.css";
 import "./theme/default.css";
 import "./theme/scope.css";
