@@ -13,11 +13,11 @@ Each file is plain HTML with inline styles. It needs the canvas runtime (`suppor
 | Task picker | `C-Desk-Start-Pick`, `-Start-Pick-Empty` | A dialog over Start: search, recent tasks with their time, "Not sure yet" (goes to Untagged), and New task. Keys: ↑↓ move, ↵ pick, esc close. **Order:** tasks with cycles first, by their latest cycle, newest first; then tasks with no cycles, newest created first. A search keeps the same order. |
 | Running | `C-Desk-Run` | The clock, a progress bar, PAUSE, and Stop and log. The task is bound, so the strip has no chevron. |
 | Bell | `C-Desk-Bell2`, `-Bell2-Empty` | A dialog when the time is up. The cycle is already written. Keep going for N more minutes, Take a break, or Start a new cycle. |
-| Break | `C-Desk-Break2`, `-Break2-Long` | Short or long break, in its own winter teal. "Coming back to" shows the last mode and task. |
+| Break | `C-Desk-Break2` | One kind of break, in its own winter teal. The owner removed the long break: no Short/Long choice on this screen, so the left column shows only "Break". `C-Desk-Break2-Long` is not built. "Coming back to" shows the last mode and task. |
 | New task | `C-Desk-NewTask`, `-NewTask-Parent`, `-Parent-Hover`, `-Parent-Add`, `C-Desk-EditTask` | The task dialog: name, parent picked from the tree (add a branch on hover), and the estimate. Edit uses the same dialog. |
 | Tasks | `G-Tasks`, `-Hover`, `-Unfiled`, `-Drag`, `-Empty` | The task table in a fixed panel. Untagged cycles at the top. Drag a cycle onto a task to file it; drag a task onto a task to change its parent. |
 | Task page | `E-Task`, `E-Task-Edit`, `E-Task-Pie`, `E-Task-Done` | Back arrow (bare arrow, as on `E-Task`), parent path above the name, Mark complete / Completed button, estimate card (editable: minutes × cycles per mode), "How it splits" ring of leaf tasks, and the last seven days. |
-| Settings | `H-Settings-Stacked` | Two cards in one 680px column: Cycles (mode lengths, short and long break, long break every N cycles) and The bell (sound, volume, two switches). |
+| Settings | `H-Settings-Stacked` | Two cards in one 680px column: Cycles (mode lengths and the break length; no long break) and The bell (sound, volume, two switches). |
 
 Report is not designed yet. The header shows it, but the link stays inert. The owner ships without Report: when Settings and the other screens are merged, the build may deploy.
 
@@ -37,10 +37,10 @@ Report is not designed yet. The header shows it, but the link stays inert. The o
    | Control | Stored in |
    |---|---|
    | Deep Focus, Execution, Shallow minutes | `SettingsPb` mode minutes |
-   | Short break | `SettingsPb.break_minutes` |
+   | Break | `SettingsPb.break_minutes` |
    | Bell sound Silent or not | `SettingsPb.sound_enabled` |
    | Show a notification when it rings | `SettingsPb.notifications_enabled` |
-   | Long break, long break every N cycles, the sound choice, volume, ring when a break ends | browser local storage |
+   | The sound choice, volume, ring when a break ends | browser local storage |
    | Alarm repeat (1–5 rings, default 3) | browser local storage |
    | Focus sound (None, Ticking fast, Ticking slow, White noise, Brown noise; default None) and its volume (default 40%) | browser local storage |
 
