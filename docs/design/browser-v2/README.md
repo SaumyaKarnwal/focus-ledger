@@ -69,13 +69,16 @@ Report is not designed yet. The header shows it, but the link stays inert. The o
    - **Buttons:** always the two buttons of that screen.
    - **Task line:** one line, cut with an ellipsis. The planned readout and the parent path hide when the line does not fit.
    - **No scroll** on Start, Running, and Break at any step.
+   - **One scale, kept in ratio** (owner, after testing). One size variable, from the main area's width and height (the smaller one wins), sizes the timer, the buttons, the chips, and the task line together. The timer is always the largest element: a button is at most 0.45 × the timer digit height, and its label at most 0.2 × the timer font size. As the area shrinks, everything shrinks by the same ratio.
+   - **What goes away first:** at the chips step, the wordmark hides (the menu button stays). The task line shrinks with the scale; when the area is too short for it, it hides.
+   - **No overlap at any size:** the chips never cover the wordmark, and the buttons never cover the divider or the task line.
 10. **Last seven days, hover** (owner request). At rest, the chart shows no figure above the bars; empty days keep their dash. On hover (or keyboard focus, or a tap on touch), the bar under the pointer stays at full color and the other bars fade, as the "How it splits" ring does. A small card, in the same style as the ring's hover card, shows the day, its total, and the split into Deep Focus, Execution, and Shallow with the mode marks. Leaving the bar restores the chart.
 11. **Home and Stop** (owner bugs, #132).
     - **Home** is the Start screen. The Ekagra wordmark leads home from every page. If a cycle runs or a break counts down, it leads to that screen instead (rule 7).
     - **Start remembers the last cycle.** Start opens with the task and the mode of the most recent cycle selected, and the clock at that mode's length from Settings. With no cycle yet, Start shows nothing selected and Deep Focus.
     - **Stop and log** writes the cycle and goes home at once, with that cycle's task and mode selected. It does not show the bell. The bell shows only when the time runs out by itself.
     - **The header links work on every Start state** (Deep Focus, Execution, Shallow, nothing selected) and on Break, not only on Deep Focus.
-    - **The primary button has a ledge** (rule 8): START, PAUSE, and the break START. "Take a break", "Stop and log", and "Start a cycle" stay outlined.
+    - **Every button on these screens has a ledge** (rule 8). The primary button (START, PAUSE, the break START) is the solid plate. The secondary button ("Take a break", "Stop and log", "Start a cycle") keeps its outline and gets the same ledge, in a darker tint of the screen color (`--screen-secondary-ledge`), and the same press movement.
 12. **Bell sound is a dropdown** (owner request). In The bell card, the Sound row is one dropdown (Bowl, Wood, Chime, Silent) in place of the four chips, with a small ▶ button beside it that previews the chosen sound. A new choice also plays once as a preview; Silent plays nothing. Use a native `<select>` styled with the theme tokens, so the keyboard and screen readers work. The Focus sound card keeps its chips.
 13. No color literal outside the theme files. See [`../theming.md`](../theming.md).
 14. Deploy only after Settings and all screens above are merged. Report is not needed for the first release.
