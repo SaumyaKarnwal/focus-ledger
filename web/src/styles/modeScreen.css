@@ -248,7 +248,6 @@
   gap: calc(14 * var(--u, 1px));
 }
 .screen-cta {
-  width: calc(230 * var(--u, 1px));
   min-height: max(40px, calc(72 * var(--u, 1px)));
   background: var(--screen-cta-bg);
   color: var(--screen-cta-fg);
@@ -300,10 +299,15 @@
 .screen-outline-soft {
   border-color: var(--on-screen-outline-soft);
 }
-/* Every button on a mode screen has a ledge, a darker edge it moves onto when pressed. */
+/*
+ * Every button on a mode screen has a ledge, a darker edge it moves onto when
+ * pressed. The two buttons of a pair are equal: the same width, plate, and
+ * 6px ledge; only the fill and the label weight differ (README rule 11).
+ */
 .screen-cta,
 .screen-outline {
-  --ledge: max(3px, calc(6 * var(--u, 1px)));
+  --ledge: 6px;
+  width: calc(230 * var(--u, 1px));
   display: inline-flex;
   align-items: center;
   justify-content: center;
