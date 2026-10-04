@@ -1,11 +1,9 @@
+import { useEffect, useState } from "react";
 import { LOGGED_MODES } from "../ledger/rollup";
 import { modeKey } from "../modes/modes";
 import { formatMinutes, MODE_NAMES } from "../today/todayModel";
 import type { PlacedCycle } from "./reportCards";
 import { type DayBar, finishedCycles, setAndDo, type Year } from "./reportYear";
-
-// One row of marks holds this many cycles; more show as a count only.
-const MARKS = 40;
 
 /** What you set, what you do (Report rules 4). */
 export function SetAndDoCard({ cycles }: { cycles: readonly PlacedCycle[] }) {
@@ -54,39 +52,48 @@ export function SetAndDoCard({ cycles }: { cycles: readonly PlacedCycle[] }) {
 /** Cycles you finished: a filled mark ran to the bell, an outlined one was stopped early. */
 export function FinishedCard({ cycles }: { cycles: readonly PlacedCycle[] }) {
   const counts = finishedCycles(cycles);
+  const [list, setList] = useState<HTMLUListElement | null>(null);
+  const perRow = useMarksPerRow(list);
   return (
     <section className="task-card" aria-labelledby="report-finished">
       <div className="task-card-head">
         <h2 id="report-finished" className="task-card-title">
           Cycles you finished
         </h2>
-        <span className="report-key">
-          <span className="report-mark" data-filled="true" aria-hidden="true" />{" "}
-          bell
-          <span className="report-mark" aria-hidden="true" /> stopped
-        </span>
       </div>
-      <ul className="report-finished">
+      <ul className="report-finished" ref={setList}>
         {LOGGED_MODES.map((mode) => {
           const { bell, stopped } = counts[mode];
-          const marks = [
-            ...Array.from({ length: bell }, () => true),
-            ...Array.from({ length: stopped }, () => false),
-          ].slice(0, MARKS);
+          const total = bell + stopped;
+          // More marks than two rows hold become one bar (polish rule 3).
+          const asBar = total > 2 * perRow;
           return (
             <li key={mode} data-mode={modeKey(mode)}>
               <span className="report-kind-name">{MODE_NAMES[mode]}</span>
-              <span className="report-marks" aria-hidden="true">
-                {marks.map((filled, index) => (
-                  <span
-                    key={index}
-                    className="report-mark"
-                    data-filled={filled || undefined}
-                  />
-                ))}
-              </span>
+              {asBar ? (
+                <span
+                  className="report-finished-bar"
+                  role="img"
+                  aria-label={`${bell} ran to the bell, ${stopped} stopped early`}
+                >
+                  <span style={{ width: `${(bell / total) * 100}%` }} />
+                </span>
+              ) : (
+                <span className="report-marks" aria-hidden="true">
+                  {[
+                    ...Array.from({ length: bell }, () => true),
+                    ...Array.from({ length: stopped }, () => false),
+                  ].map((filled, index) => (
+                    <span
+                      key={index}
+                      className="report-mark"
+                      data-filled={filled || undefined}
+                    />
+                  ))}
+                </span>
+              )}
               <span className="report-finished-count">
-                {bell} of {bell + stopped}
+                {bell} of {total}
               </span>
             </li>
           );
@@ -94,6 +101,29 @@ export function FinishedCard({ cycles }: { cycles: readonly PlacedCycle[] }) {
       </ul>
     </section>
   );
+}
+
+// A mark is 24px wide with a 4px gap (report.css).
+const MARK_STEP = 28;
+// Before the first layout, and in tests without layout, assume a narrow card.
+const MARKS_PER_ROW_UNKNOWN = 8;
+
+/** How many marks fit on one row of the card, from the width the marks get. */
+function useMarksPerRow(list: HTMLUListElement | null): number {
+  const [perRow, setPerRow] = useState(MARKS_PER_ROW_UNKNOWN);
+  useEffect(() => {
+    if (!list || typeof ResizeObserver === "undefined") return;
+    const measure = () => {
+      const marks = list.querySelector(".report-marks, .report-finished-bar");
+      const width = marks?.getBoundingClientRect().width ?? 0;
+      if (width > 0)
+        setPerRow(Math.max(1, Math.floor((width + 4) / MARK_STEP)));
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    return () => observer.disconnect();
+  }, [list]);
+  return perRow;
 }
 
 /** The small third card: the days of a week, or the weeks of a month. */
