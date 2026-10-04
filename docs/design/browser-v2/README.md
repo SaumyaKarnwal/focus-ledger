@@ -26,6 +26,13 @@ Each file is plain HTML with inline styles. It needs the canvas runtime (`suppor
 Report is designed (`R-Report-*`). The palette tries (`P-Palettes`) are not part of the build; they are candidates for future themes.
 
 
+## Report rules
+
+1. **When you focus** spreads each cycle over the clock hours it spans (a 9:40 to 10:30 cycle gives 20 min to 9:00 and 30 min to 10:00). Week and Month show the average per day over every day of the range up to today, empty days included.
+2. **The change beside the total** compares like with like: a range that is still running ("so far") is compared with the same elapsed part of the range before (this week Monday to Tuesday against last week Monday to Tuesday).
+3. **Custom** stays: a start and an end date, the same cards for that span, and ‹ › step by the span's own length. Your year ignores it, as it ignores every range.
+4. **What you set, what you do** uses the cycles themselves: "set" is the average planned length of the range's cycles per mode, and "do" is their average actual length. It needs no settings history.
+
 ## Colors on light screens
 
 On every light screen (Report, the task page, the Tasks page, Settings, the dialogs) a mode mark uses the soft tint from the New task dialog: Deep Focus lilac `#C9A3C4`, Execution rose `#E9AFB4`, Shallow teal `#A6CFCB`. This is a value change of the `--mode-*-mark` tokens in the default theme only; no component changes. The timer screens keep their deep backgrounds. Task rings use soft tints too (`--chart-*`); a slice may share a hue with a mode, because the ring always has its own legend.
