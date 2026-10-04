@@ -40,6 +40,8 @@ Report is designed (`R-Report-*`). The palette tries (`P-Palettes`) are not part
 3. **Cycles you finished:** no "bell / stopped" key at the card's top right. When a mode has more cycles than fit in two rows, its marks become one bar split into finished and stopped, as the board's Month note says.
 4. **Your year:** no streak line ("1 days in a row · best 17"); the owner removed it. Hovering a day (or focusing it with the keyboard, or tapping it) shows a small card with the date and that day's total focus, for example "Tue 22 Sep · 3h 40m". An empty day says "No focus".
 
+5. **Every bar chart shows its figures on hover only** (Your week, Week by week, This week so far, Last seven days, and any later one). At rest, no figure sits above a bar. On hover, focus, or tap, that bar stays full and the others fade, and a small card shows the label and the value, as rule 10 says for the task page.
+
 ## Colors on light screens
 
 On every light screen (Report, the task page, the Tasks page, Settings, the dialogs) a mode mark uses the soft tint from the New task dialog: Deep Focus lilac `#C9A3C4`, Execution rose `#E9AFB4`, Shallow teal `#A6CFCB`. This is a value change of the `--mode-*-mark` tokens in the default theme only; no component changes. The timer screens keep their deep backgrounds. Task rings use soft tints too (`--chart-*`); a slice may share a hue with a mode, because the ring always has its own legend.
