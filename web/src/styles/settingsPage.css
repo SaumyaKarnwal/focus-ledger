@@ -91,17 +91,6 @@
   align-items: center;
   gap: 8px;
 }
-.settings-stepper .estimate-edit-stepper {
-  background: var(--control-bg);
-  border: 1px solid var(--control-edge);
-}
-.settings-stepper .estimate-edit-stepper button {
-  height: 28px;
-  border-radius: 7px;
-}
-.settings-stepper .estimate-edit-stepper button:hover:not(:disabled) {
-  background: var(--control-hover);
-}
 .settings-stepper .estimate-edit-stepper output {
   min-width: 40px;
 }
@@ -127,15 +116,12 @@
   min-width: 120px;
   height: 36px;
   padding: 0 12px;
-  background: var(--control-bg);
-  border: 1px solid var(--control-edge);
+  background: var(--panel);
+  border: 1px solid var(--axis);
   border-radius: 8px;
   font-size: 13.5px;
   font-weight: 500;
   color: var(--ink-strong);
-}
-.sound-picker-button:hover {
-  background: var(--control-hover);
 }
 .sound-picker-button svg {
   color: var(--ink-muted);
@@ -196,13 +182,13 @@
   background: linear-gradient(
     to right,
     var(--accent) var(--fill),
-    var(--control-edge) var(--fill)
+    var(--panel-border) var(--fill)
   );
 }
 .settings-volume input::-moz-range-track {
   height: 4px;
   border-radius: 2px;
-  background: var(--control-edge);
+  background: var(--panel-border);
 }
 .settings-volume input::-moz-range-progress {
   height: 4px;
@@ -232,15 +218,14 @@
   width: 40px;
   height: 23px;
   flex-shrink: 0;
-  padding: 1px;
-  background: var(--control-edge);
-  border: 1px solid var(--control-edge-strong);
+  padding: 2px;
+  background: var(--rule-strong);
+  border: 0;
   border-radius: 12px;
 }
 .settings-switch[aria-checked="true"] {
   justify-content: flex-end;
   background: var(--accent);
-  border-color: var(--accent);
 }
 .settings-switch span {
   width: 19px;

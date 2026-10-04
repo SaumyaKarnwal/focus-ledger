@@ -37,7 +37,6 @@ The values come from the boards in `browser-v2/`. The builder reads each value f
 | Primary button on a mode screen | `--screen-cta-bg`, `--screen-cta-fg`, `--screen-cta-ledge` | START and PAUSE (the label takes the screen color) |
 | Mode marks | `--mode-{deep,execution,shallow}-mark` | The small bar or dot that names a mode on light surfaces (picker, tasks, task page) |
 | Page | `--paper`, `--panel`, `--ink`, `--ink-strong`, `--ink-muted`, `--ink-faint`, `--rule`, `--row-hover` | The Tasks and task pages |
-| Hover plate | `--plate-hover` | The hover plate on light pages: rows, Cancel, the Report, and the task page |
 | Dialog | `--dialog-bg`, `--dialog-header-bg`, `--dialog-fg`, `--dialog-muted`, `--dialog-rule`, `--dialog-selected`, `--scrim`, `--dialog-shadow` | Task picker, bell, new task, edit task |
 | Accent | `--accent`, `--accent-on` | New task pill, links, primary button in a dialog (today the Deep Focus aubergine) |
 | State | `--over-estimate`, `--focus-ring` | An estimate that the logged time passed; the keyboard focus ring |

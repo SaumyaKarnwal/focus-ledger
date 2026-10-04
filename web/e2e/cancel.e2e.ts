@@ -24,7 +24,7 @@ test("the Sign out Cancel is a 40px text button with a hover plate", async ({
       const computed = getComputedStyle(element);
       const probe = document.createElement("span");
       probe.style.color = "var(--ink-muted)";
-      probe.style.background = "var(--plate-hover)";
+      probe.style.background = "var(--control-hover)";
       document.body.append(probe);
       const tokens = getComputedStyle(probe);
       const result = {
