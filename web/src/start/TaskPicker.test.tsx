@@ -4,7 +4,11 @@ import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
 import type { LedgerClient } from "../api/ledgerClient";
-import { FocusMode, SettingsPbSchema } from "../gen/focusledger/v1/model_pb";
+import {
+  FocusMode,
+  NodePbSchema,
+  SettingsPbSchema,
+} from "../gen/focusledger/v1/model_pb";
 import { exampleNodes, exampleNow } from "../ledger/exampleData";
 import { weekRange } from "../ledger/period";
 import {
@@ -235,6 +239,55 @@ describe("pickerModel", () => {
       figure: "0m",
       mode: undefined,
     });
+  });
+
+  test("pickerRows_tasksWithCyclesFirst_thenNoCyclesNewestCreatedFirst", () => {
+    const data = exampleData();
+    const createdMinutesAgo = (minutes: number) => ({
+      seconds: BigInt(
+        Math.floor((exampleNow.getTime() - minutes * 60_000) / 1000),
+      ),
+      nanos: 0,
+    });
+    // Taxes is newer than every cycle, so it used to rise to the top.
+    const taxes = create(NodePbSchema, {
+      id: "taxes",
+      name: "Taxes",
+      createdAt: createdMinutesAgo(1),
+    });
+    const reading = create(NodePbSchema, {
+      id: "reading",
+      name: "Reading",
+      createdAt: createdMinutesAgo(30 * 24 * 60),
+    });
+    data.allTimeNodes = [...data.allTimeNodes, reading, taxes];
+
+    const rows = pickerRows(data, exampleNow, "UTC", "");
+    const noCycles = (row: { detail: string }) =>
+      row.detail.endsWith("no cycles yet");
+
+    expect(rows.map((row) => row.name)).toEqual([
+      "Notes",
+      "Book",
+      "Chapter 1",
+      "Taxes",
+      "Admin",
+      "Reading",
+    ]);
+    expect(rows.slice(0, 3).some(noCycles)).toBe(false);
+    expect(rows.slice(3).every(noCycles)).toBe(true);
+    expect(
+      pickerRows(data, exampleNow, "UTC", "a").map((row) => row.name),
+    ).toEqual(
+      ["Notes", "Book", "Chapter 1", "Taxes", "Admin", "Reading"].filter(
+        (name) =>
+          rows
+            .find((row) => row.name === name)
+            ?.detail.concat(name)
+            .toLowerCase()
+            .includes("a"),
+      ),
+    );
   });
 
   test("inboxRow_example_hasTodaysMinutesAndTheLatestMode", () => {
