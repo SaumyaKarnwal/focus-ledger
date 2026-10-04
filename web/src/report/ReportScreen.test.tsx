@@ -1,8 +1,15 @@
+import { create } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
 import type { LedgerClient } from "../api/ledgerClient";
+import {
+  CyclePbSchema,
+  FocusMode,
+  NodePbSchema,
+} from "../gen/focusledger/v1/model_pb";
 import { exampleNow } from "../ledger/exampleData";
 import { weekRange } from "../ledger/period";
 import {
@@ -175,6 +182,51 @@ describe("Report v2 (boards R-Report-*)", () => {
     expect(lines.some((line) => /^set \d+m · avg \d+m$/.test(line ?? ""))).toBe(
       true,
     );
+  });
+
+  test("report_finished_hasNoKeyAndShowsAMarkPerCycle", async () => {
+    await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
+
+    const finished = await screen.findByRole("region", {
+      name: "Cycles you finished",
+    });
+    expect(finished.querySelector(".task-card-head")?.textContent).toBe(
+      "Cycles you finished",
+    );
+    expect(finished.querySelectorAll(".report-mark").length).toBeGreaterThan(0);
+    expect(within(finished).queryByRole("img")).toBeNull();
+  });
+
+  test("report_finished_101Cycles_becomeOneBar", async () => {
+    // 101 Deep Focus cycles this week: 80 ran to the bell, 21 stopped early.
+    const cycles = Array.from({ length: 101 }, (_, index) =>
+      create(CyclePbSchema, {
+        id: `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`,
+        startedAt: timestampFromDate(
+          new Date(Date.UTC(2026, 9, 26 + (index % 6), 6 + (index % 12))),
+        ),
+        plannedMinutes: 30,
+        minutes: index < 80 ? 30 : 10,
+        mode: FocusMode.DEEP_FOCUS,
+      }),
+    );
+    const node = create(NodePbSchema, {
+      id: "00000000-0000-4000-8000-0000000000aa",
+      name: "Harbour",
+      cycles,
+    });
+    await openReport(recordingClient([node]).client);
+
+    const finished = await screen.findByRole("region", {
+      name: "Cycles you finished",
+    });
+    expect(
+      await within(finished).findByRole("img", {
+        name: "80 ran to the bell, 21 stopped early",
+      }),
+    ).toBeDefined();
+    expect(within(finished).getByText("80 of 101")).toBeDefined();
+    expect(finished.querySelectorAll(".report-mark")).toHaveLength(0);
   });
 
   test("report_smallCard_followsTheRange", async () => {

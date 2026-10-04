@@ -242,13 +242,6 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
-.report-key {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  color: var(--ink-muted);
-}
 .report-set-figures {
   grid-column: 3 / -1;
   font-size: 12.5px;
@@ -300,11 +293,17 @@
 .report-mark[data-filled] {
   background: var(--mode, var(--ink-muted));
 }
-.report-key .report-mark {
-  width: 14px;
-  height: 9px;
-  border-radius: 3px;
-  margin-left: 8px;
+.report-finished-bar {
+  display: block;
+  height: 14px;
+  border: 1.5px solid var(--mode);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.report-finished-bar span {
+  display: block;
+  height: 100%;
+  background: var(--mode);
 }
 .report-finished-count {
   font-family: var(--font-figures);
