@@ -57,5 +57,12 @@ Report is not designed yet. The header shows it, but the link stays inert. The o
    - The timer digits use a rounded bold face: **Nunito 800** from Google Fonts, with tabular figures where the font has them, so the digits do not jump. The fallback stack is `"Arial Rounded MT Bold", "Nunito", ui-rounded, system-ui, sans-serif`. This replaces IBM Plex Mono for the big timer only. Small figures (durations, estimates) keep Plex Mono.
    - START, PAUSE, and the break START use the same rounded face, bold, uppercase. The button is a solid plate with a lower ledge: a 6px bottom edge in a darker tint of the plate. On press, the plate moves down 6px and the ledge disappears, so it reads as a physical key. With reduced motion, the press has no movement.
    - The faces are tokens (`--font-timer`, `--font-cta`), and the ledge color is a token (`--screen-cta-ledge`), so a theme can change them.
-9. No color literal outside the theme files. See [`../theming.md`](../theming.md).
-10. Deploy only after Settings and all screens above are merged. Report is not needed for the first release.
+9. **Small window** (owner request). When the window is narrower than 760px or shorter than 560px, Start, Running, and Break switch to a compact layout that fits with no scroll:
+   - Header: the wordmark and one menu button that opens Report, Tasks, Settings, and the account. The date is hidden.
+   - Modes: the three mode rows become one row of small chips (mode mark + name). While a cycle runs, only the running mode's chip shows. On Break, the chips are Short and Long.
+   - Timer: the digits scale with the window (`clamp`), as large as fits.
+   - Buttons: the two buttons of that screen only (START and Take a break; PAUSE and Stop and log; START and Start a cycle).
+   - Task: one line under the buttons with the task name, cut with an ellipsis. A tap opens the picker when no cycle runs. The planned readout and the parent path are hidden.
+   - Nothing else shows. The same colors, fonts, and tokens apply.
+10. No color literal outside the theme files. See [`../theming.md`](../theming.md).
+11. Deploy only after Settings and all screens above are merged. Report is not needed for the first release.
