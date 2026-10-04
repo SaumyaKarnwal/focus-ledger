@@ -1,8 +1,12 @@
 /* The mode screens of browser v2: Start, and later Running, Bell, and Break. */
 
-.mode-screen {
-  /* The side space of the header, the main area, and the task line. */
+/* The side space of the header, the main area, and the task line. The Tasks
+   and Settings pages use the same header, so the value is global. */
+:root {
   --screen-gutter: clamp(16px, 4vw, 56px);
+}
+
+.mode-screen {
   position: relative;
   height: 100vh;
   height: 100dvh;
