@@ -93,7 +93,7 @@ A node carries its estimates and its cycles. There is no estimate RPC. There is 
 | RPC | What it does |
 |---|---|
 | `CreateNode` | Creates a node under a parent or at the root, with optional estimates (FR-1, FR-6, FR-7.2). |
-| `UpdateNode` | Changes the fields in the mask: `name`, `parent_id` (move), `closed`, `estimates`. A move under the node's own descendant is rejected (FR-7.8). |
+| `UpdateNode` | Changes the fields in the mask: `name`, `parent_id` (move), `closed`, `estimates`. A move under the node's own descendant is rejected (FR-7.8). `closed` cascades in one transaction (see "Completing a task"). |
 | `ListNodes` | Returns the user's tree for Today and the Tree screen. |
 
 How the old actions map:
@@ -144,6 +144,16 @@ There is no delete. The server rejects a change that breaks the cycle rules: min
 
 The proto is frozen. These rules are server behavior, not wire changes:
 - `ListNodes` with `include_closed = false` leaves out closed nodes and every node under a closed node.
+
+### Completing a task
+
+The UI calls a closed node "completed". One invariant holds: **an open node never has a closed ancestor.** `UpdateNode` keeps it in the same transaction:
+
+1. `closed = true` closes the node and every open node under it.
+2. `closed = false` reopens the node and every closed ancestor up to the root. Its descendants stay closed; the user reopens each one that is still needed.
+3. Moving an open node under a closed node reopens the closed ancestors of its new place.
+
+The response returns the updated node. The browser reloads `ListNodes` after the call, because other rows changed too.
 - `UpdateNodeResponse.node` carries no cycles. Read cycles with `ListNodes`.
 - Every `ListNodes` call returns the user's running cycle, whatever its start time and the `period`, together with its node and that node's ancestors, even when they are closed and `include_closed = false`. So the client can always find the running cycle, and a Start never fails for a cycle it cannot see.
 
