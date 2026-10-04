@@ -19,9 +19,6 @@ export function SetAndDoCard({ cycles }: { cycles: readonly PlacedCycle[] }) {
         <h2 id="report-set" className="task-card-title">
           What you set, what you do
         </h2>
-        <span className="report-key">
-          <span className="report-set-tick" aria-hidden="true" /> set
-        </span>
       </div>
       <ul className="report-kind-list">
         {rows.map((row) => (
