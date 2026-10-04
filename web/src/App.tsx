@@ -10,7 +10,6 @@ import {
   ringBell,
   unlockAudio,
 } from "./bell/bell";
-import { longBreakDue } from "./bell/rhythm";
 import type { Playing } from "./bell/sounds";
 import { BellScreen } from "./cycle/BellScreen";
 import { BreakScreen, type ComingBackTo } from "./cycle/BreakScreen";
@@ -33,10 +32,9 @@ import {
 import { useFocusSound } from "./bell/useFocusSound";
 import { useClock } from "./session/useClock";
 import {
-  BREAK_NAMES,
+  BREAK_NAME,
   type BreakTimer,
   breakRemainingMs,
-  breakTimerFor,
   type TimerChip,
 } from "./session/sessionTimer";
 import { modeKey } from "./modes/modes";
@@ -428,19 +426,9 @@ export function App({
     });
   };
 
-  // Long after every Nth cycle of the day (Settings).
-  const firstBreakTimer = (loaded: TodayData): BreakTimer =>
-    breakTimerFor(
-      longBreakDue(
-        loaded,
-        new Date(),
-        timeZone,
-        loadLocalSettings().longBreakEvery,
-      )
-        ? "long"
-        : "short",
-      loaded.settings.breakMinutes,
-    );
+  const firstBreakTimer = (loaded: TodayData): BreakTimer => ({
+    totalMinutes: loaded.settings.breakMinutes,
+  });
 
   // The timer store above the routes: one clock, the pause of each cycle, and
   // the time-out check, so that a cycle or break runs on while a page shows.
@@ -543,7 +531,7 @@ export function App({
     }
     if (screen.kind === "break" && breakLeft !== undefined) {
       return {
-        label: BREAK_NAMES[screen.timer.kind],
+        label: BREAK_NAME,
         text: formatCountdown(breakLeft),
         modeKey: "break",
         onOpen,
@@ -755,7 +743,6 @@ export function App({
         <BreakScreen
           comingBackTo={screen.comingBackTo}
           timer={screen.timer}
-          breakMinutes={data.settings.breakMinutes}
           email={data.email}
           timeZone={timeZone}
           now={now}
