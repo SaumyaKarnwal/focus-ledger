@@ -282,6 +282,83 @@ describe("Task page", () => {
     expect(tip.textContent).toContain("Deep Focus0m");
   });
 
+  async function openDays() {
+    await openTaskPage(
+      recordingClient(exampleNodesWithNothingRunning()).client,
+      "Book",
+    );
+    const card = within(
+      screen.getByRole("region", { name: "Last seven days" }),
+    );
+    return { card, bars: card.getAllByRole("listitem") };
+  }
+
+  function dimmed(bars: HTMLElement[]) {
+    return bars.map((bar) => bar.getAttribute("data-dim"));
+  }
+
+  test("days_atRest_showNoFigureAboveTheBars", async () => {
+    const { card, bars } = await openDays();
+
+    expect(bars.map((bar) => bar.textContent)).toEqual([
+      "",
+      "—",
+      "",
+      "—",
+      "—",
+      "",
+      "",
+    ]);
+    expect(card.queryByRole("tooltip")).toBeNull();
+    expect(new Set(dimmed(bars))).toEqual(new Set(["false"]));
+  });
+
+  test("days_hover_keepsTheBarFadesTheOthersAndShowsTheCard", async () => {
+    const { card, bars } = await openDays();
+
+    fireEvent.mouseEnter(bars[0]);
+
+    const tip = card.getByRole("tooltip");
+    expect(tip.textContent).toContain("Mon 26");
+    expect(tip.textContent).toContain("1h 50m");
+    expect(tip.textContent).toContain("Deep Focus1h 50m");
+    expect(tip.textContent).toContain("Shallow0m");
+    expect(dimmed(bars)).toEqual([
+      "false",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+      "true",
+    ]);
+    fireEvent.mouseLeave(bars[0]);
+    expect(card.queryByRole("tooltip")).toBeNull();
+  });
+
+  test("days_keyboardFocus_showsTheCardForThatDay", async () => {
+    const { card, bars } = await openDays();
+
+    fireEvent.focus(bars[6]);
+
+    expect(card.getByRole("tooltip").textContent).toContain("Today");
+    expect(card.getByRole("tooltip").textContent).toContain("2h 05m");
+    expect(card.getByRole("tooltip").textContent).toContain("Execution50m");
+    fireEvent.blur(bars[6]);
+    expect(card.queryByRole("tooltip")).toBeNull();
+  });
+
+  test("days_tap_togglesTheCard", async () => {
+    const { card, bars } = await openDays();
+
+    fireEvent.click(bars[5]);
+    expect(card.getByRole("tooltip").textContent).toContain("Sat 31");
+    expect(card.getByRole("tooltip").textContent).toContain("30m");
+
+    fireEvent.click(bars[5]);
+    expect(card.queryByRole("tooltip")).toBeNull();
+  });
+
   test("taskPage_lastSevenDays_labelsTheDaysAndTheTotals", async () => {
     await openTaskPage(
       recordingClient(exampleNodesWithNothingRunning()).client,

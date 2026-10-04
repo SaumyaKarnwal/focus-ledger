@@ -485,6 +485,9 @@ function DaysCard({
   const hours = chartHours(days);
   const pxPerHour = 140 / hours;
   const week = days.reduce((sum, day) => sum + day.total, 0);
+  // The bar under the pointer, in focus, or tapped (README rule 10).
+  const [active, setActive] = useState<number>();
+  const activeDay = active === undefined ? undefined : days[active];
   return (
     <section className="task-card" aria-label="Last seven days">
       <div className="task-card-head">
@@ -511,13 +514,22 @@ function DaysCard({
           </div>
         ))}
         <ol className="days-bars">
-          {days.map((day) => (
+          {days.map((day, index) => (
             <li
               key={day.range.start.toISOString()}
               aria-label={`${dayLabel(day, timeZone)}: ${day.total > 0 ? formatMinutes(day.total) : "nothing"}`}
+              tabIndex={0}
+              data-dim={active !== undefined && active !== index}
+              onMouseEnter={() => setActive(index)}
+              onMouseLeave={() => setActive(undefined)}
+              onFocus={() => setActive(index)}
+              onBlur={() => setActive(undefined)}
+              onClick={() =>
+                setActive((current) => (current === index ? undefined : index))
+              }
             >
               <span className="days-total" data-none={day.total === 0}>
-                {day.total > 0 ? formatMinutes(day.total) : "—"}
+                {day.total === 0 ? "—" : ""}
               </span>
               <span className="days-stack">
                 {LOGGED_MODES.filter((mode) => day.byMode[mode] > 0).map(
@@ -535,6 +547,39 @@ function DaysCard({
             </li>
           ))}
         </ol>
+        {activeDay && active !== undefined && (
+          <div
+            className="split-tip days-tip"
+            role="tooltip"
+            data-edge={active > 3 ? "end" : undefined}
+            style={{
+              left: `calc(30px + (100% - 30px) * ${(active + 0.5) / days.length})`,
+            }}
+          >
+            <div className="split-tip-head">
+              <span className="split-tip-name">
+                {dayLabel(activeDay, timeZone)}
+              </span>
+              <span className="split-minutes">
+                {formatMinutes(activeDay.total)}
+              </span>
+            </div>
+            {LOGGED_MODES.map((mode) => (
+              <div
+                key={mode}
+                className="split-tip-mode"
+                data-mode={modeKey(mode)}
+                data-zero={activeDay.byMode[mode] === 0 || undefined}
+              >
+                <span className="estimate-mode-bar" aria-hidden="true" />
+                <span>{MODE_NAMES[mode]}</span>
+                <span className="split-tip-minutes">
+                  {formatMinutes(activeDay.byMode[mode])}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       <div className="days-axis" />
       <div className="days-labels" aria-hidden="true">
