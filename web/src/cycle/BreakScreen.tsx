@@ -8,12 +8,10 @@ import {
 import { MODE_NAMES } from "../today/todayModel";
 import { unlockAudio } from "../bell/bell";
 import {
-  BREAK_NAMES,
-  type BreakKind,
+  BREAK_NAME,
   type BreakTimer,
   breakElapsedMs,
   breakRemainingMs,
-  breakTimerFor,
 } from "../session/sessionTimer";
 import { formatCountdown } from "./timer";
 
@@ -35,10 +33,8 @@ export type ComingBackTo = {
 
 type Props = {
   comingBackTo: ComingBackTo;
-  /** The kind, the length, and the start live above the routes. */
+  /** The length and the start live above the routes. */
   timer: BreakTimer;
-  /** The short break length from the settings. */
-  breakMinutes: number;
   email: string;
   timeZone: string;
   /** The app's clock. The time-out check above the routes uses the same one. */
@@ -51,11 +47,10 @@ type Props = {
   onSignOut: () => void;
 };
 
-/** The break (boards C-Desk-Break2 and -Break2-Long). A break is not written to the ledger (FR-5). */
+/** The break (board C-Desk-Break2). A break is not written to the ledger (FR-5). */
 export function BreakScreen({
   comingBackTo,
   timer,
-  breakMinutes,
   email,
   timeZone,
   now,
@@ -65,13 +60,11 @@ export function BreakScreen({
   onOpenSettings,
   onSignOut,
 }: Props) {
-  const { kind, totalMinutes, startedAt } = timer;
+  const { totalMinutes, startedAt } = timer;
   const totalMs = totalMinutes * MINUTE_MS;
   const elapsedMs = breakElapsedMs(timer, now);
   const remaining = breakRemainingMs(timer, now);
 
-  const chooseKind = (next: BreakKind) =>
-    onTimerChange(breakTimerFor(next, breakMinutes));
   const step = (by: number) =>
     onTimerChange({
       ...timer,
@@ -105,30 +98,7 @@ export function BreakScreen({
     >
       {startedAt === undefined ? (
         <>
-          <section className="start-modes" aria-labelledby="break-kind">
-            <h2 id="break-kind" className="screen-label start-modes-label">
-              What kind of break
-            </h2>
-            <div
-              className="start-mode-list"
-              role="radiogroup"
-              aria-labelledby="break-kind"
-            >
-              {(["short", "long"] as const).map((option) => (
-                <button
-                  key={option}
-                  type="button"
-                  role="radio"
-                  aria-checked={kind === option}
-                  className="start-mode"
-                  onClick={() => chooseKind(option)}
-                >
-                  <span className="start-mode-bar" aria-hidden="true" />
-                  <span className="start-mode-name">{BREAK_NAMES[option]}</span>
-                </button>
-              ))}
-            </div>
-          </section>
+          <ModePlate label="Take a break" name={BREAK_NAME} />
           <section className="start-clock" aria-label="Break length">
             <div className="start-stepper">
               <button
@@ -175,7 +145,7 @@ export function BreakScreen({
         </>
       ) : (
         <>
-          <ModePlate label="On a break" name={BREAK_NAMES[kind]} />
+          <ModePlate label="On a break" name={BREAK_NAME} />
           <section className="start-clock" aria-label="Break">
             <ScreenClock
               label="Break time left"

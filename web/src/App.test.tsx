@@ -18,7 +18,6 @@ import {
   exampleNodesWithNothingRunning,
   recordingClient,
 } from "./testing/appHarness";
-import { LOCAL_DEFAULTS, saveLocalSettings } from "./settings/localSettings";
 import {
   openFromTasks,
   openOnStart,
@@ -563,8 +562,6 @@ describe("Bell and extension", () => {
 
 describe("Break", () => {
   async function takeBreak() {
-    // The 4th cycle of the example day would pre-select the long break.
-    saveLocalSettings({ ...LOCAL_DEFAULTS, longBreakEvery: 12 });
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
     await startCycleOn("Book");
     fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
@@ -602,19 +599,29 @@ describe("Break", () => {
     expect(screen.queryByRole("timer")).toBeNull();
   });
 
-  test("break_longBreak_setsFifteenMinutes", async () => {
+  test("break_oneKind_hasTheSettingsLengthAndNoChoice", async () => {
+    // A browser from before the long break was removed.
+    localStorage.setItem(
+      "focus-ledger.settings",
+      JSON.stringify({ longBreakMinutes: 20, longBreakEvery: 2 }),
+    );
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
+    // The 4th cycle of the day used to preselect the long break.
     await startCycleOn("Book");
     fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
     fireEvent.click(
       await screen.findByRole("button", { name: "Take a break" }),
     );
 
-    fireEvent.click(await screen.findByRole("radio", { name: "Long break" }));
+    await screen.findByRole("button", { name: "Start the break" });
+    expect(screen.queryByRole("radio")).toBeNull();
+    expect(
+      screen.getByText("Break", { selector: ".start-mode-name" }),
+    ).toBeDefined();
     expect(
       screen.getByLabelText("Break length", { selector: "output" }).textContent,
-    ).toBe("15:00");
-    fireEvent.click(screen.getByRole("button", { name: "Shorter break" }));
+    ).toBe("05:00");
+    fireEvent.click(screen.getByRole("button", { name: "Longer break" }));
     expect(
       screen.getByLabelText("Break length", { selector: "output" }).textContent,
     ).toBe("10:00");

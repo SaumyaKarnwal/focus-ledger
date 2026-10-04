@@ -1,32 +1,13 @@
-import { loadLocalSettings } from "../settings/localSettings";
-
 const MINUTE_MS = 60_000;
 
-export type BreakKind = "short" | "long";
+/** There is one kind of break. */
+export const BREAK_NAME = "Break";
 
-export const BREAK_NAMES: Record<BreakKind, string> = {
-  short: "Short break",
-  long: "Long break",
-};
-
-/** A break's choice and, once START is pressed, its start. It lives above the routes. */
+/** A break's length and, once START is pressed, its start. It lives above the routes. */
 export type BreakTimer = {
-  kind: BreakKind;
   totalMinutes: number;
   startedAt?: number;
 };
-
-/** A break not started yet: the short break from the settings, or the long break from this browser. */
-export function breakTimerFor(
-  kind: BreakKind,
-  breakMinutes: number,
-): BreakTimer {
-  return {
-    kind,
-    totalMinutes:
-      kind === "short" ? breakMinutes : loadLocalSettings().longBreakMinutes,
-  };
-}
 
 export function breakElapsedMs(timer: BreakTimer, now: Date): number {
   if (timer.startedAt === undefined) return 0;
@@ -42,7 +23,7 @@ export function breakRemainingMs(timer: BreakTimer, now: Date): number {
 
 /** The header chip on other pages while a cycle runs or a break counts down. */
 export type TimerChip = {
-  /** "Deep Focus", or "Short break". */
+  /** "Deep Focus", or "Break". */
   label: string;
   /** The time left, as "47:12". */
   text: string;

@@ -15,9 +15,7 @@ import {
 } from "../testing/appHarness";
 import { fakeBell } from "../testing/fakeBell";
 import { openFromTasks, startCycleOn } from "../testing/navigation";
-import { loadToday } from "../today/loadToday";
 import { ringBell } from "./bell";
-import { longBreakDue } from "./rhythm";
 import { playSound, type SoundContext } from "./sounds";
 
 const MINUTE_MS = 60_000;
@@ -159,18 +157,6 @@ describe("Sounds", () => {
   });
 });
 
-describe("Long-break rhythm", () => {
-  test("longBreakDue_everyNthLoggedCycleOfTheDay", async () => {
-    const { client } = recordingClient(exampleNodesWithNothingRunning());
-    // The example day has three logged cycles.
-    const data = await loadToday(client, exampleNow, "UTC");
-
-    expect(longBreakDue(data, exampleNow, "UTC", 3)).toBe(true);
-    expect(longBreakDue(data, exampleNow, "UTC", 4)).toBe(false);
-    expect(longBreakDue(data, exampleNow, "UTC", 2)).toBe(false);
-  });
-});
-
 function renderApp(client: LedgerClient, bell = fakeBell()) {
   render(
     <StrictMode>
@@ -294,26 +280,6 @@ describe("Bell in the app", () => {
     await screen.findByRole("button", { name: "Start" });
 
     expect(bell.played).toEqual([]);
-  });
-
-  test("nthCycleOfTheDay_preselectsTheLongBreak", async () => {
-    saveLocalSettings({ ...LOCAL_DEFAULTS, longBreakMinutes: 20 });
-    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
-    // Three logged cycles today, and this one is the fourth.
-    await startCycleOn("Book");
-    fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Take a break" }),
-    );
-
-    expect(
-      (await screen.findByRole("radio", { name: "Long break" })).getAttribute(
-        "aria-checked",
-      ),
-    ).toBe("true");
-    expect(
-      screen.getByLabelText("Break length", { selector: "output" }).textContent,
-    ).toBe("20:00");
   });
 });
 

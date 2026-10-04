@@ -10,12 +10,8 @@ import {
   recordingClient,
 } from "../testing/appHarness";
 import { fakeBell } from "../testing/fakeBell";
-import { openFromTasks, startCycleOn } from "../testing/navigation";
-import {
-  LOCAL_DEFAULTS,
-  loadLocalSettings,
-  saveLocalSettings,
-} from "./localSettings";
+import { openFromTasks } from "../testing/navigation";
+import { LOCAL_DEFAULTS, loadLocalSettings } from "./localSettings";
 import { changedPaths, SAVE_DELAY_MS, toForm } from "./settingsModel";
 
 beforeEach(() => {
@@ -73,9 +69,8 @@ describe("Settings page", () => {
     expect(value("Deep Focus minutes")).toBe("90");
     expect(value("Execution minutes")).toBe("50");
     expect(value("Shallow minutes")).toBe("25");
-    expect(value("Short break minutes")).toBe("5");
-    expect(value("Long break minutes")).toBe("15");
-    expect(value("Long break every")).toBe("4");
+    expect(value("Break minutes")).toBe("5");
+    expect(screen.queryByText(/Long break/)).toBeNull();
     expect(
       (screen.getByRole("combobox", { name: "Sound" }) as HTMLSelectElement)
         .value,
@@ -159,7 +154,7 @@ describe("Settings page", () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     await openSettings(recording.client);
 
-    step("Short break minutes", "more");
+    step("Break minutes", "more");
     fireEvent.click(screen.getByRole("button", { name: /back to Start/ }));
     await screen.findByRole("button", { name: "Start" });
 
@@ -169,15 +164,15 @@ describe("Settings page", () => {
     });
   });
 
-  test("settings_shortBreak_staysWithinOneToSixty", async () => {
+  test("settings_break_staysWithinOneToSixty", async () => {
     await openSettings(
       recordingClient(exampleNodesWithNothingRunning()).client,
     );
 
-    step("Short break minutes", "less", 10);
-    expect(value("Short break minutes")).toBe("1");
-    step("Short break minutes", "more", 70);
-    expect(value("Short break minutes")).toBe("60");
+    step("Break minutes", "less", 10);
+    expect(value("Break minutes")).toBe("1");
+    step("Break minutes", "more", 70);
+    expect(value("Break minutes")).toBe("60");
   });
 
   test("settings_localFields_goToBrowserStorageOnly", async () => {
@@ -185,8 +180,6 @@ describe("Settings page", () => {
     const update = vi.spyOn(recording.client, "updateSettings");
     await openSettings(recording.client);
 
-    step("Long break minutes", "more");
-    step("Long break every", "less");
     fireEvent.change(screen.getByRole("combobox", { name: "Sound" }), {
       target: { value: "wood" },
     });
@@ -200,8 +193,6 @@ describe("Settings page", () => {
 
     expect(update).not.toHaveBeenCalled();
     expect(loadLocalSettings()).toEqual({
-      longBreakMinutes: 20,
-      longBreakEvery: 3,
       sound: "wood",
       volume: 0.4,
       ringWhenBreakEnds: false,
@@ -260,20 +251,31 @@ describe("Settings page", () => {
     expect(value("Deep Focus minutes")).toBe("95");
   });
 
-  test("settings_longBreak_isTheBreakScreenLength", async () => {
-    saveLocalSettings({ ...LOCAL_DEFAULTS, longBreakMinutes: 25 });
-    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
-    await startCycleOn("Book");
-    fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Take a break" }),
+  test("settings_oldLongBreakValues_areDroppedOnTheNextSave", async () => {
+    localStorage.setItem(
+      "focus-ledger.settings",
+      JSON.stringify({
+        longBreakMinutes: 25,
+        longBreakEvery: 2,
+        sound: "wood",
+      }),
+    );
+    await openSettings(
+      recordingClient(exampleNodesWithNothingRunning()).client,
     );
 
-    fireEvent.click(await screen.findByRole("radio", { name: "Long break" }));
+    fireEvent.change(screen.getByRole("slider", { name: "Volume" }), {
+      target: { value: "40" },
+    });
+    await waitForSave();
 
-    expect(
-      screen.getByLabelText("Break length", { selector: "output" }).textContent,
-    ).toBe("25:00");
+    const stored = JSON.parse(
+      localStorage.getItem("focus-ledger.settings") ?? "{}",
+    ) as Record<string, unknown>;
+    expect(Object.keys(stored).filter((key) => key.includes("long"))).toEqual(
+      [],
+    );
+    expect(stored.sound).toBe("wood");
   });
 });
 
