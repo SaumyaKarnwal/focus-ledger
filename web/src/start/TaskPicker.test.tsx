@@ -192,22 +192,9 @@ describe("Task picker", () => {
     expect(screen.queryByRole("dialog", { name: "Choose a task" })).toBeNull();
   });
 
-  test("picker_noTasks_showsOnlyNotSureYet", async () => {
-    const recording = recordingClient([], {});
-    const { client } = recording;
-    // An Inbox cycle skips the first run, which needs no node and no cycle.
-    await client.createCycle({
-      requestId: crypto.randomUUID(),
-      mode: FocusMode.SHALLOW,
-      minutes: 25,
-      plannedMinutes: 0,
-      startedAt: {
-        seconds: BigInt(exampleNow.getTime() / 1000 - 3600),
-        nanos: 0,
-      },
-    });
-
-    await openPicker(client);
+  test("picker_newAccount_showsOnlyNotSureYet", async () => {
+    // A new account: no task and no cycle (board C-Desk-Start-Pick-Empty).
+    await openPicker(recordingClient([], {}).client);
 
     expect(optionNames()).toEqual(["Not sure yet"]);
     expect(highlighted()).toBe("Not sure yet");

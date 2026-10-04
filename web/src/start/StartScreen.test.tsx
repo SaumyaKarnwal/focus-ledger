@@ -78,6 +78,30 @@ describe("Start", () => {
     ).toBe("F");
   });
 
+  test("start_newAccount_landsOnStartEmpty_andStartsAnInboxCycle", async () => {
+    // A new account: no task and no cycle (board C-Desk-Start-Empty).
+    const recording = recordingClient([], {});
+    renderApp(recording.client);
+
+    expect(await screen.findByRole("button", { name: "Start" })).toBeDefined();
+    expect(screen.getByText("What are you working on?")).toBeDefined();
+    expect(screen.queryByText(/first cycle/i)).toBeNull();
+    expect(
+      screen
+        .getByRole("radio", { name: "Deep Focus" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Start" }));
+
+    await screen.findByRole("timer", { name: "Time left" });
+    const { nodes } = await recording.client.listNodes({});
+    const running = nodes
+      .flatMap((node) => node.cycles)
+      .find((cycle) => cycle.minutes === undefined);
+    expect(running?.nodeId).toBeUndefined();
+  });
+
   test("start_tasksInTheHeader_opensTheTasksPage", async () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
     const nav = await screen.findByRole("navigation", { name: "Views" });

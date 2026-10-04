@@ -69,16 +69,17 @@ describe("Sign-in", () => {
     });
   });
 
-  test("signIn_newAccountWithNoData_opensTheFirstRun", async () => {
+  test("signIn_newAccountWithNoData_landsOnStartEmpty", async () => {
     renderApp(signedOutClient([]).client);
 
     fireEvent.click(
       await screen.findByRole("button", { name: "Sign in with Google" }),
     );
 
-    expect(
-      await screen.findByRole("button", { name: /Start the first cycle/ }),
-    ).toBeDefined();
+    expect(await screen.findByRole("button", { name: "Start" })).toBeDefined();
+    expect(screen.getByText("What are you working on?")).toBeDefined();
+    expect(screen.queryByText(/first cycle/i)).toBeNull();
+    expect(screen.queryByRole("textbox", { name: /working on/i })).toBeNull();
   });
 
   test("signIn_googleWithoutAClientId_saysSignInIsNotSetUp", async () => {

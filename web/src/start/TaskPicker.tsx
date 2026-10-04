@@ -29,6 +29,8 @@ export function TaskPicker({
   const ids = useId();
   const [query, setQuery] = useState("");
   const rows = pickerRows(data, now, timeZone, query);
+  // No task at all yet (board C-Desk-Start-Pick-Empty): only Not sure yet.
+  const noTasks = rows.length === 0 && query.trim() === "";
   // The Inbox ("Not sure yet") is the last option.
   const options = [...rows.map((row) => row.nodeId), INBOX_ID];
   const [highlighted, setHighlighted] = useState(() =>
@@ -104,7 +106,7 @@ export function TaskPicker({
           role="listbox"
           aria-label="Tasks"
         >
-          <div className="picker-recent">
+          <div className="picker-recent" data-empty={noTasks || undefined}>
             {rows.map((row) => (
               <div key={row.nodeId} {...optionProps(row.nodeId)}>
                 <span
@@ -156,9 +158,11 @@ export function TaskPicker({
             <PlusIcon />
             New task
           </button>
-          <span className="picker-keys" aria-hidden="true">
-            ↑↓ move · ↵ pick · esc close
-          </span>
+          {!noTasks && (
+            <span className="picker-keys" aria-hidden="true">
+              ↑↓ move · ↵ pick · esc close
+            </span>
+          )}
         </footer>
       </section>
     </div>
