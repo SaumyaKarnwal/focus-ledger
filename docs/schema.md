@@ -64,6 +64,14 @@ erDiagram
         int break_minutes
         boolean sound_enabled
         boolean notifications_enabled
+        int long_break_minutes
+        int long_break_every
+        text bell_sound
+        int bell_volume
+        int bell_repeat
+        boolean ring_after_break
+        text focus_sound
+        int focus_sound_volume
         timestamptz updated_at
     }
     NODE {
@@ -105,7 +113,7 @@ erDiagram
 | Table | Holds | Rows per user |
 |---|---|---|
 | `app_user` | The account: identity and email | 1 |
-| `user_settings` | The FR-12.1 defaults: three mode lengths, break length, sound, notifications | 1 |
+| `user_settings` | Every user setting: mode lengths, breaks, the bell, the focus sound, notifications | 1 |
 | `node` | The tree of things you work on | ~100 |
 | `cycle` | The ledger. The only table that holds time. | ~2,500 per year |
 | `estimate` | Up to three rows per node, one per mode | ≤ 3 per node |
@@ -150,9 +158,17 @@ Accepted limits:
 | `break_minutes` | int | 5 | 1–60 |
 | `sound_enabled` | boolean | true | |
 | `notifications_enabled` | boolean | false | |
+| `long_break_minutes` | int | 15 | 1–60 (V3) |
+| `long_break_every` | int | 4 | 1–12 cycles (V3) |
+| `bell_sound` | text | `bowl` | `bowl`, `wood`, `chime` (V3) |
+| `bell_volume` | int | 70 | 0–100 percent (V3) |
+| `bell_repeat` | int | 3 | 1–5 rings (V3) |
+| `ring_after_break` | boolean | true | (V3) |
+| `focus_sound` | text | `none` | `none`, `ticking_fast`, `ticking_slow`, `white_noise`, `brown_noise` (V3) |
+| `focus_sound_volume` | int | 40 | 0–100 percent (V3) |
 | `updated_at` | timestamptz | now() | Set by trigger. |
 
-These are fixed columns, not a JSON blob. FR-12.1 says "nothing else in v1", so the set is small and known.
+These are fixed columns, not a JSON blob, so each value has a type and a check. The owner decided (#112) that every user setting lives on the server, so a setting follows the user to every device. V3 added the break, bell, and focus-sound columns. `sound_enabled = false` is the Silent choice in the UI; `bell_sound` then keeps the last real sound.
 
 ### `node`
 
