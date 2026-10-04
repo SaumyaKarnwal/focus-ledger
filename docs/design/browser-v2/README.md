@@ -33,6 +33,13 @@ Report is designed (`R-Report-*`). The palette tries (`P-Palettes`) are not part
 3. **Custom** stays: a start and an end date, the same cards for that span, and ‹ › step by the span's own length. Your year ignores it, as it ignores every range.
 4. **What you set, what you do** uses the cycles themselves: "set" is the average planned length of the range's cycles per mode, and "do" is their average actual length. It needs no settings history.
 
+## Report and task page polish (owner, after the first deploy)
+
+1. **Estimate card with no estimate:** each mode's bar shows that mode's share of the task's logged time (Execution 44h 08m of 44h 14m fills almost the whole bar). With an estimate, the bar shows logged against that mode's estimate, as before. A bar never stays empty while its mode has logged time.
+2. **What you set, what you do:** the "set" tick uses a quiet grey (`--ink-muted`), not black. No "| set" key at the card's top right; the "set 21m · avg 17m" line under each mode says it.
+3. **Cycles you finished:** no "bell / stopped" key at the card's top right. When a mode has more cycles than fit in two rows, its marks become one bar split into finished and stopped, as the board's Month note says.
+4. **Your year:** hovering a day (or focusing it with the keyboard, or tapping it) shows a small card with the date and that day's total focus, for example "Tue 22 Sep · 3h 40m". An empty day says "No focus".
+
 ## Colors on light screens
 
 On every light screen (Report, the task page, the Tasks page, Settings, the dialogs) a mode mark uses the soft tint from the New task dialog: Deep Focus lilac `#C9A3C4`, Execution rose `#E9AFB4`, Shallow teal `#A6CFCB`. This is a value change of the `--mode-*-mark` tokens in the default theme only; no component changes. The timer screens keep their deep backgrounds. Task rings use soft tints too (`--chart-*`); a slice may share a hue with a mode, because the ring always has its own legend.
