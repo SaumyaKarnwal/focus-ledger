@@ -26,6 +26,7 @@ export default defineConfig(({ mode }) => {
       environment: "jsdom",
       // Testing Library registers its automatic cleanup only when Vitest globals are on.
       globals: true,
+      setupFiles: ["src/testing/setup.ts"],
     },
   };
 });

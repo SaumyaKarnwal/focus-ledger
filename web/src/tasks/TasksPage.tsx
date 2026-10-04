@@ -1,4 +1,4 @@
-import { type DragEvent, useState } from "react";
+import { type DragEvent, useEffect, useState } from "react";
 import type { LedgerClient } from "../api/ledgerClient";
 import { withRetry } from "../api/retry";
 import type { CyclePb, NodePb } from "../gen/focusledger/v1/model_pb";
@@ -37,6 +37,10 @@ type Props = {
   timeZone: string;
   retryDelaysMs?: readonly number[];
   onSaveTask: (save: TaskSave) => Promise<NodePb | undefined>;
+  /** The task page to show, from the address, or undefined for the list. */
+  openTaskId?: string;
+  onOpenTask: (taskId: string | undefined) => void;
+  onUnknownTask: () => void;
   onOpenStart: () => void;
   onOpenReport: () => void;
   onOpenSettings: () => void;
@@ -55,6 +59,9 @@ export function TasksPage({
   timeZone,
   retryDelaysMs,
   onSaveTask,
+  openTaskId,
+  onOpenTask,
+  onUnknownTask,
   onOpenStart,
   onOpenReport,
   onOpenSettings,
@@ -74,7 +81,6 @@ export function TasksPage({
   );
   const [allUntagged, setAllUntagged] = useState(false);
   const [dialog, setDialog] = useState<{ editing?: NodePb }>();
-  const [openNodeId, setOpenNodeId] = useState<string>();
   const [dragging, setDragging] = useState<Dragging>();
   const [dropTarget, setDropTarget] = useState<string | null>();
   const [pointer, setPointer] = useState<{ x: number; y: number }>();
@@ -83,7 +89,13 @@ export function TasksPage({
   const tree = taskTree(all);
   const rows = visibleRows(tree, collapsed);
   const inbox = untagged(all);
-  const openRow = findRow(tree, openNodeId);
+  const openRow = findRow(tree, openTaskId);
+  // A task the user does not have, or no longer has, leads home.
+  const unknownTask =
+    nodes !== undefined && openTaskId !== undefined && openRow === undefined;
+  useEffect(() => {
+    if (unknownTask) onUnknownTask();
+  }, [unknownTask, onUnknownTask]);
   const draggedTask =
     dragging?.kind === "task" ? findRow(tree, dragging.nodeId) : undefined;
 
@@ -216,7 +228,7 @@ export function TasksPage({
             now={now}
             timeZone={timeZone}
             busy={busy}
-            onBack={() => setOpenNodeId(undefined)}
+            onBack={() => onOpenTask(undefined)}
             onEdit={() => setDialog({ editing: openRow.node })}
             onSetCompleted={(completed) =>
               void write(() =>
@@ -390,7 +402,7 @@ export function TasksPage({
                   }
                   dropTarget={dropTarget === row.node.id}
                   onToggle={() => toggle(row.node.id)}
-                  onOpen={() => setOpenNodeId(row.node.id)}
+                  onOpen={() => onOpenTask(row.node.id)}
                   onDragStart={(event) =>
                     startDrag(event, { kind: "task", nodeId: row.node.id })
                   }
