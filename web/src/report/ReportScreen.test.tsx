@@ -163,7 +163,9 @@ describe("Report v2 (boards R-Report-*)", () => {
     ).toHaveLength(3);
     expect(card("Your week").getAllByRole("listitem")).toHaveLength(7);
     const year = await screen.findByRole("region", { name: "Your year" });
-    expect(within(year).getByText("days in a row")).toBeDefined();
+    // The owner removed the streak line (polish rule 4).
+    expect(within(year).queryByText(/in a row/)).toBeNull();
+    expect(within(year).queryByText(/best/)).toBeNull();
     expect(within(year).getByText(/days with focus since last/)).toBeDefined();
   });
 

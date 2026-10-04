@@ -141,8 +141,6 @@ export type Year = {
   weeks: (YearDay | undefined)[][];
   /** The month that starts in each column, or undefined. */
   months: (string | undefined)[];
-  streak: number;
-  best: number;
   daysWithFocus: number;
   since: string;
 };
@@ -150,11 +148,7 @@ export type Year = {
 // Minutes in a day for each step of the heat map.
 const LEVELS = [1, 30, 90, 180];
 
-/**
- * Your year: the last twelve months to today, whatever the range above. The
- * streak counts days in a row with focus up to today (or up to yesterday while
- * today has none yet).
- */
+/** Your year: the last twelve months to today, whatever the range above. */
 export function yearOf(
   nodes: readonly NodePb[],
   now: Date,
@@ -198,21 +192,9 @@ export function yearOf(
     return index === 0 ? monthName(first) : undefined;
   });
 
-  const runs = days.reduce<number[]>(
-    (all, day) =>
-      day.minutes > 0
-        ? [...all.slice(0, -1), (all.at(-1) ?? 0) + 1]
-        : [...all, 0],
-    [0],
-  );
-  const lastDay = days.at(-1);
-  const streak =
-    lastDay && lastDay.minutes === 0 ? (runs.at(-2) ?? 0) : (runs.at(-1) ?? 0);
   return {
     weeks,
     months,
-    streak,
-    best: Math.max(...runs),
     daysWithFocus: days.filter((day) => day.minutes > 0).length,
     // "since last October", or "since January" when the year began the span.
     since: `${first.slice(0, 4) < today.slice(0, 4) ? "last " : ""}${new Intl.DateTimeFormat(
