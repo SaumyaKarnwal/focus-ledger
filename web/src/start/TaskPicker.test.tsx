@@ -196,6 +196,13 @@ describe("Task picker", () => {
     expect(screen.queryByRole("dialog", { name: "Choose a task" })).toBeNull();
   });
 
+  test("picker_showsNoKeyHintLine", async () => {
+    await openPicker(recordingClient(exampleNodesWithNothingRunning()).client);
+
+    expect(screen.queryByText(/esc close/)).toBeNull();
+    expect(screen.queryByText(/move/)).toBeNull();
+  });
+
   test("picker_newAccount_showsOnlyNotSureYet", async () => {
     // A new account: no task and no cycle (board C-Desk-Start-Pick-Empty).
     await openPicker(recordingClient([], {}).client);

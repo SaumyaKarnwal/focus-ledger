@@ -572,12 +572,6 @@
   font-weight: 600;
   color: var(--accent);
 }
-.picker-keys {
-  font-family: var(--font-figures);
-  font-size: 11.5px;
-  letter-spacing: 0.06em;
-  color: var(--dialog-faint);
-}
 .picker :focus-visible {
   outline-color: var(--focus-ring);
 }
