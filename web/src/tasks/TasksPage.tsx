@@ -523,7 +523,6 @@ function TaskLine({
         >
           {node.name}
         </button>
-        {closed && <span className="tasks-hint">Completed</span>}
       </span>
       <span className="tasks-col tasks-logged">
         {logged > 0 ? formatMinutes(logged) : ""}

@@ -176,6 +176,54 @@ describe("Task page", () => {
     expect(recording.updateNodeMasks).toEqual([["closed"], ["closed"]]);
   });
 
+  test("taskPage_completeThenReopen_reloadsListNodesAfterEachCall", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    await openTaskPage(client, "Admin");
+    const updateNode = vi.spyOn(client, "updateNode");
+    const listNodes = vi.spyOn(client, "listNodes");
+    const reloadedAfterTheLastUpdate = () =>
+      Math.max(0, ...listNodes.mock.invocationCallOrder) >
+      Math.max(...updateNode.mock.invocationCallOrder);
+
+    fireEvent.click(screen.getByRole("button", { name: "Mark complete" }));
+    await screen.findByRole("button", { name: "Completed" });
+    await vi.waitFor(() => expect(reloadedAfterTheLastUpdate()).toBe(true));
+
+    fireEvent.click(screen.getByRole("button", { name: "Completed" }));
+    await screen.findByRole("button", { name: "Mark complete" });
+    await vi.waitFor(() => expect(reloadedAfterTheLastUpdate()).toBe(true));
+    expect(updateNode).toHaveBeenCalledTimes(2);
+  });
+
+  test("taskPage_completeAParentThenReopenAChild_listShowsTheCascade", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    await openTaskPage(client, "Book");
+
+    fireEvent.click(screen.getByRole("button", { name: "Mark complete" }));
+    await screen.findByRole("button", { name: "Completed" });
+    fireEvent.click(screen.getByRole("button", { name: "Back to tasks" }));
+    await vi.waitFor(() =>
+      expect(
+        screen.getByRole("listitem", { name: "Notes" }).dataset.closed,
+      ).toBe("true"),
+    );
+
+    fireEvent.click(screen.getByRole("listitem", { name: "Notes" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Completed" }));
+    await screen.findByRole("button", { name: "Mark complete" });
+    fireEvent.click(screen.getByRole("button", { name: "Back to tasks" }));
+
+    await vi.waitFor(() =>
+      expect(
+        screen.getByRole("listitem", { name: "Book" }).dataset.closed,
+      ).toBeUndefined(),
+    );
+    expect(
+      screen.getByRole("listitem", { name: "Chapter 1" }).dataset.closed,
+    ).toBeUndefined();
+    expect((await nodeNamed(client, "Chapter 2"))?.closed).toBe(true);
+  });
+
   test("taskPage_estimate_showsTheRollUpAndThePartsLine", async () => {
     await openTaskPage(
       recordingClient(exampleNodesWithNothingRunning()).client,

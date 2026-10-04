@@ -290,6 +290,20 @@ export function createFakeLedgerService(
         changes.parentId = request.parentId;
       }
       Object.assign(node, changes);
+      // An open node never has a closed ancestor (docs/api.md, "Completing a task").
+      if (paths.includes("closed") && node.closed) {
+        [...nodes.values()]
+          .filter((other) => isSelfOrDescendant(other.id, node.id))
+          .forEach((descendant) => {
+            descendant.closed = true;
+          });
+      }
+      if (!node.closed) {
+        ancestorsAndSelf(node.parentId).forEach((ancestorId) => {
+          const ancestor = nodes.get(ancestorId);
+          if (ancestor) ancestor.closed = false;
+        });
+      }
       return { node: nodeResponse(node) };
     },
 

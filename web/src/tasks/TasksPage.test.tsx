@@ -111,7 +111,7 @@ describe("Tasks page", () => {
 
     const completed = row("Chapter 2");
     expect(completed.getAttribute("data-closed")).toBe("true");
-    expect(completed.textContent).toContain("Completed");
+    expect(completed.textContent).not.toContain("Completed");
     expect(completed.getAttribute("draggable")).toBe("false");
   });
 
