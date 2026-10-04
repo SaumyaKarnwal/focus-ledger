@@ -20,7 +20,11 @@ export type PickerRow = {
   mode: LoggedMode | undefined;
 };
 
-/** Open tasks, most recently worked first, that match `query` in the name or the path. */
+/**
+ * Open tasks that match `query` in the name or the path. Tasks with cycles
+ * come first, by their latest cycle; then tasks with no cycles, newest
+ * created first (design PR #120).
+ */
 export function pickerRows(
   data: TodayData,
   now: Date,
@@ -28,8 +32,13 @@ export function pickerRows(
   query: string,
 ): PickerRow[] {
   const needle = query.trim().toLowerCase();
-  return todayModel(data, now, timeZone)
-    .rail.map((row): PickerRow => {
+  return [...todayModel(data, now, timeZone).rail]
+    .sort(
+      (left, right) =>
+        Number(right.worked) - Number(left.worked) ||
+        right.lastActivity.getTime() - left.lastActivity.getTime(),
+    )
+    .map((row): PickerRow => {
       const node = data.allTimeNodes.find((listed) => listed.id === row.nodeId);
       const cycles = (node?.cycles ?? []).filter(isLogged);
       const logged = totalsOf(cycles).minutes;
