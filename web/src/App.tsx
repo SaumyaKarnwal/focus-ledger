@@ -173,6 +173,8 @@ export function App({
     });
 
   const [view, setView] = useState<View>("today");
+  const [preselectedNodeId, setPreselectedNodeId] = useState<string>();
+  const [preselectedMode, setPreselectedMode] = useState<LoggedMode>();
   // A page shows over a cycle or break that keeps running (README rule 7).
   const [away, setAway] = useState(false);
   const session = isSession(screen);
@@ -304,7 +306,11 @@ export function App({
   // first one writes, so the app never writes minutes that were not worked.
   const writing = useRef(false);
   const writeMinutes = useCallback(
-    async (cycle: CyclePb, minutes: number) => {
+    async (
+      cycle: CyclePb,
+      minutes: number,
+      onWritten: (written: CyclePb) => void,
+    ) => {
       if (writing.current) return;
       writing.current = true;
       try {
@@ -320,9 +326,7 @@ export function App({
           );
           if (loadExtension()?.cycleId === cycle.id) clearExtension();
           clearPause(cycle.id);
-          if (response.cycle) {
-            setScreen({ kind: "bell", cycle: response.cycle });
-          }
+          if (response.cycle) onWritten(response.cycle);
           await refreshWithRetry();
         });
       } finally {
@@ -332,14 +336,29 @@ export function App({
     [act, client, refreshWithRetry, retryDelaysMs],
   );
 
+  const showBell = (written: CyclePb) =>
+    setScreen({ kind: "bell", cycle: written });
+  // A manual Stop shows no bell. Start opens with the cycle's task and mode (README rule 11).
+  const homeAfter = (cycle: CyclePb) => () => {
+    setPreselectedNodeId(data && taskAfterCycle(data, cycle));
+    setPreselectedMode(cycle.mode as LoggedMode);
+    setAway(false);
+    setView("today");
+    setScreen({ kind: "today" });
+  };
+
   const runningCycle = screen.kind === "running" ? screen.cycle : undefined;
   const stop = (minutes: number, ranOut = false) => {
-    if (!runningCycle) return;
+    if (!runningCycle || writing.current) return;
     if (ranOut) {
       ring("cycle", runningCycle);
       setAway(false);
     }
-    void writeMinutes(runningCycle, minutes);
+    void writeMinutes(
+      runningCycle,
+      minutes,
+      ranOut ? showBell : homeAfter(runningCycle),
+    );
   };
 
   const startExtension = (cycle: CyclePb, moreMinutes: number) => {
@@ -355,21 +374,20 @@ export function App({
 
   const extendedCycle = screen.kind === "extension" ? screen.cycle : undefined;
   const stopExtension = (totalMinutes: number, ranOut = false) => {
-    if (!extendedCycle) return;
+    if (!extendedCycle || writing.current) return;
     if (ranOut) {
       ring("cycle", extendedCycle);
       setAway(false);
     }
+    const after = ranOut ? showBell : homeAfter(extendedCycle);
     if (totalMinutes > (extendedCycle.minutes ?? 0)) {
-      void writeMinutes(extendedCycle, totalMinutes);
+      void writeMinutes(extendedCycle, totalMinutes, after);
     } else {
       clearExtension();
-      setScreen({ kind: "bell", cycle: extendedCycle });
+      after(extendedCycle);
     }
   };
 
-  const [preselectedNodeId, setPreselectedNodeId] = useState<string>();
-  const [preselectedMode, setPreselectedMode] = useState<LoggedMode>();
   /** Back to Start with the task and mode of the cycle before, as the bell shows them. */
   const backToStart = (nodeId: string | undefined, mode: LoggedMode) => {
     setPreselectedNodeId(nodeId);

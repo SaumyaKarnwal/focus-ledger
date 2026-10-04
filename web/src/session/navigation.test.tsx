@@ -160,7 +160,7 @@ describe("Leaving the running screen", () => {
 describe("Leaving the bell and the break", () => {
   test("bell_headerLinks_work_andTheWordmarkReturnsToTheBell", async () => {
     await startShallow();
-    fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
+    await advance(25 * MINUTE_MS + 1000);
     await screen.findByRole("dialog");
 
     await goToTasks();

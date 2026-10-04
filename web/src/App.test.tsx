@@ -52,6 +52,13 @@ async function allCycles(client: LedgerClient): Promise<CyclePb[]> {
   return nodes.flatMap((node) => node.cycles);
 }
 
+/** A manual Stop writes the cycle and lands on Start, with no bell (README rule 11). */
+async function backOnStart() {
+  const start = await screen.findByRole("button", { name: "Start" });
+  expect(screen.queryByRole("dialog")).toBeNull();
+  return start;
+}
+
 describe("App", () => {
   test("App_render_showsProductName", async () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
@@ -110,9 +117,7 @@ describe("Start", () => {
 
     await startCycleOn("Book");
     fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Start a new cycle" }),
-    );
+    await backOnStart();
     await startCycleOn("Book");
 
     expect(new Set(recording.createCycleRequestIds).size).toBe(2);
@@ -120,7 +125,7 @@ describe("Start", () => {
 });
 
 describe("Stop", () => {
-  test("stop_afterTwelveAndAHalfMinutes_logsTwelveAndRings", async () => {
+  test("stop_afterTwelveAndAHalfMinutes_logsTwelveAndGoesHome", async () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     renderApp(client);
     await startCycleOn("Book");
@@ -130,9 +135,14 @@ describe("Stop", () => {
       screen.getByRole("button", { name: "Stop and log 12 min" }),
     );
 
-    expect(await screen.findByText("12 min logged")).toBeDefined();
+    expect(await backOnStart()).toBeDefined();
     expect(
-      screen.getByRole("heading", { name: "Deep Focus · Book" }),
+      screen
+        .getByRole("radio", { name: "Deep Focus" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+    expect(
+      screen.getByText("Book", { selector: ".task-strip-name" }),
     ).toBeDefined();
     const stopped = (await allCycles(client)).filter(
       (cycle) => cycle.minutes === 12,
@@ -142,6 +152,38 @@ describe("Stop", () => {
     ]);
   });
 
+  test("stop_byHand_startSelectsTheCycleModeAndTask", async () => {
+    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
+    await screen.findByRole("button", { name: "Start" });
+    await startCycleOn("Book", "Shallow");
+    await advance(3 * MINUTE_MS);
+
+    fireEvent.click(screen.getByRole("button", { name: "Stop and log 3 min" }));
+
+    await backOnStart();
+    expect(
+      screen
+        .getByRole("radio", { name: "Shallow" })
+        .getAttribute("aria-checked"),
+    ).toBe("true");
+    expect(
+      screen.getByText("Book", { selector: ".task-strip-name" }),
+    ).toBeDefined();
+  });
+
+  test("stop_byHandOnAnInboxCycle_startShowsTheEmptyStrip", async () => {
+    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
+    await screen.findByRole("button", { name: "Start" });
+    fireEvent.click(screen.getByRole("button", { name: /Working on/ }));
+    fireEvent.click(screen.getByText("Not sure yet"));
+    await pressStart();
+
+    fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
+
+    await backOnStart();
+    expect(screen.getByText("What are you working on?")).toBeDefined();
+  });
+
   test("stop_underOneMinute_logsOneMinute", async () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
     await startCycleOn("Book");
@@ -149,7 +191,7 @@ describe("Stop", () => {
     await advance(20_000);
     fireEvent.click(screen.getByRole("button", { name: "Stop and log 1 min" }));
 
-    expect(await screen.findByText("1 min logged")).toBeDefined();
+    expect(await backOnStart()).toBeDefined();
   });
 
   test("running_countdownReachesZero_logsPlannedMinutesAndRings", async () => {
@@ -224,7 +266,7 @@ describe("Pause", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Stop and log 9 min" }));
 
-    expect(await screen.findByText("9 min logged")).toBeDefined();
+    expect(await backOnStart()).toBeDefined();
     expect(recording.updateCycleMinutes).toEqual([9]);
   });
 
@@ -245,7 +287,7 @@ describe("Pause", () => {
       screen.getByRole("button", { name: "Stop and log 10 min" }),
     );
 
-    expect(await screen.findByText("10 min logged")).toBeDefined();
+    expect(await backOnStart()).toBeDefined();
     expect(recording.updateCycleMinutes).toEqual([10]);
   });
 
@@ -258,7 +300,7 @@ describe("Pause", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Stop and log 7 min" }));
 
-    expect(await screen.findByText("7 min logged")).toBeDefined();
+    expect(await backOnStart()).toBeDefined();
     expect(recording.updateCycleMinutes).toEqual([7]);
   });
 
@@ -321,7 +363,7 @@ describe("Pause", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Stop and log 2 min" }));
 
-    await screen.findByText("2 min logged");
+    await backOnStart();
     expect(Object.keys(localStorage).some((key) => key.includes("pause"))).toBe(
       false,
     );
@@ -414,7 +456,7 @@ describe("Bell and extension", () => {
       screen.getByRole("button", { name: "Stop and log 56 min" }),
     );
 
-    expect(await screen.findByText("56 min logged")).toBeDefined();
+    expect(await backOnStart()).toBeDefined();
     expect(await loggedMinutesOfNewCycle(client)).toEqual([56]);
   });
 
@@ -428,7 +470,7 @@ describe("Bell and extension", () => {
       screen.getByRole("button", { name: "Stop and log 50 min" }),
     );
 
-    expect(await screen.findByText("50 min logged")).toBeDefined();
+    expect(await backOnStart()).toBeDefined();
     expect(await loggedMinutesOfNewCycle(client)).toEqual([50]);
   });
 
@@ -477,7 +519,7 @@ describe("Bell and extension", () => {
   test("bell_overStart_showsTheCycleTaskAndModeAndKeepsThemAfter", async () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
     await startCycleOn("Book", "Execution");
-    fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
+    await advance(50 * MINUTE_MS + 1000);
 
     expect(
       await screen.findByRole("dialog", { name: "Execution · Book" }),
@@ -504,7 +546,7 @@ describe("Bell and extension", () => {
     expect(
       screen.getByText("Not sure yet", { selector: ".task-strip-name" }),
     ).toBeDefined();
-    fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
+    await advance(90 * MINUTE_MS + 1000);
 
     expect(
       await screen.findByRole("dialog", { name: "Deep Focus" }),
@@ -664,7 +706,7 @@ describe("Failures", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Stop and log 25 min" }),
     );
-    expect(await screen.findByText("25 min logged")).toBeDefined();
+    expect(await backOnStart()).toBeDefined();
   });
 
   test("extension_automaticStopFails_userCanStopAgain", async () => {
@@ -686,7 +728,7 @@ describe("Failures", () => {
     fireEvent.click(
       screen.getByRole("button", { name: "Stop and log 35 min" }),
     );
-    expect(await screen.findByText("35 min logged")).toBeDefined();
+    expect(await backOnStart()).toBeDefined();
   });
 
   test("running_manualStopOpenWhenTimerEnds_writesOnce", async () => {
@@ -701,7 +743,7 @@ describe("Failures", () => {
     await advance(2000);
     release();
 
-    expect(await screen.findByText("24 min logged")).toBeDefined();
+    expect(await backOnStart()).toBeDefined();
     expect(recording.updateCycleMinutes).toEqual([24]);
   });
 
@@ -722,9 +764,6 @@ describe("Failures", () => {
     ).toBeDefined();
 
     fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Start a new cycle" }),
-    );
     // The closed node is not the default task; the most recently worked open one is.
     expect(
       await screen.findByText("Book", { selector: ".task-strip-name" }),
@@ -742,23 +781,20 @@ describe("Failures", () => {
     await screen.findByRole("timer", { name: "Time left" });
 
     fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
-    fireEvent.click(
-      await screen.findByRole("button", { name: "Start a new cycle" }),
-    );
 
     expect(
       await screen.findByText("Book", { selector: ".task-strip-name" }),
     ).toBeDefined();
   });
 
-  test("stop_refreshFailsAfterTheWrite_stillShowsTheBell", async () => {
+  test("stop_refreshFailsAfterTheWrite_stillGoesHome", async () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     await startShallowOnBook(recording.client);
     recording.failNext("ListNodes", Code.Internal);
 
     fireEvent.click(screen.getByRole("button", { name: "Stop and log 1 min" }));
 
-    expect(await screen.findByText("1 min logged")).toBeDefined();
+    expect(await backOnStart()).toBeDefined();
     expect(await screen.findByRole("alert")).toBeDefined();
   });
 
@@ -769,7 +805,7 @@ describe("Failures", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Stop and log 1 min" }));
 
-    expect(await screen.findByText("1 min logged")).toBeDefined();
+    expect(await backOnStart()).toBeDefined();
     await advance(100);
     expect(screen.queryByRole("alert")).toBeNull();
   });
