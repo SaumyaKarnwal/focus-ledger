@@ -64,5 +64,6 @@ Report is not designed yet. The header shows it, but the link stays inert. The o
    - Buttons: the two buttons of that screen only (START and Take a break; PAUSE and Stop and log; START and Start a cycle).
    - Task: one line under the buttons with the task name, cut with an ellipsis. A tap opens the picker when no cycle runs. The planned readout and the parent path are hidden.
    - Nothing else shows. The same colors, fonts, and tokens apply.
-10. No color literal outside the theme files. See [`../theming.md`](../theming.md).
-11. Deploy only after Settings and all screens above are merged. Report is not needed for the first release.
+10. **Last seven days, hover** (owner request). At rest, the chart shows no figure above the bars; empty days keep their dash. On hover (or keyboard focus, or a tap on touch), the bar under the pointer stays at full color and the other bars fade, as the "How it splits" ring does. A small card, in the same style as the ring's hover card, shows the day, its total, and the split into Deep Focus, Execution, and Shallow with the mode marks. Leaving the bar restores the chart.
+11. No color literal outside the theme files. See [`../theming.md`](../theming.md).
+12. Deploy only after Settings and all screens above are merged. Report is not needed for the first release.
