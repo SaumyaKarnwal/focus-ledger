@@ -147,15 +147,6 @@
   align-items: center;
   gap: 10px;
 }
-.task-card-cancel {
-  height: 36px;
-  padding: 0 10px;
-  background: none;
-  border: 0;
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--ink-muted);
-}
 .task-card-save {
   height: 36px;
   padding: 0 18px;
