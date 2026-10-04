@@ -777,11 +777,12 @@
 }
 .task-dialog-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 10px;
 }
-.task-dialog-actions .bell-outline {
-  min-height: 54px;
+.task-dialog .cancel-button {
+  color: var(--dialog-muted);
 }
 .task-dialog-save {
   min-height: 54px;
@@ -1204,21 +1205,12 @@
   gap: 10px;
   padding-top: 8px;
 }
-.signout-cancel,
 .signout-confirm {
   height: 40px;
+  padding: 0 18px;
   border: 0;
   border-radius: 10px;
   font-size: 14px;
-}
-.signout-cancel {
-  padding: 0 16px;
-  background: none;
-  font-weight: 500;
-  color: var(--ink-muted);
-}
-.signout-confirm {
-  padding: 0 18px;
   background: var(--accent);
   font-weight: 600;
   color: var(--accent-on);

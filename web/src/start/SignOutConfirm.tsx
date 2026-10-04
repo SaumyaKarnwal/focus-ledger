@@ -41,7 +41,7 @@ export function SignOutConfirm({
         <div className="signout-actions">
           <button
             type="button"
-            className="signout-cancel"
+            className="cancel-button"
             autoFocus
             onClick={onCancel}
           >

@@ -171,7 +171,7 @@ export function TaskDialog({
           <div className="task-dialog-actions">
             <button
               type="button"
-              className="bell-outline"
+              className="cancel-button"
               disabled={busy}
               onClick={onClose}
             >

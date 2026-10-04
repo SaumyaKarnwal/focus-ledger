@@ -132,7 +132,7 @@ function EstimateCard({
           <span className="task-card-actions">
             <button
               type="button"
-              className="task-card-cancel"
+              className="cancel-button"
               onClick={() => setDraft(undefined)}
             >
               Cancel
