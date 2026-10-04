@@ -39,12 +39,9 @@
   --mark-rose-soft: #e9afb4;
   --mark-sage-soft: #a6cfcb;
   --red-600: #b45c66;
-  --chart-peach: #f5a07f;
-  --chart-sky: #8ab8ec;
-  --chart-leaf: #a4d49b;
-  --chart-sun: #edd57c;
-  --chart-lilac: #c9a3c4;
-  --chart-mint: #a6cfcb;
+  --chart-blue-soft: #b3c2dc;
+  --chart-sand-soft: #e2cfa9;
+  --chart-leaf-soft: #c5ddb8;
 
   /* Mode screens: Start, Running, Bell, and Break */
   --mode-deep-bg: var(--aubergine-600);
@@ -78,9 +75,10 @@
   --screen-shade: rgb(24 14 22);
 
   /* Mode marks on light surfaces */
-  --mode-deep-mark: var(--mark-aubergine);
-  --mode-execution-mark: var(--mark-rose);
-  --mode-shallow-mark: var(--mark-sage);
+  /* Light screens use the soft tints (README "Colors on light screens"). */
+  --mode-deep-mark: var(--mark-aubergine-soft);
+  --mode-execution-mark: var(--mark-rose-soft);
+  --mode-shallow-mark: var(--mark-sage-soft);
   --mode-break-mark: var(--mark-winter);
 
   /* Page: Tasks and the task page */
@@ -149,12 +147,13 @@
   --focus-ring: var(--aubergine-600);
 
   /* Chart: the "How it splits" ring. Never a mode color. */
-  --chart-1: var(--chart-peach);
-  --chart-2: var(--chart-sky);
-  --chart-3: var(--chart-leaf);
-  --chart-4: var(--chart-sun);
-  --chart-5: var(--chart-lilac);
-  --chart-6: var(--chart-mint);
+  /* Task rings: soft tints with the same lightness, so no slice stands out. */
+  --chart-1: var(--mark-aubergine-soft);
+  --chart-2: var(--mark-rose-soft);
+  --chart-3: var(--mark-sage-soft);
+  --chart-4: var(--chart-blue-soft);
+  --chart-5: var(--chart-sand-soft);
+  --chart-6: var(--chart-leaf-soft);
   --chart-other: rgb(42 39 36 / 0.16);
 
   /* Fonts (theming.md, "Fonts"). A component never names a font family. */
