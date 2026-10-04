@@ -226,6 +226,28 @@ describe("Header links on every Start state and on Break", () => {
     expect(screen.queryByRole("button", { name: "Start" })).toBeNull();
   });
 
+  test.each(states)("headerLinks_%s_openReport", async (state) => {
+    await openState(state);
+
+    fireEvent.click(header().getByRole("button", { name: "Report" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "This week", level: 1 }),
+    ).toBeDefined();
+  });
+
+  test("headerLinks_settings_openReport", async () => {
+    await openState("Deep Focus");
+    fireEvent.click(header().getByRole("button", { name: "Settings" }));
+    await screen.findByRole("heading", { name: "Cycles" });
+
+    fireEvent.click(header().getByRole("button", { name: "Report" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "This week", level: 1 }),
+    ).toBeDefined();
+  });
+
   test.each(states)("headerLinks_%s_openSettings", async (state) => {
     await openState(state);
 

@@ -9,6 +9,7 @@ type Props = {
   email: string;
   onOpenTasks?: () => void;
   onOpenSettings?: () => void;
+  onOpenReport?: () => void;
   onSignOut: () => void;
   /** The middle of the screen: the modes on the left, the clock on the right. */
   children: ReactNode;
@@ -26,6 +27,7 @@ export function ModeScreenFrame({
   email,
   onOpenTasks,
   onOpenSettings,
+  onOpenReport,
   onSignOut,
   children,
   strip,
@@ -43,6 +45,7 @@ export function ModeScreenFrame({
           email={email}
           onOpenTasks={onOpenTasks}
           onOpenSettings={onOpenSettings}
+          onOpenReport={onOpenReport}
           onSignOut={onSignOut}
         />
         <div

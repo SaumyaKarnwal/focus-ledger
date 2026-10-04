@@ -32,6 +32,7 @@ type Props = {
   onStop: (totalMinutes: number) => void;
   onOpenTasks: () => void;
   onOpenSettings: () => void;
+  onOpenReport?: () => void;
   onSignOut: () => void;
 };
 
@@ -48,6 +49,7 @@ export function ExtensionScreen({
   onStop,
   onOpenTasks,
   onOpenSettings,
+  onOpenReport,
   onSignOut,
 }: Props) {
   const remaining = extensionRemainingMs(extension, now);
@@ -66,6 +68,7 @@ export function ExtensionScreen({
       email={email}
       onOpenTasks={onOpenTasks}
       onOpenSettings={onOpenSettings}
+      onOpenReport={onOpenReport}
       onSignOut={onSignOut}
       strip={
         <BoundTask

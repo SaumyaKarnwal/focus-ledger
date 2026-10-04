@@ -39,6 +39,7 @@ type Props = {
   onSaveTask: (save: TaskSave) => Promise<NodePb | undefined>;
   onOpenTasks?: () => void;
   onOpenSettings?: () => void;
+  onOpenReport?: () => void;
   onSignOut: () => void;
 };
 
@@ -55,6 +56,7 @@ export function StartScreen({
   onSaveTask,
   onOpenTasks,
   onOpenSettings,
+  onOpenReport,
   onSignOut,
 }: Props) {
   const now = useNow();
@@ -98,6 +100,7 @@ export function StartScreen({
       email={data.email}
       onOpenTasks={onOpenTasks}
       onOpenSettings={onOpenSettings}
+      onOpenReport={onOpenReport}
       onSignOut={onSignOut}
       inert={overlay !== undefined}
       strip={

@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import type { LedgerClient } from "../api/ledgerClient";
 import { withRetry } from "../api/retry";
 import type { NodePb } from "../gen/focusledger/v1/model_pb";
-import { localDateString, toPeriodPb } from "../ledger/period";
+import {
+  localDateString,
+  type TimeRange,
+  toPeriodPb,
+  weekRange,
+} from "../ledger/period";
 import { modeKey } from "../modes/modes";
 import type { TimerChip } from "../session/sessionTimer";
 import { ScreenHeader } from "../start/ScreenHeader";
@@ -20,6 +25,13 @@ import {
   whereItWent,
 } from "./reportCards";
 import { FocusCurves } from "./FocusCurves";
+import {
+  BarsCard,
+  FinishedCard,
+  SetAndDoCard,
+  YearCard,
+} from "./ReportMoreCards";
+import { barsByDay, barsByWeek, yearOf, yearSpan } from "./reportYear";
 import {
   comparedSpans,
   type RangeChoice,
@@ -64,8 +76,13 @@ export function ReportScreen({
   const [choice, setChoice] = useState<RangeChoice>({ kind: "week", back: 0 });
   const range = rangeOf(choice, now, timeZone);
   const spans = comparedSpans(choice, now, timeZone);
-  const fetchStart = spans.before.start.getTime();
-  const fetchEnd = range.end.getTime();
+  const barsSpan =
+    choice.kind === "today" ? weekRange(range.start, timeZone) : range;
+  const fetchStart = Math.min(
+    spans.before.start.getTime(),
+    barsSpan.start.getTime(),
+  );
+  const fetchEnd = Math.max(range.end.getTime(), barsSpan.end.getTime());
   const [loaded, setLoaded] = useState<{ key: string; nodes: NodePb[] }>();
   const [error, setError] = useState<string>();
   const key = `${fetchStart}-${fetchEnd}`;
@@ -95,6 +112,28 @@ export function ReportScreen({
   }, [client, retryDelaysMs, fetchStart, fetchEnd]);
 
   const nodes = loaded?.key === key ? loaded.nodes : undefined;
+
+  // Your year ignores the range above: it is always the last twelve months.
+  const yearStart = yearSpan(now, timeZone).start.getTime();
+  const [yearNodes, setYearNodes] = useState<NodePb[]>();
+  useEffect(() => {
+    let cancelled = false;
+    const span = yearSpan(new Date(), timeZone);
+    withRetry(
+      () => client.listNodes({ period: toPeriodPb(span), includeClosed: true }),
+      retryDelaysMs,
+    ).then(
+      (response) => {
+        if (!cancelled) setYearNodes(response.nodes);
+      },
+      (reason: unknown) => {
+        if (!cancelled) setError(String(reason));
+      },
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [client, retryDelaysMs, timeZone, yearStart]);
   const current = nodes ? cyclesIn(nodes, spans.current) : [];
   const total = minutesOf(current);
   const change = nodes
@@ -312,9 +351,84 @@ export function ReportScreen({
             )}
           </section>
         </div>
+        <div className="report-row report-row-three">
+          <SetAndDoCard cycles={current} />
+          <FinishedCard cycles={current} />
+          {nodes && (
+            <SmallBars
+              choice={choice}
+              nodes={nodes}
+              span={barsSpan}
+              now={now}
+              timeZone={timeZone}
+            />
+          )}
+        </div>
+        {yearNodes && <YearCard year={yearOf(yearNodes, now, timeZone)} />}
       </main>
     </div>
   );
+}
+
+/** The third small card: This week so far, Your week, Week by week, or the days of a Custom span. */
+function SmallBars({
+  choice,
+  nodes,
+  span,
+  now,
+  timeZone,
+}: {
+  choice: RangeChoice;
+  nodes: readonly NodePb[];
+  span: TimeRange;
+  now: Date;
+  timeZone: string;
+}) {
+  const cycles = cyclesIn(nodes, span);
+  const weekday = (day: Date) =>
+    new Intl.DateTimeFormat("en-US", { weekday: "short", timeZone }).format(
+      day,
+    );
+  const dayOfMonth = (day: Date) =>
+    new Intl.DateTimeFormat("en-US", { day: "numeric", timeZone }).format(day);
+  const days = Math.round(
+    (span.end.getTime() - span.start.getTime()) / 86_400_000,
+  );
+  switch (choice.kind) {
+    case "today":
+      return (
+        <BarsCard
+          title="This week so far"
+          bars={barsByDay(cycles, span, now, timeZone, weekday)}
+        />
+      );
+    case "week":
+      return (
+        <BarsCard
+          title="Your week"
+          bars={barsByDay(cycles, span, now, timeZone, weekday)}
+        />
+      );
+    case "month":
+      return (
+        <BarsCard
+          title="Week by week"
+          bars={barsByWeek(cycles, span, now, timeZone)}
+        />
+      );
+    case "custom":
+      return days <= 14 ? (
+        <BarsCard
+          title="Day by day"
+          bars={barsByDay(cycles, span, now, timeZone, dayOfMonth)}
+        />
+      ) : (
+        <BarsCard
+          title="Week by week"
+          bars={barsByWeek(cycles, span, now, timeZone)}
+        />
+      );
+  }
 }
 
 function WhereItWent({
