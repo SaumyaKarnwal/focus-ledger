@@ -209,8 +209,9 @@ describe("Bell in the app", () => {
     await startCycleOn("Book");
 
     fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
-    await screen.findByText("1 min logged");
+    await screen.findByRole("button", { name: "Start" });
 
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(bell.played).toEqual([]);
   });
 
@@ -234,8 +235,8 @@ describe("Bell in the app", () => {
     const bell = renderApp(
       recordingClient(exampleNodesWithNothingRunning()).client,
     );
-    await startCycleOn("Book");
-    fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
+    await startCycleOn("Book", "Shallow");
+    await advance(25 * MINUTE_MS + 1000);
     fireEvent.change(
       await screen.findByRole("spinbutton", {
         name: "Keep going for more minutes",
@@ -246,9 +247,12 @@ describe("Bell in the app", () => {
     await screen.findByRole("timer", { name: "Time left" });
 
     await advance(5 * MINUTE_MS + 1000);
-    await screen.findByText("6 min logged");
+    await screen.findByText("30 min logged");
 
-    expect(bell.played).toEqual([["bowl", 0.7, 3]]);
+    expect(bell.played).toEqual([
+      ["bowl", 0.7, 3],
+      ["bowl", 0.7, 3],
+    ]);
   });
 
   async function startBreak(bell: ReturnType<typeof fakeBell>) {

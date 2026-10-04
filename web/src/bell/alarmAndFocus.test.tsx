@@ -184,9 +184,9 @@ describe("Focus sound", () => {
     await vi.waitFor(() => expect(bell.playingFocus()).toHaveLength(1));
 
     fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
-    await screen.findByRole("dialog");
+    await screen.findByRole("button", { name: "Start" });
 
-    // The Running screen's cleanup runs just after the bell shows.
+    // The Running screen's cleanup runs just after Start shows.
     await vi.waitFor(() => expect(bell.playingFocus()).toEqual([]));
   });
 
@@ -225,8 +225,8 @@ describe("Focus sound", () => {
     const bell = renderApp(
       recordingClient(exampleNodesWithNothingRunning()).client,
     );
-    await startCycleOn("Book");
-    fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
+    await startCycleOn("Book", "Shallow");
+    await advance(25 * MINUTE_MS + 1000);
     fireEvent.change(
       await screen.findByRole("spinbutton", {
         name: "Keep going for more minutes",
