@@ -339,34 +339,39 @@
 
 /* The bell */
 
+/*
+ * The bell keeps the board's ratios: --bu is one board pixel. The dialog is
+ * 540 x about 280 board pixels and takes at most 92% of the window's width.
+ */
 .bell {
-  width: 540px;
+  --bu: max(0.5px, min(1px, 92vw / 540, (100dvh - 32px) / 280));
+  width: calc(540 * var(--bu));
   max-width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 34px 34px 30px;
+  gap: calc(24 * var(--bu));
+  padding: calc(34 * var(--bu)) calc(34 * var(--bu)) calc(30 * var(--bu));
   background: var(--dialog-bg);
   color: var(--dialog-fg);
-  border-radius: 14px;
+  border-radius: calc(14 * var(--bu));
   box-shadow: 0 32px 80px var(--dialog-shadow);
 }
 .bell-heading {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: calc(16 * var(--bu));
 }
 .bell-bar {
-  width: 7px;
-  height: 38px;
+  width: calc(7 * var(--bu));
+  height: calc(38 * var(--bu));
   flex-shrink: 0;
-  border-radius: 4px;
+  border-radius: calc(4 * var(--bu));
   background: var(--dialog-mode);
 }
 .bell-title {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 33px;
+  font-size: max(12px, calc(33 * var(--bu)));
   font-weight: 400;
   line-height: 1.08;
 }
@@ -376,24 +381,24 @@
 .bell-field {
   display: flex;
   align-items: center;
-  min-height: 56px;
-  padding: 0 18px;
+  min-height: max(40px, calc(56 * var(--bu)));
+  padding: 0 calc(18 * var(--bu));
   background: var(--dialog-inset-bg);
-  border-radius: 9px;
-  font-size: 16px;
+  border-radius: calc(9 * var(--bu));
+  font-size: max(12px, calc(16 * var(--bu)));
   color: var(--dialog-inset-fg);
 }
 .bell-field input {
-  width: 34px;
-  margin: 0 8px;
-  padding: 2px 0 1px;
+  width: calc(34 * var(--bu));
+  margin: 0 calc(8 * var(--bu));
+  padding: calc(2 * var(--bu)) 0 1px;
   background: none;
   border: 0;
   border-bottom: 1.5px solid var(--dialog-input-rule);
   outline: 0;
   text-align: center;
   font-family: var(--font-figures);
-  font-size: 18.5px;
+  font-size: max(12px, calc(18.5 * var(--bu)));
   color: var(--dialog-fg);
   caret-color: var(--accent);
   appearance: textfield;
@@ -410,9 +415,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
-  margin: 0 -4px 0 auto;
+  width: calc(30 * var(--bu));
+  height: calc(30 * var(--bu));
+  margin: 0 calc(-4 * var(--bu)) 0 auto;
   padding: 0;
   background: none;
   border: 0;
@@ -423,25 +428,25 @@
 }
 .bell-actions {
   display: flex;
-  gap: 10px;
+  gap: calc(10 * var(--bu));
 }
 .bell-outline,
 .bell-primary {
-  min-height: 56px;
-  border-radius: 9px;
+  min-height: max(40px, calc(56 * var(--bu)));
+  border-radius: calc(9 * var(--bu));
 }
 .bell-outline {
-  padding: 0 24px;
+  padding: 0 calc(24 * var(--bu));
   background: none;
   border: 1px solid var(--dialog-outline);
-  font-size: 15.5px;
+  font-size: max(12px, calc(15.5 * var(--bu)));
   color: var(--dialog-outline-fg);
 }
 .bell-primary {
   flex-grow: 1;
   background: var(--accent);
   border: 0;
-  font-size: 16px;
+  font-size: max(12px, calc(16 * var(--bu)));
   font-weight: 600;
   color: var(--dialog-bg);
 }
