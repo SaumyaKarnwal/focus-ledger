@@ -32,9 +32,10 @@ import {
 import { useFocusSound } from "./bell/useFocusSound";
 import { useClock } from "./session/useClock";
 import {
-  BREAK_NAME,
+  BREAK_NAMES,
   type BreakTimer,
   breakRemainingMs,
+  breakTimerFor,
   type TimerChip,
 } from "./session/sessionTimer";
 import { modeKey } from "./modes/modes";
@@ -426,9 +427,9 @@ export function App({
     });
   };
 
-  const firstBreakTimer = (loaded: TodayData): BreakTimer => ({
-    totalMinutes: loaded.settings.breakMinutes,
-  });
+  // A break starts short. Only the user picks the long break (README).
+  const firstBreakTimer = (loaded: TodayData): BreakTimer =>
+    breakTimerFor("short", loaded.settings.breakMinutes);
 
   // The timer store above the routes: one clock, the pause of each cycle, and
   // the time-out check, so that a cycle or break runs on while a page shows.
@@ -531,7 +532,7 @@ export function App({
     }
     if (screen.kind === "break" && breakLeft !== undefined) {
       return {
-        label: BREAK_NAME,
+        label: BREAK_NAMES[screen.timer.kind],
         text: formatCountdown(breakLeft),
         modeKey: "break",
         onOpen,
@@ -743,6 +744,7 @@ export function App({
         <BreakScreen
           comingBackTo={screen.comingBackTo}
           timer={screen.timer}
+          breakMinutes={data.settings.breakMinutes}
           email={data.email}
           timeZone={timeZone}
           now={now}

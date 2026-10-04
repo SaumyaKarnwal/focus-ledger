@@ -599,29 +599,19 @@ describe("Break", () => {
     expect(screen.queryByRole("timer")).toBeNull();
   });
 
-  test("break_oneKind_hasTheSettingsLengthAndNoChoice", async () => {
-    // A browser from before the long break was removed.
-    localStorage.setItem(
-      "focus-ledger.settings",
-      JSON.stringify({ longBreakMinutes: 20, longBreakEvery: 2 }),
-    );
+  test("break_longBreak_setsFifteenMinutes", async () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
-    // The 4th cycle of the day used to preselect the long break.
     await startCycleOn("Book");
     fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
     fireEvent.click(
       await screen.findByRole("button", { name: "Take a break" }),
     );
 
-    await screen.findByRole("button", { name: "Start the break" });
-    expect(screen.queryByRole("radio")).toBeNull();
-    expect(
-      screen.getByText("Break", { selector: ".start-mode-name" }),
-    ).toBeDefined();
+    fireEvent.click(await screen.findByRole("radio", { name: "Long break" }));
     expect(
       screen.getByLabelText("Break length", { selector: "output" }).textContent,
-    ).toBe("05:00");
-    fireEvent.click(screen.getByRole("button", { name: "Longer break" }));
+    ).toBe("15:00");
+    fireEvent.click(screen.getByRole("button", { name: "Shorter break" }));
     expect(
       screen.getByLabelText("Break length", { selector: "output" }).textContent,
     ).toBe("10:00");

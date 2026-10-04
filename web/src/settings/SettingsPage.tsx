@@ -18,6 +18,7 @@ import {
   FOCUS_SOUNDS,
   type FocusSound,
   RING_TIMES,
+  LONG_BREAK_LENGTH,
   type LocalSettings,
   loadLocalSettings,
   saveLocalSettings,
@@ -251,9 +252,9 @@ export function SettingsPage({
             </SettingRow>
           ))}
           <h3 className="settings-group">Breaks</h3>
-          <SettingRow label="Break" mark="break">
+          <SettingRow label="Short break" mark="break">
             <Stepper
-              label="Break minutes"
+              label="Short break minutes"
               value={form.breakMinutes}
               unit="min"
               onStep={(sign) =>
@@ -262,6 +263,22 @@ export function SettingsPage({
                     form.breakMinutes,
                     sign * BREAK_LENGTH.step,
                     BREAK_LENGTH,
+                  ),
+                })
+              }
+            />
+          </SettingRow>
+          <SettingRow label="Long break" mark="break">
+            <Stepper
+              label="Long break minutes"
+              value={local.longBreakMinutes}
+              unit="min"
+              onStep={(sign) =>
+                changeLocal({
+                  longBreakMinutes: stepWithin(
+                    local.longBreakMinutes,
+                    sign * LONG_BREAK_LENGTH.step,
+                    LONG_BREAK_LENGTH,
                   ),
                 })
               }

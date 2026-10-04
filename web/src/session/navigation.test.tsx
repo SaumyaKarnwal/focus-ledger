@@ -183,9 +183,9 @@ describe("Leaving the bell and the break", () => {
     await advance(MINUTE_MS);
 
     await goToTasks();
-    expect(header().getByRole("button", { name: /^Break/ }).textContent).toBe(
-      "Break04:00",
-    );
+    expect(
+      header().getByRole("button", { name: /Short break/ }).textContent,
+    ).toBe("Short break04:00");
     await advance(4 * MINUTE_MS + 1000);
 
     expect(await screen.findByRole("button", { name: "Start" })).toBeDefined();
