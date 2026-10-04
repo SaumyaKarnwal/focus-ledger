@@ -314,8 +314,8 @@
 }
 /* An outline looks smaller than a filled plate of the same size, so it is a little larger. */
 .screen-outline {
-  width: calc(238 * var(--u, 1px));
-  min-height: max(40px, calc(78 * var(--u, 1px)));
+  width: calc(234 * var(--u, 1px));
+  min-height: max(40px, calc(75 * var(--u, 1px)));
 }
 
 /* Running, extension, and break */
