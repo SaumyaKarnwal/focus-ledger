@@ -11,6 +11,7 @@ import { ScreenHeader } from "../start/ScreenHeader";
 import { MODE_NAMES, type TodayData } from "../today/todayModel";
 import { stepWithin } from "../tree/estimateModel";
 import { useNow } from "../useNow";
+import { type SoundOption, SoundPicker } from "./SoundPicker";
 import {
   BELL_SOUNDS,
   type BellSound,
@@ -55,6 +56,15 @@ const SOUND_NAMES: Record<BellSound, string> = {
   wood: "Wood",
   chime: "Chime",
 };
+
+const BELL_OPTIONS: readonly SoundOption<BellSound | typeof SILENT>[] = [
+  ...BELL_SOUNDS.map((sound) => ({ value: sound, label: SOUND_NAMES[sound] })),
+  { value: SILENT, label: "Silent" },
+];
+
+const FOCUS_OPTIONS: readonly SoundOption<FocusSound>[] = FOCUS_SOUNDS.map(
+  (sound) => ({ value: sound, label: FOCUS_NAMES[sound] }),
+);
 
 type Props = {
   client: LedgerClient;
@@ -266,45 +276,22 @@ export function SettingsPage({
             </p>
           </div>
           <SettingRow label="Sound" labelId="settings-sound">
-            <span className="settings-sound">
-              <select
-                className="settings-select"
-                aria-labelledby="settings-sound"
-                value={form.soundEnabled ? local.sound : SILENT}
-                onChange={(event) => {
-                  const choice = event.target.value as
-                    BellSound | typeof SILENT;
-                  if (choice === SILENT) {
-                    change({ soundEnabled: false });
-                    return;
-                  }
-                  // The change is a user gesture, so the preview may play.
-                  unlockAudio();
-                  bell.play(choice, local.volume, 1);
-                  changeLocal({ sound: choice });
-                  if (!form.soundEnabled) change({ soundEnabled: true });
-                }}
-              >
-                {BELL_SOUNDS.map((sound) => (
-                  <option key={sound} value={sound}>
-                    {SOUND_NAMES[sound]}
-                  </option>
-                ))}
-                <option value={SILENT}>Silent</option>
-              </select>
-              <button
-                type="button"
-                className="settings-play"
-                aria-label="Play the bell sound"
-                disabled={!form.soundEnabled}
-                onClick={() => {
-                  unlockAudio();
-                  bell.play(local.sound, local.volume, 1);
-                }}
-              >
-                <PlayIcon />
-              </button>
-            </span>
+            <SoundPicker
+              labelId="settings-sound"
+              options={BELL_OPTIONS}
+              value={form.soundEnabled ? local.sound : SILENT}
+              onPick={(choice) => {
+                if (choice === SILENT) {
+                  if (form.soundEnabled) change({ soundEnabled: false });
+                  return;
+                }
+                // The pick is a user gesture, so the preview may play.
+                unlockAudio();
+                bell.play(choice, local.volume, 1);
+                changeLocal({ sound: choice });
+                if (!form.soundEnabled) change({ soundEnabled: true });
+              }}
+            />
           </SettingRow>
           <SettingRow label="Ring" labelId="settings-ring-times">
             <Stepper
@@ -357,28 +344,15 @@ export function SettingsPage({
             <p>Plays only while a cycle runs.</p>
           </div>
           <SettingRow label="Sound" labelId="settings-focus-sound">
-            <span
-              className="settings-chips"
-              role="radiogroup"
-              aria-labelledby="settings-focus-sound"
-            >
-              {FOCUS_SOUNDS.map((sound) => (
-                <button
-                  key={sound}
-                  type="button"
-                  role="radio"
-                  aria-checked={local.focusSound === sound}
-                  className="settings-chip"
-                  onClick={() => {
-                    previewFocus(sound, local.focusVolume);
-                    changeLocal({ focusSound: sound });
-                  }}
-                >
-                  {sound !== "none" && <PlayIcon />}
-                  {FOCUS_NAMES[sound]}
-                </button>
-              ))}
-            </span>
+            <SoundPicker
+              labelId="settings-focus-sound"
+              options={FOCUS_OPTIONS}
+              value={local.focusSound}
+              onPick={(sound) => {
+                previewFocus(sound, local.focusVolume);
+                changeLocal({ focusSound: sound });
+              }}
+            />
           </SettingRow>
           <SettingRow label="Volume" labelId="settings-focus-volume">
             <VolumeSlider
@@ -516,20 +490,6 @@ function Switch({
     >
       <span aria-hidden="true" />
     </button>
-  );
-}
-
-function PlayIcon() {
-  return (
-    <svg
-      width="9"
-      height="10"
-      viewBox="0 0 9 10"
-      fill="currentColor"
-      aria-hidden="true"
-    >
-      <path d="M1 1v8l7-4z" />
-    </svg>
   );
 }
 

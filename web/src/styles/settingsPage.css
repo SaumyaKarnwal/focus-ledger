@@ -105,42 +105,16 @@
 .settings-unit[data-wide] {
   width: 42px;
 }
-.settings-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+.sound-picker {
+  position: relative;
 }
-.settings-chip {
+.sound-picker-button {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 120px;
   height: 36px;
-  padding: 0 14px 0 11px;
-  background: transparent;
-  border: 1px solid var(--axis);
-  border-radius: 18px;
-  font-size: 13.5px;
-  font-weight: 500;
-  color: var(--ink-muted);
-}
-.settings-chip[aria-checked="true"] {
-  padding: 0 13.5px 0 10.5px;
-  background: var(--accent-tint);
-  border: 1.5px solid var(--accent);
-  font-weight: 600;
-  color: var(--ink-strong);
-}
-.settings-chip[aria-checked="true"] svg {
-  color: var(--accent);
-}
-.settings-sound {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.settings-select {
-  height: 36px;
-  min-width: 150px;
   padding: 0 12px;
   background: var(--panel);
   border: 1px solid var(--axis);
@@ -149,22 +123,44 @@
   font-weight: 500;
   color: var(--ink-strong);
 }
-.settings-select:focus-visible,
-.settings-play:focus-visible {
+.sound-picker-button svg {
+  color: var(--ink-muted);
+}
+.sound-picker-list {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 100%;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--dialog-bg);
+  border: 1px solid var(--axis);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px var(--dialog-shadow);
+  font-size: 13.5px;
+  color: var(--dialog-fg);
+}
+.sound-picker-list:focus-visible {
   outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
-.settings-play {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
-  background: transparent;
-  border: 1px solid var(--axis);
-  border-radius: 18px;
-  color: var(--accent);
+.sound-picker-list [role="option"] {
+  padding: 7px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.sound-picker-list [data-active] {
+  background: var(--dialog-selected);
+}
+.sound-picker-list [aria-selected="true"] {
+  font-weight: 600;
+}
+.sound-picker-button:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 .settings-volume {
   display: flex;

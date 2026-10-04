@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
@@ -7,6 +7,7 @@ import { exampleNow } from "../ledger/exampleData";
 import {
   LOCAL_DEFAULTS,
   type LocalSettings,
+  loadLocalSettings,
   saveLocalSettings,
 } from "../settings/localSettings";
 import {
@@ -15,6 +16,7 @@ import {
 } from "../testing/appHarness";
 import { fakeBell } from "../testing/fakeBell";
 import { openFromTasks, startCycleOn } from "../testing/navigation";
+import { pickSound, soundPicker } from "../testing/soundPicker";
 import { ringBell } from "./bell";
 import { playSound, type SoundContext } from "./sounds";
 
@@ -291,66 +293,83 @@ describe("Bell in Settings", () => {
     return bell;
   }
 
-  function chooseSound(value: string) {
-    fireEvent.change(screen.getByRole("combobox", { name: "Sound" }), {
-      target: { value },
-    });
-  }
-
-  test("settings_soundChoice_playsOnceAndSilentPlaysNothing", async () => {
+  test("settings_soundPick_playsOnceAndSilentPlaysNothing", async () => {
     const bell = await openSettings();
 
-    chooseSound("wood");
-    chooseSound("silent");
+    pickSound("The bell", "Wood");
+    pickSound("The bell", "Silent");
 
     expect(bell.played).toEqual([["wood", 0.7, 1]]);
+    expect(soundPicker("The bell").textContent).toBe("Silent");
   });
 
-  test("settings_soundSelect_listsTheThreeSoundsAndSilent", async () => {
-    await openSettings();
-
-    expect(
-      Array.from(
-        (screen.getByRole("combobox", { name: "Sound" }) as HTMLSelectElement)
-          .options,
-      ).map((option) => option.textContent),
-    ).toEqual(["Bowl", "Wood", "Chime", "Silent"]);
-    expect(screen.queryByRole("radio", { name: "Wood" })).toBeNull();
-  });
-
-  test("settings_playButton_previewsTheChosenSound", async () => {
+  test("settings_soundPick_theCurrentOptionPlaysAgain", async () => {
     const bell = await openSettings();
-    chooseSound("chime");
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Play the bell sound" }),
-    );
+    pickSound("The bell", "Bowl");
+    pickSound("The bell", "Bowl");
 
     expect(bell.played).toEqual([
-      ["chime", 0.7, 1],
-      ["chime", 0.7, 1],
+      ["bowl", 0.7, 1],
+      ["bowl", 0.7, 1],
     ]);
   });
 
-  test("settings_playButton_silent_isDisabledAndPlaysNothing", async () => {
-    const bell = await openSettings();
-    chooseSound("silent");
-
-    const play = screen.getByRole("button", {
-      name: "Play the bell sound",
-    }) as HTMLButtonElement;
-    fireEvent.click(play);
-
-    expect(play.disabled).toBe(true);
-    expect(bell.played).toEqual([]);
-  });
-
-  test("settings_focusSound_keepsItsChips", async () => {
+  test("settings_soundList_hasTheThreeSoundsAndSilent_andNoPlayButton", async () => {
     await openSettings();
 
+    fireEvent.click(soundPicker("The bell"));
+
     expect(
-      screen.getByRole("radiogroup", { name: "Sound" }).textContent,
-    ).toContain("Brown noise");
+      within(screen.getByRole("listbox"))
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual(["Bowl", "Wood", "Chime", "Silent"]);
+    expect(
+      screen
+        .getByRole("option", { name: "Bowl" })
+        .getAttribute("aria-selected"),
+    ).toBe("true");
+    expect(screen.queryByRole("button", { name: /Play/ })).toBeNull();
+  });
+
+  test("settings_soundKeyboard_arrowsMoveEnterPicksAndEscapeCloses", async () => {
+    const bell = await openSettings();
+    const picker = soundPicker("The bell");
+
+    fireEvent.keyDown(picker, { key: "ArrowDown" });
+    const list = screen.getByRole("listbox");
+    expect(document.activeElement).toBe(list);
+    fireEvent.keyDown(list, { key: "ArrowDown" });
+    fireEvent.keyDown(list, { key: "Enter" });
+
+    expect(bell.played).toEqual([["wood", 0.7, 1]]);
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(document.activeElement).toBe(picker);
+    expect(loadLocalSettings().sound).toBe("wood");
+
+    fireEvent.click(picker);
+    fireEvent.keyDown(screen.getByRole("listbox"), { key: "Escape" });
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(bell.played).toHaveLength(1);
+  });
+
+  test("settings_focusSound_usesTheSamePicker", async () => {
+    await openSettings();
+
+    fireEvent.click(soundPicker("Focus sound"));
+
+    expect(
+      within(screen.getByRole("listbox"))
+        .getAllByRole("option")
+        .map((option) => option.textContent),
+    ).toEqual([
+      "None",
+      "Ticking fast",
+      "Ticking slow",
+      "White noise",
+      "Brown noise",
+    ]);
   });
 
   test("settings_notificationsOn_asksThenTurnsOn", async () => {
