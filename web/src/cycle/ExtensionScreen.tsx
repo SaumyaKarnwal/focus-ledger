@@ -74,9 +74,10 @@ export function ExtensionScreen({
         />
       }
     >
-      <ModePlate label="Keep going" name={MODE_NAMES[mode]} />
+      <ModePlate label="Keep going" name={MODE_NAMES[mode]} cycle />
       <section className="start-clock" aria-label="Extension">
         <ScreenClock
+          cycleMode={MODE_NAMES[mode]}
           label="Time left"
           text={formatCountdown(remaining)}
           progress={elapsed / (extension.minutes * MINUTE_MS)}
