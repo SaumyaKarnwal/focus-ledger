@@ -192,3 +192,47 @@ describe("Leaving the bell and the break", () => {
     expect(bell.played).toHaveLength(1);
   });
 });
+
+describe("Header links on every Start state and on Break", () => {
+  type StartState =
+    "Deep Focus" | "Execution" | "Shallow" | "nothing" | "Break";
+
+  async function openState(state: StartState) {
+    const nodes = state === "nothing" ? [] : exampleNodesWithNothingRunning();
+    renderApp(recordingClient(nodes).client);
+    await screen.findByRole("button", { name: "Start" });
+    if (state === "Execution" || state === "Shallow") {
+      fireEvent.click(screen.getByRole("radio", { name: state }));
+    }
+    if (state === "Break") {
+      fireEvent.click(screen.getByRole("button", { name: "Take a break" }));
+      await screen.findByRole("button", { name: "Start the break" });
+    }
+  }
+
+  const states: StartState[] = [
+    "Deep Focus",
+    "Execution",
+    "Shallow",
+    "nothing",
+    "Break",
+  ];
+
+  test.each(states)("headerLinks_%s_openTasks", async (state) => {
+    await openState(state);
+
+    await goToTasks();
+
+    expect(screen.queryByRole("button", { name: "Start" })).toBeNull();
+  });
+
+  test.each(states)("headerLinks_%s_openSettings", async (state) => {
+    await openState(state);
+
+    fireEvent.click(header().getByRole("button", { name: "Settings" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "Cycles" }),
+    ).toBeDefined();
+  });
+});
