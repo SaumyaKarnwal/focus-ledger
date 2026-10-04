@@ -17,6 +17,7 @@ export const FOCUS_SOUNDS: readonly FocusSound[] = [
 ];
 
 export type LocalSettings = {
+  longBreakMinutes: number;
   /** The sound when SettingsPb.sound_enabled is on. Silent is sound_enabled off. */
   sound: BellSound;
   /** From 0 to 1. */
@@ -30,6 +31,7 @@ export type LocalSettings = {
 };
 
 export const LOCAL_DEFAULTS: LocalSettings = {
+  longBreakMinutes: 15,
   sound: "bowl",
   volume: 0.7,
   ringWhenBreakEnds: true,
@@ -38,6 +40,7 @@ export const LOCAL_DEFAULTS: LocalSettings = {
   focusVolume: 0.4,
 };
 
+export const LONG_BREAK_LENGTH = { min: 5, max: 120, step: 5 };
 export const RING_TIMES = { min: 1, max: 5, step: 1 };
 
 const KEY = "focus-ledger.settings";
@@ -55,6 +58,9 @@ export function loadLocalSettings(): LocalSettings {
   const isVolume = (value: unknown): value is number =>
     typeof value === "number" && value >= 0 && value <= 1;
   return {
+    longBreakMinutes: inRange(stored.longBreakMinutes, LONG_BREAK_LENGTH)
+      ? (stored.longBreakMinutes as number)
+      : LOCAL_DEFAULTS.longBreakMinutes,
     sound: BELL_SOUNDS.includes(stored.sound as BellSound)
       ? (stored.sound as BellSound)
       : LOCAL_DEFAULTS.sound,

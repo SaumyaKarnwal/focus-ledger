@@ -283,6 +283,36 @@ describe("Bell in the app", () => {
 
     expect(bell.played).toEqual([]);
   });
+
+  test("anyCycleOfTheDay_neverPicksTheLongBreak", async () => {
+    // A browser from before the automatic pick was removed.
+    localStorage.setItem(
+      "focus-ledger.settings",
+      JSON.stringify({ longBreakMinutes: 20, longBreakEvery: 2 }),
+    );
+    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
+    // Three logged cycles today, so these are the fourth to the sixth.
+    for (const cycle of [4, 5, 6]) {
+      await startCycleOn("Book");
+      fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
+      fireEvent.click(
+        await screen.findByRole("button", { name: "Take a break" }),
+      );
+
+      expect(
+        (
+          await screen.findByRole("radio", { name: "Short break" })
+        ).getAttribute("aria-checked"),
+      ).toBe("true");
+      expect(
+        screen.getByLabelText("Break length", { selector: "output" })
+          .textContent,
+      ).toBe("05:00");
+      fireEvent.click(screen.getByRole("button", { name: "Start a cycle" }));
+      await screen.findByRole("button", { name: "Start" });
+      expect(cycle).toBeGreaterThan(3);
+    }
+  });
 });
 
 describe("Bell in Settings", () => {
