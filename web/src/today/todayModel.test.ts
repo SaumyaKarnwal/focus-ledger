@@ -12,6 +12,7 @@ import {
   cycleContext,
   formatMinutes,
   INBOX_ID,
+  lastCycle,
   nextCycleLine,
   selectedNode,
   type TodayData,
@@ -29,6 +30,22 @@ function exampleData(): TodayData {
     week: weekRange(exampleNow, "UTC"),
   };
 }
+
+describe("lastCycle", () => {
+  test("lastCycle_example_isTheLastLoggedCycle", () => {
+    expect(lastCycle(exampleData())).toMatchObject({
+      mode: FocusMode.EXECUTION,
+      minutes: 50,
+      nodeId: exampleNodes().find((node) => node.name === "Notes")?.id,
+    });
+  });
+
+  test("lastCycle_newUser_isUndefined", () => {
+    const data = { ...exampleData(), allTimeNodes: [], weekNodes: [] };
+
+    expect(lastCycle(data)).toBeUndefined();
+  });
+});
 
 describe("todayModel", () => {
   test("todayModel_example_sortsRailByLastCycleStart", () => {

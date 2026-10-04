@@ -19,7 +19,13 @@ import {
   recordingClient,
 } from "./testing/appHarness";
 import { LOCAL_DEFAULTS, saveLocalSettings } from "./settings/localSettings";
-import { openOnStart, pressStart, startCycleOn } from "./testing/navigation";
+import {
+  openFromTasks,
+  openOnStart,
+  openTasks,
+  pressStart,
+  startCycleOn,
+} from "./testing/navigation";
 
 const MINUTE_MS = 60_000;
 
@@ -128,7 +134,7 @@ describe("Stop", () => {
   test("stop_afterTwelveAndAHalfMinutes_logsTwelveAndGoesHome", async () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     renderApp(client);
-    await startCycleOn("Book");
+    await startCycleOn("Book", "Deep Focus");
 
     await advance(12.5 * MINUTE_MS);
     fireEvent.click(
@@ -542,6 +548,7 @@ describe("Bell and extension", () => {
     await screen.findByRole("button", { name: "Start" });
     fireEvent.click(screen.getByRole("button", { name: /Working on/ }));
     fireEvent.click(screen.getByText("Not sure yet"));
+    fireEvent.click(screen.getByRole("radio", { name: "Deep Focus" }));
     await pressStart();
     expect(
       screen.getByText("Not sure yet", { selector: ".task-strip-name" }),
@@ -832,5 +839,125 @@ describe("Failures", () => {
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(await screen.findByRole("button", { name: "Start" })).toBeDefined();
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+describe("Home", () => {
+  function checkedMode() {
+    return screen
+      .getAllByRole("radio")
+      .find((radio) => radio.getAttribute("aria-checked") === "true")
+      ?.textContent;
+  }
+
+  function lengthText() {
+    return screen.getByRole("status", { name: "Length" }).textContent;
+  }
+
+  test("start_newUser_opensStartEmptyOnDeepFocus", async () => {
+    renderApp(recordingClient([]).client);
+    await screen.findByRole("button", { name: "Start" });
+
+    expect(screen.getByText("What are you working on?")).toBeDefined();
+    expect(checkedMode()).toBe("Deep Focus");
+    expect(lengthText()).toBe("90:00");
+  });
+
+  test("start_opensWithTheLastCycleTaskModeAndItsLengthFromSettings", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    await client.updateSettings({
+      settings: { executionMinutes: 45 },
+      updateMask: { paths: ["execution_minutes"] },
+    });
+
+    renderApp(client);
+    await screen.findByRole("button", { name: "Start" });
+
+    expect(checkedMode()).toBe("Execution");
+    expect(lengthText()).toBe("45:00");
+    expect(
+      screen.getByText("Notes", { selector: ".task-strip-name" }),
+    ).toBeDefined();
+  });
+
+  test("start_afterAReload_remembersTheCycleThatRanOut", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    const first = renderApp(client);
+    await startCycleOn("Book", "Shallow");
+    await advance(25 * MINUTE_MS + 1000);
+    await screen.findByText("25 min logged");
+    first.unmount();
+
+    renderApp(client);
+    await screen.findByRole("button", { name: "Start" });
+
+    expect(checkedMode()).toBe("Shallow");
+    expect(lengthText()).toBe("25:00");
+    expect(
+      screen.getByText("Book", { selector: ".task-strip-name" }),
+    ).toBeDefined();
+  });
+
+  test("start_lastCycleOnTheInbox_opensWithTheEmptyStrip", async () => {
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    const first = renderApp(client);
+    await screen.findByRole("button", { name: "Start" });
+    fireEvent.click(screen.getByRole("button", { name: /Working on/ }));
+    fireEvent.click(screen.getByText("Not sure yet"));
+    fireEvent.click(screen.getByRole("radio", { name: "Shallow" }));
+    await pressStart();
+    await advance(25 * MINUTE_MS + 1000);
+    await screen.findByText("25 min logged");
+    first.unmount();
+
+    renderApp(client);
+    await screen.findByRole("button", { name: "Start" });
+
+    expect(screen.getByText("What are you working on?")).toBeDefined();
+    expect(checkedMode()).toBe("Shallow");
+  });
+
+  test("wordmark_fromTasks_opensStartWithTheLastCycle", async () => {
+    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
+    await screen.findByRole("button", { name: "Start" });
+    fireEvent.click(screen.getByRole("radio", { name: "Shallow" }));
+
+    await openTasks();
+    fireEvent.click(screen.getByRole("button", { name: /back to Start/ }));
+
+    await screen.findByRole("button", { name: "Start" });
+    expect(checkedMode()).toBe("Execution");
+    expect(
+      screen.getByText("Notes", { selector: ".task-strip-name" }),
+    ).toBeDefined();
+  });
+
+  test("wordmark_fromReport_leadsHome", async () => {
+    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
+    await openFromTasks("Report");
+    await screen.findByRole("heading", { name: "Node × mode" });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: `${PRODUCT_NAME}, back to Start` }),
+    );
+
+    expect(await screen.findByRole("button", { name: "Start" })).toBeDefined();
+  });
+
+  test("wordmark_fromReportDuringACycle_returnsToTheTimer", async () => {
+    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
+    await startCycleOn("Book");
+    await openFromTasks("Report");
+    await screen.findByRole("heading", { name: "Node × mode" });
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: `${PRODUCT_NAME}, back to the timer`,
+      }),
+    );
+
+    expect(
+      await screen.findByRole("timer", { name: "Time left" }),
+    ).toBeDefined();
   });
 });

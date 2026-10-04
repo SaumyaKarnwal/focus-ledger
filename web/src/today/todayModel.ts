@@ -347,6 +347,18 @@ export function taskAfterCycle(
   return node && !isClosedOrUnderClosed(node, nodes) ? node.id : undefined;
 }
 
+/** The logged cycle that started last, on any task, or undefined for a new user. */
+export function lastCycle(data: TodayData): CyclePb | undefined {
+  return knownNodes(data)
+    .flatMap((node) => node.cycles)
+    .filter(isLogged)
+    .reduce<CyclePb | undefined>(
+      (latest, cycle) =>
+        latest && cycleStart(latest) >= cycleStart(cycle) ? latest : cycle,
+      undefined,
+    );
+}
+
 /** ListNodes() also returns a closed node and its ancestors when a cycle runs on it. */
 export function isClosedOrUnderClosed(
   node: NodePb,

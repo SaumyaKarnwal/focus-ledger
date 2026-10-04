@@ -122,9 +122,10 @@ describe("Settings page", () => {
       notificationsEnabled: true,
     });
     fireEvent.click(screen.getByRole("button", { name: /back to Start/ }));
-    expect(
-      (await screen.findByRole("status", { name: "Length" })).textContent,
-    ).toBe("95:00");
+    fireEvent.click(await screen.findByRole("radio", { name: "Deep Focus" }));
+    expect(screen.getByRole("status", { name: "Length" }).textContent).toBe(
+      "95:00",
+    );
   });
 
   test("settings_quickSteps_sendOneWriteWithTheLastValue", async () => {

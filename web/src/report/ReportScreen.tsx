@@ -39,6 +39,8 @@ type Props = {
   retryDelaysMs?: readonly number[];
   nav: ReactNode;
   headerEnd: ReactNode;
+  onOpenHome?: () => void;
+  homeLabel?: string;
 };
 
 /** A reading surface: nothing here can be edited (FR-11.5). */
@@ -48,6 +50,8 @@ export function ReportScreen({
   retryDelaysMs,
   nav,
   headerEnd,
+  onOpenHome,
+  homeLabel,
 }: Props) {
   const [choice, setChoice] = useState<PeriodChoice>("week");
   const [from, setFrom] = useState(() => localDateString(new Date(), timeZone));
@@ -86,7 +90,13 @@ export function ReportScreen({
 
   return (
     <>
-      <PageHeader framed middle={nav} end={headerEnd} />
+      <PageHeader
+        framed
+        middle={nav}
+        end={headerEnd}
+        onOpenHome={onOpenHome}
+        homeLabel={homeLabel}
+      />
       <div className="report">
         <div className="report-head">
           <div className="report-title">

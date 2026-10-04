@@ -653,6 +653,8 @@ export function App({
             timeZone={timeZone}
             retryDelaysMs={retryDelaysMs}
             nav={nav}
+            onOpenHome={() => openView("today")}
+            homeLabel={pageSession?.homeLabel}
             headerEnd={
               timerChip && pageSession ? (
                 <HeaderTimer chip={timerChip} />
