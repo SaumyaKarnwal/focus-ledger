@@ -1628,70 +1628,74 @@ button:disabled {
   gap: 16px;
 }
 
-/* Sign-in */
+/* Sign-in (board A-Signin-OnePoint) */
 
 .sign-in {
-  flex-grow: 1;
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 48px 96px;
-  padding: 0 44px;
-}
-.sign-in-story {
-  width: 560px;
-  max-width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 28px;
-}
-.sign-in-title {
-  font-size: 44px;
-  line-height: 1.05;
-}
-.sign-in-lead {
-  max-width: 480px;
-  font-size: 16px;
-  line-height: 1.6;
-  color: var(--ink);
-}
-.sign-in-points {
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  font-size: 14.5px;
-  line-height: 1.5;
-}
-.sign-in-points li {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-.sign-in-points svg {
-  flex-shrink: 0;
-  margin-top: 3px;
+  padding: 24px clamp(16px, 6.7vw, 96px);
+  background: url("../assets/signin-pastel.webp") center / cover no-repeat;
 }
 .sign-in-card {
-  width: 430px;
+  width: 500px;
   max-width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 32px 36px;
-  background: var(--panel);
-  border: 1px solid var(--rule-strong);
-  border-radius: 4px;
+  gap: 26px;
+  padding: clamp(28px, 4vw, 52px) clamp(24px, 4vw, 52px)
+    clamp(26px, 3.6vw, 48px);
+  background: var(--signin-card-bg);
+  border-radius: 28px;
+  box-shadow: 0 24px 60px var(--signin-card-shadow);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+.sign-in-name {
+  display: flex;
+  flex-direction: column;
+}
+.sign-in-native {
+  margin-bottom: 16px;
+  font-family: var(--font-devanagari);
+  font-size: 36px;
+  line-height: 1.2;
+  color: var(--accent);
+}
+.sign-in-brand {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(56px, 8vw, 80px);
+  font-weight: 400;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+}
+.sign-in-meaning {
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-style: italic;
+  color: var(--ink-muted);
+}
+.sign-in-lead {
+  margin: 0;
+  font-size: 15.5px;
+  line-height: 1.6;
+  color: var(--ink-muted);
 }
 .sign-in-button {
-  min-height: 54px;
+  align-self: flex-start;
+  height: 44px;
+  padding: 0 24px;
+  background: var(--accent);
+  border: 0;
+  border-radius: 22px;
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--accent-on);
 }
 .google-button {
   min-height: 44px;
-}
-.sign-in-foot {
-  padding: 0 44px 32px;
-  text-align: center;
 }

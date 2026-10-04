@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { PageHeader } from "../ui/PageHeader";
+import {
+  PRODUCT_NAME,
+  PRODUCT_NAME_MEANING,
+  PRODUCT_NAME_NATIVE,
+} from "../productName";
 import { renderGoogleButton } from "./googleIdentity";
 import { FAKE_ID_TOKEN, type SignInMethod } from "./signInMethod";
 
@@ -10,67 +14,46 @@ type Props = {
   onIdToken: (idToken: string) => void;
 };
 
-/** Sign-in is required and uses Google only (docs/prd.md, FR-1.7 as changed). */
+/**
+ * Sign-in is required and uses Google only (docs/prd.md, FR-1.7 as changed).
+ * The playful screen of board A-Signin-OnePoint. A guest mode is a later decision,
+ * so the board's "keep going without an account" link is not built.
+ */
 export function SignInScreen({ method, busy, error, onIdToken }: Props) {
   return (
-    <>
-      <PageHeader />
-      <div className="sign-in">
-        <div className="sign-in-story">
-          <h2 className="title sign-in-title">Keep the ledger with you.</h2>
-          <p className="sign-in-lead">
-            Sign in to keep every cycle, estimate, and report in one ledger. It
-            is the same on every machine you work from.
-          </p>
-          <ul className="sign-in-points">
-            <li>
-              <CheckIcon />
-              The same ledger on every machine you work from.
-            </li>
-            <li>
-              <CheckIcon />
-              History that outlives this browser, which is what makes the
-              estimate model worth anything.
-            </li>
-            <li>
-              <CrossIcon />
-              Nothing is locked behind it. Every feature is the same for every
-              account.
-            </li>
-          </ul>
+    <main className="sign-in">
+      <h1 className="visually-hidden">Sign in</h1>
+      <section className="sign-in-card" aria-label={PRODUCT_NAME}>
+        <div className="sign-in-name">
+          <span className="sign-in-native" lang="sa">
+            {PRODUCT_NAME_NATIVE}
+          </span>
+          <h2 className="sign-in-brand">{PRODUCT_NAME}</h2>
+          <span className="sign-in-meaning">{PRODUCT_NAME_MEANING}</span>
         </div>
-        <section className="sign-in-card" aria-labelledby="sign-in-heading">
-          <h2 id="sign-in-heading" className="title title-m">
-            Sign in
-          </h2>
-          {error && (
-            <p className="alert" role="alert">
-              {error}
-            </p>
-          )}
-          {method.kind === "fake" ? (
-            <button
-              type="button"
-              className="button-primary sign-in-button"
-              disabled={busy}
-              onClick={() => onIdToken(FAKE_ID_TOKEN)}
-            >
-              Sign in with Google
-            </button>
-          ) : (
-            <GoogleButton clientId={method.clientId} onIdToken={onIdToken} />
-          )}
-          <p className="note">
-            A new email makes a new account. An email you have used before opens
-            that account.
+        <p className="sign-in-lead">
+          A clock that asks one thing before it starts: what kind of focus is
+          this? Sign in and every cycle you name follows you to any device.
+        </p>
+        {error && (
+          <p className="alert" role="alert">
+            {error}
           </p>
-        </section>
-      </div>
-      <p className="note sign-in-foot">
-        We store your email and your cycles. No tracking, and no email you did
-        not ask for.
-      </p>
-    </>
+        )}
+        {method.kind === "fake" ? (
+          <button
+            type="button"
+            className="sign-in-button"
+            disabled={busy}
+            onClick={() => onIdToken(FAKE_ID_TOKEN)}
+          >
+            Continue with Google
+          </button>
+        ) : (
+          <GoogleButton clientId={method.clientId} onIdToken={onIdToken} />
+        )}
+      </section>
+    </main>
   );
 }
 
@@ -112,39 +95,5 @@ function GoogleButton({
       )}
       <div ref={container} className="google-button" />
     </>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <path d="M3 8.4l3 3L13 4.6" />
-    </svg>
-  );
-}
-
-function CrossIcon() {
-  return (
-    <svg
-      width="17"
-      height="17"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="var(--ink-faint)"
-      strokeWidth="1.6"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <path d="M4 4l8 8M12 4l-8 8" />
-    </svg>
   );
 }
