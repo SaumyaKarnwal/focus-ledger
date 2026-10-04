@@ -16,10 +16,10 @@ describe("the bundled faces", () => {
   const main = readFileSync(`${SRC}main.tsx`, "utf8");
 
   test("theme_timerAndCtaStacks_startWithTheBundledFace", () => {
-    expect(stack("timer")).toMatch(/^"Inter Tight",/);
+    expect(stack("timer")).toMatch(/^"Nunito",/);
     expect(stack("cta")).toMatch(/^Nunito,/);
     expect(theme).not.toContain("Arial Rounded");
-    expect(main).toContain('import "@fontsource/inter-tight/700.css";');
+    expect(main).toContain('import "@fontsource/nunito/600.css";');
     expect(main).toContain('import "@fontsource/nunito/800.css";');
   });
 });
