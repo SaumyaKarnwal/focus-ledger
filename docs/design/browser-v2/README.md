@@ -53,5 +53,9 @@ Report is not designed yet. The header shows it, but the link stays inert. The o
 7. **Navigation while a cycle runs or a break counts down.** The header links work on every screen, Running, Bell, and Break included (owner decision). Leaving the screen does not pause or stop anything: the clock, the focus sound, and the bell keep going.
    - On any other page, the header shows a small chip with the mode mark and the time left, for example "Deep Focus 47:12". The chip and the Ekagra wordmark both go back to the running screen.
    - When the time runs out on another page, the app goes back to the running screen and shows the bell there.
-8. No color literal outside the theme files. See [`../theming.md`](../theming.md).
-9. Deploy only after Settings and all screens above are merged. Report is not needed for the first release.
+8. **Timer digits and the main button** (owner request, after the Pomofocus look).
+   - The timer digits use a rounded bold face: **Nunito 800** from Google Fonts, with tabular figures where the font has them, so the digits do not jump. The fallback stack is `"Arial Rounded MT Bold", "Nunito", ui-rounded, system-ui, sans-serif`. This replaces IBM Plex Mono for the big timer only. Small figures (durations, estimates) keep Plex Mono.
+   - START, PAUSE, and the break START use the same rounded face, bold, uppercase. The button is a solid plate with a lower ledge: a 6px bottom edge in a darker tint of the plate. On press, the plate moves down 6px and the ledge disappears, so it reads as a physical key. With reduced motion, the press has no movement.
+   - The faces are tokens (`--font-timer`, `--font-cta`), and the ledge color is a token (`--screen-cta-ledge`), so a theme can change them.
+9. No color literal outside the theme files. See [`../theming.md`](../theming.md).
+10. Deploy only after Settings and all screens above are merged. Report is not needed for the first release.

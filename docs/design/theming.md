@@ -34,7 +34,7 @@ The values come from the boards in `browser-v2/`. The builder reads each value f
 |---|---|---|
 | Mode screens | `--mode-{deep,execution,shallow,break}-bg` | The full-screen background of Start, Running, Bell, and Break |
 | On a mode screen | `--on-screen`, `--on-screen-strong`, `--on-screen-muted`, `--on-screen-faint`, `--on-screen-plate`, `--on-screen-rule`, `--on-screen-outline`, `--screen-glow` | Text, selected-row plate, divider, button outline, top glow on mode screens |
-| Primary button on a mode screen | `--screen-cta-bg`, `--screen-cta-fg` | START and PAUSE (the label takes the screen color) |
+| Primary button on a mode screen | `--screen-cta-bg`, `--screen-cta-fg`, `--screen-cta-ledge` | START and PAUSE (the label takes the screen color) |
 | Mode marks | `--mode-{deep,execution,shallow}-mark` | The small bar or dot that names a mode on light surfaces (picker, tasks, task page) |
 | Page | `--paper`, `--panel`, `--ink`, `--ink-strong`, `--ink-muted`, `--ink-faint`, `--rule`, `--row-hover` | The Tasks and task pages |
 | Dialog | `--dialog-bg`, `--dialog-header-bg`, `--dialog-fg`, `--dialog-muted`, `--dialog-rule`, `--dialog-selected`, `--scrim`, `--dialog-shadow` | Task picker, bell, new task, edit task |
@@ -43,6 +43,10 @@ The values come from the boards in `browser-v2/`. The builder reads each value f
 | Chart | `--chart-1` … `--chart-6`, `--chart-other` | The "How it splits" ring. Never a mode color. |
 
 A builder who needs a token that is not in this table adds it with a purpose-based name and lists it in the PR description.
+
+## Fonts
+
+Font families are tokens too: `--font-ui` (IBM Plex Sans), `--font-display` (Newsreader), `--font-figures` (IBM Plex Mono), `--font-timer` and `--font-cta` (Nunito 800). A component never names a font family.
 
 ## Themes
 
