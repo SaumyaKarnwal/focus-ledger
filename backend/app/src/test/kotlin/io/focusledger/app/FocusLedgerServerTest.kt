@@ -36,7 +36,9 @@ import java.time.Duration
 import java.util.Base64
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -46,6 +48,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestInstance
+import org.junit.jupiter.api.Timeout
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 
@@ -66,6 +69,9 @@ class FocusLedgerServerTest {
 
     /** The requests that reached Ktor on a path that Armeria must not forward. */
     private val probeHits = AtomicInteger()
+
+    /** The test stream sends its second event only after the test has read the first one. */
+    private val firstEventRead = CompletableDeferred<Unit>()
 
     private val config =
         AppConfig.fromEnvironment(
@@ -99,8 +105,16 @@ class FocusLedgerServerTest {
                     call.respondBytesWriter(ContentType.Text.EventStream) {
                         writeStringUtf8("data: first\n\n")
                         flush()
-                        delay(STREAM_PAUSE.toMillis())
-                        writeStringUtf8("data: last\n\n")
+                        val released =
+                            withTimeoutOrNull(RELEASE_TIMEOUT.toMillis()) { firstEventRead.await() }
+                        if (released == null) {
+                            // A forward that buffers holds back the first event, so it gets
+                            // this one and fails the test.
+                            writeStringUtf8("data: never released\n\n")
+                        } else {
+                            delay(STREAM_PAUSE.toMillis())
+                            writeStringUtf8("data: last\n\n")
+                        }
                         flush()
                     }
                 }
@@ -289,8 +303,8 @@ class FocusLedgerServerTest {
     }
 
     @Test
+    @Timeout(60)
     fun stream_passesThroughArmeriaAsItArrivesAndOutlivesTheDefaultTimeouts() {
-        val started = System.nanoTime()
         val lines =
             HttpClient.newHttpClient()
                 .send(
@@ -302,14 +316,11 @@ class FocusLedgerServerTest {
                 .iterator()
 
         assertEquals("data: first", lines.next())
-        val firstEventAfter = Duration.ofNanos(System.nanoTime() - started)
+        val released = System.nanoTime()
+        firstEventRead.complete(Unit)
         val rest = lines.asSequence().filter { it.isNotEmpty() }.toList()
-        val streamEndedAfter = Duration.ofNanos(System.nanoTime() - started)
+        val streamEndedAfter = Duration.ofNanos(System.nanoTime() - released)
 
-        assertTrue(
-            firstEventAfter < Duration.ofSeconds(3),
-            "The first event came after $firstEventAfter",
-        )
         assertEquals(listOf("data: last"), rest)
         assertTrue(streamEndedAfter >= STREAM_PAUSE, "The stream ended after $streamEndedAfter")
     }
@@ -357,5 +368,8 @@ class FocusLedgerServerTest {
 
         /** Longer than the 10-second defaults of Armeria's request and response timeouts. */
         val STREAM_PAUSE: Duration = Duration.ofSeconds(12)
+
+        /** How long the test stream waits for the test to read its first event. */
+        val RELEASE_TIMEOUT: Duration = Duration.ofSeconds(30)
     }
 }
