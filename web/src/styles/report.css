@@ -355,27 +355,6 @@
 }
 
 /* Your year */
-.report-streak {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 13px;
-  color: var(--ink-muted);
-}
-.report-streak > strong {
-  font-family: var(--font-figures);
-  font-size: 22px;
-  font-weight: 500;
-  color: var(--ink-strong);
-}
-.report-streak-best {
-  margin-left: 12px;
-  padding-left: 12px;
-  border-left: 1px solid var(--rule);
-}
-.report-streak-best strong {
-  color: var(--ink-strong);
-}
 .report-year {
   display: grid;
   grid-template-rows: 18px;

@@ -165,7 +165,7 @@ export function BarsCard({
   );
 }
 
-/** Your year: always the last twelve months; the only place with a streak. */
+/** Your year: always the last twelve months, whatever the range above. */
 export function YearCard({ year }: { year: Year }) {
   const days = year.weeks.flat().filter((day) => day !== undefined);
   const [active, setActive] = useState<string>();
@@ -193,12 +193,6 @@ export function YearCard({ year }: { year: Year }) {
         <h2 id="report-year" className="task-card-title">
           Your year
         </h2>
-        <span className="report-streak">
-          <strong>{year.streak}</strong> days in a row
-          <span className="report-streak-best">
-            best <strong>{year.best}</strong>
-          </span>
-        </span>
       </div>
       <div className="report-year-frame">
         <div

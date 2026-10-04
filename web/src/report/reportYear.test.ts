@@ -157,7 +157,7 @@ describe("Your year", () => {
     ]);
   });
 
-  test("yearOf_streakEndsTodayOrYesterday_andBestIsTheLongestRun", () => {
+  test("yearOf_countsTheDaysWithFocus", () => {
     const year = yearOf(
       nodes([
         cycle("2026-09-01T09:00:00Z", 20),
@@ -171,8 +171,6 @@ describe("Your year", () => {
       ZONE,
     );
 
-    expect(year.streak).toBe(2);
-    expect(year.best).toBe(4);
     expect(year.daysWithFocus).toBe(6);
   });
 
@@ -189,7 +187,6 @@ describe("Your year", () => {
 
     expect(days.find((day) => day.date === "2026-09-21")?.level).toBe(4);
     expect(days.find((day) => day.date === "2026-09-22")?.level).toBe(1);
-    expect(year.streak).toBe(2);
   });
 
   test("yearOf_dayBoundary_usesTheLocalDate", () => {
