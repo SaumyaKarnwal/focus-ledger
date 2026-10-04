@@ -102,6 +102,23 @@ describe("Start", () => {
     expect(running?.nodeId).toBeUndefined();
   });
 
+  test("start_headerMenu_holdsTheLinksAndSignOut", async () => {
+    // CSS shows this menu in place of the links when they do not fit (README rule 9).
+    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
+    await screen.findByRole("button", { name: "Start" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Menu" }));
+    const menu = screen.getByRole("menu");
+    expect(
+      within(menu)
+        .getAllByRole("menuitem")
+        .map((item) => item.textContent),
+    ).toEqual(["Tasks", "Settings", "Sign out"]);
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "Tasks" }));
+
+    expect(await screen.findByRole("list", { name: "Tasks" })).toBeDefined();
+  });
+
   test("start_tasksInTheHeader_opensTheTasksPage", async () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
     const nav = await screen.findByRole("navigation", { name: "Views" });

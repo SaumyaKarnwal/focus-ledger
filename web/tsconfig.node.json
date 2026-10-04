@@ -14,5 +14,11 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["vite.config.ts", "productNameHtml.ts", "productNameHtml.test.ts"]
+  "include": [
+    "vite.config.ts",
+    "productNameHtml.ts",
+    "productNameHtml.test.ts",
+    "playwright.config.ts",
+    "e2e/**/*.ts"
+  ]
 }

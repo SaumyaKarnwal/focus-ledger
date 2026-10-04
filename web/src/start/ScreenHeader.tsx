@@ -41,6 +41,24 @@ export function ScreenHeader({
   onSignOut,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [linksOpen, setLinksOpen] = useState(false);
+  const links = (role?: "menuitem") => (
+    <>
+      <NavItem label="Report" onOpen={onOpenReport} role={role} />
+      <NavItem
+        label="Tasks"
+        onOpen={onOpenTasks}
+        current={current === "tasks"}
+        role={role}
+      />
+      <NavItem
+        label="Settings"
+        onOpen={onOpenSettings}
+        current={current === "settings"}
+        role={role}
+      />
+    </>
+  );
   return (
     <header className="screen-header">
       <span className="screen-brand">
@@ -73,17 +91,28 @@ export function ScreenHeader({
             <span className="screen-timer-time">{timer.text}</span>
           </button>
         )}
-        <NavItem label="Report" onOpen={onOpenReport} />
-        <NavItem
-          label="Tasks"
-          onOpen={onOpenTasks}
-          current={current === "tasks"}
-        />
-        <NavItem
-          label="Settings"
-          onOpen={onOpenSettings}
-          current={current === "settings"}
-        />
+        <span className="screen-nav-links">{links()}</span>
+        {/* When the links do not fit on one line, CSS shows this menu instead. */}
+        <span className="screen-nav-compact">
+          <button
+            type="button"
+            className="screen-menu-toggle"
+            aria-label="Menu"
+            aria-expanded={linksOpen}
+            onClick={() => setLinksOpen((open) => !open)}
+          >
+            <MenuIcon />
+          </button>
+          {linksOpen && (
+            <span className="screen-menu" role="menu">
+              {links("menuitem")}
+              <span className="screen-menu-email">{email}</span>
+              <button type="button" role="menuitem" onClick={onSignOut}>
+                Sign out
+              </button>
+            </span>
+          )}
+        </span>
         <span className="screen-account">
           <button
             type="button"
@@ -112,15 +141,18 @@ function NavItem({
   label,
   onOpen,
   current = false,
+  role,
 }: {
   label: string;
   onOpen?: () => void;
   current?: boolean;
+  role?: "menuitem";
 }) {
   return onOpen ? (
     <button
       type="button"
       className="screen-nav-item"
+      role={role}
       aria-current={current ? "page" : undefined}
       onClick={onOpen}
     >
@@ -134,5 +166,22 @@ function NavItem({
     >
       {label}
     </span>
+  );
+}
+
+function MenuIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 18 18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
+      <path d="M3 5h12M3 9h12M3 13h12" />
+    </svg>
   );
 }

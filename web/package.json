@@ -13,7 +13,8 @@
     "build": "buf generate .. --template buf.gen.yaml && tsc -b && vite build",
     "test": "buf generate .. --template buf.gen.yaml && vitest run",
     "lint": "eslint . --max-warnings 0 && prettier --check .",
-    "format": "eslint --fix . && prettier --write ."
+    "format": "eslint --fix . && prettier --write .",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.15.0",
@@ -27,6 +28,7 @@
     "@bufbuild/buf": "1.73.0",
     "@bufbuild/protoc-gen-es": "^2.15.0",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.63.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^24.19.0",

@@ -1,8 +1,12 @@
 /* The mode screens of browser v2: Start, and later Running, Bell, and Break. */
 
 .mode-screen {
+  /* The side space of the header, the main area, and the task line. */
+  --screen-gutter: clamp(16px, 4vw, 56px);
   position: relative;
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   background: var(--screen-bg);
@@ -21,6 +25,7 @@
 .mode-screen-body {
   position: relative;
   flex-grow: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -44,7 +49,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 24px;
-  padding: 26px 56px 0;
+  padding: clamp(14px, 3.5vh, 26px) var(--screen-gutter) 0;
 }
 .screen-brand {
   display: flex;
@@ -122,12 +127,16 @@
 /* Start */
 
 .start-main {
-  flex-grow: 1;
+  flex: 1 1 0;
+  min-height: 0;
+  padding: clamp(8px, 3vh, 24px) var(--screen-gutter);
+  container: screen-main / size;
+}
+.start-layout {
+  height: 100%;
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 40px 80px;
-  padding: 24px 56px;
 }
 .start-modes {
   width: 520px;
@@ -211,10 +220,11 @@
   color: var(--on-screen-faint);
 }
 .start-time {
-  min-width: 420px;
+  min-width: 2.8em;
   text-align: center;
   font-family: var(--font-timer);
-  font-size: 150px;
+  /* The digits scale with the space, up to the boards' 150px. */
+  font-size: clamp(48px, min(11cqw, 22cqh), 150px);
   font-weight: 800;
   line-height: 0.88;
   letter-spacing: -0.045em;
@@ -578,8 +588,8 @@
   display: flex;
   align-items: center;
   gap: 22px;
-  margin: 0 56px 40px;
-  padding: 22px 0 0;
+  margin: 0 var(--screen-gutter) clamp(14px, 5vh, 40px);
+  padding: clamp(12px, 3vh, 22px) 0 0;
   border-top: 1px solid var(--on-screen-rule);
 }
 .task-strip-task {
@@ -914,4 +924,181 @@
 .screen-timer-time {
   font-family: var(--font-figures);
   font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Small windows (README rule 9). Each step starts only when the one before
+ * no longer fits: side by side, then stacked, then the modes as chips.
+ */
+
+/* 2. Stacked: the two columns no longer fit side by side. */
+@container screen-main (width < 1100px) {
+  .start-layout {
+    flex-direction: column;
+    justify-content: center;
+    gap: 20px;
+  }
+  .start-modes {
+    width: min(520px, 100%);
+    gap: 10px;
+  }
+  .start-mode {
+    min-height: 60px;
+  }
+  .start-mode-bar {
+    height: 32px;
+  }
+  .start-mode-name,
+  .start-mode[aria-checked="true"] .start-mode-name,
+  .start-mode-plate .start-mode-name {
+    font-size: 30px;
+  }
+  .start-time {
+    font-size: clamp(48px, min(16cqw, 18cqh), 150px);
+  }
+  .start-clock {
+    flex-grow: 0;
+    gap: 18px;
+  }
+}
+
+/* 3. Chips: the stacked layout does not fit the height, or no layout does. */
+@container screen-main (width < 1100px) and (height < 600px) {
+  .start-modes-label {
+    display: none;
+  }
+  .start-mode-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .start-modes {
+    align-items: center;
+  }
+  .start-mode,
+  .start-mode-plate {
+    width: auto;
+    min-height: 36px;
+    padding: 0 14px 0 10px;
+    gap: 8px;
+    border-radius: 18px;
+  }
+  .start-mode-bar {
+    width: 4px;
+    height: 16px;
+  }
+  .start-mode-name,
+  .start-mode[aria-checked="true"] .start-mode-name,
+  .start-mode-plate .start-mode-name {
+    font-size: 16px;
+    font-weight: 500;
+  }
+  .start-time {
+    font-size: clamp(44px, min(18cqw, 24cqh), 120px);
+  }
+  .screen-cta,
+  .screen-outline {
+    min-height: 52px;
+  }
+  .screen-cta {
+    width: 150px;
+    font-size: 18px;
+  }
+  .screen-progress {
+    width: min(520px, 100%);
+  }
+}
+@container screen-main (height < 420px) {
+  .start-modes-label {
+    display: none;
+  }
+  .start-mode-list {
+    flex-direction: row;
+  }
+  .start-mode,
+  .start-mode-plate {
+    width: auto;
+    min-height: 36px;
+    padding: 0 14px 0 10px;
+    gap: 8px;
+    border-radius: 18px;
+  }
+  .start-mode-bar {
+    width: 4px;
+    height: 16px;
+  }
+  .start-mode-name,
+  .start-mode[aria-checked="true"] .start-mode-name,
+  .start-mode-plate .start-mode-name {
+    font-size: 16px;
+    font-weight: 500;
+  }
+}
+
+/* The header: the date goes first, then the links fold into one menu. */
+.screen-header {
+  container: screen-header / inline-size;
+}
+.screen-nav-links {
+  display: contents;
+}
+.screen-nav-compact {
+  display: none;
+  position: relative;
+}
+.screen-menu-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 17px;
+  color: var(--on-screen-strong);
+}
+.screen-menu .screen-nav-item {
+  padding: 8px 10px;
+  text-align: left;
+  color: var(--dialog-fg);
+}
+.screen-menu .screen-nav-item[aria-disabled="true"] {
+  color: var(--dialog-faint);
+}
+@container screen-header (width < 620px) {
+  .screen-brand .screen-label {
+    display: none;
+  }
+}
+@container screen-header (width < 470px) {
+  .screen-nav-links,
+  .screen-account {
+    display: none;
+  }
+  .screen-nav-compact {
+    display: block;
+  }
+}
+
+/* The task line stays one line: the planned readout hides first, then the path. */
+.task-strip {
+  container: task-strip / inline-size;
+  min-width: 0;
+}
+.task-strip-name,
+.task-strip-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@container task-strip (width < 640px) {
+  .task-strip-time {
+    display: none;
+  }
+}
+@container task-strip (width < 440px) {
+  .task-strip-path {
+    display: none;
+  }
 }
