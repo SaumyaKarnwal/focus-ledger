@@ -74,6 +74,8 @@
 
   /* Primary button on a mode screen. Its label takes the screen color (scope.css). */
   --screen-cta-bg: var(--white);
+  /* Mixed into the screen color for the secondary button's ledge (scope.css). */
+  --screen-shade: rgb(24 14 22);
 
   /* Mode marks on light surfaces */
   --mode-deep-mark: var(--mark-aubergine);

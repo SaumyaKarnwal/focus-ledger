@@ -33,6 +33,11 @@
     var(--screen-cta-bg) 70%,
     var(--screen-bg)
   );
+  --screen-secondary-ledge: color-mix(
+    in srgb,
+    var(--screen-bg) 72%,
+    var(--screen-shade)
+  );
   --screen-on: var(--on-screen);
 }
 /* The light page surface (Tasks): the shared header reads the ink tokens. */

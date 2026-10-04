@@ -248,7 +248,6 @@
   gap: calc(14 * var(--u, 1px));
 }
 .screen-cta {
-  --ledge: max(3px, calc(6 * var(--u, 1px)));
   width: calc(230 * var(--u, 1px));
   min-height: max(40px, calc(72 * var(--u, 1px)));
   background: var(--screen-cta-bg);
@@ -266,20 +265,30 @@
     transform 60ms ease-out,
     box-shadow 60ms ease-out;
 }
-.screen-cta:active:not(:disabled) {
+.screen-cta:active:not(:disabled),
+.screen-outline:active:not(:disabled) {
   transform: translateY(var(--ledge));
-  box-shadow: 0 0 0 var(--screen-cta-ledge);
+  box-shadow: 0 0 0 transparent;
 }
 @media (prefers-reduced-motion: reduce) {
-  .screen-cta {
+  .screen-cta,
+  .screen-outline {
     transition: none;
   }
   .screen-cta:active:not(:disabled) {
     transform: none;
     box-shadow: 0 var(--ledge) 0 var(--screen-cta-ledge);
   }
+  .screen-outline:active:not(:disabled) {
+    transform: none;
+    box-shadow: 0 var(--ledge) 0 var(--screen-secondary-ledge);
+  }
 }
 .screen-outline {
+  box-shadow: 0 var(--ledge) 0 var(--screen-secondary-ledge);
+  transition:
+    transform 60ms ease-out,
+    box-shadow 60ms ease-out;
   min-height: max(40px, calc(72 * var(--u, 1px)));
   padding: 0 max(12px, calc(26 * var(--u, 1px)));
   background: none;
@@ -291,8 +300,10 @@
 .screen-outline-soft {
   border-color: var(--on-screen-outline-soft);
 }
+/* Every button on a mode screen has a ledge, a darker edge it moves onto when pressed. */
 .screen-cta,
 .screen-outline {
+  --ledge: max(3px, calc(6 * var(--u, 1px)));
   display: inline-flex;
   align-items: center;
   justify-content: center;
