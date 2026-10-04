@@ -36,8 +36,7 @@ Report is not designed yet. The header shows it, but the link stays inert. The o
    | Control | `SettingsPb` field |
    |---|---|
    | Deep Focus, Execution, Shallow | `deep_focus_minutes`, `execution_minutes`, `shallow_minutes` |
-   | Short break, Long break | `break_minutes`, `long_break_minutes` |
-   | Long break every N cycles | `long_break_every` |
+   | Break | `break_minutes` |
    | Bell sound chips (Bowl, Wood, Chime) | `bell_sound`; Silent is `sound_enabled = false` |
    | Bell volume, Ring N times | `bell_volume`, `bell_repeat` |
    | Show a notification when it rings | `notifications_enabled` |
