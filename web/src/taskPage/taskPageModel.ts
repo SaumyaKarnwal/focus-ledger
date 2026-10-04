@@ -170,3 +170,18 @@ function byModeOf<T>(value: (mode: LoggedMode) => T): ByMode<T> {
     LOGGED_MODES.map((mode) => [mode, value(mode)]),
   ) as ByMode<T>;
 }
+
+/**
+ * How full a mode's estimate bar is, in percent. With an estimate it is the
+ * logged time against that mode's estimate. Without one it is the mode's share
+ * of the task's logged time, so a bar never stays empty while its mode has
+ * logged time (README "Report and task page polish" 1).
+ */
+export function modeBarPercent(
+  logged: number,
+  estimate: number,
+  taskLogged: number,
+): number {
+  if (estimate > 0) return Math.min(100, (logged / estimate) * 100);
+  return taskLogged > 0 ? (logged / taskLogged) * 100 : 0;
+}
