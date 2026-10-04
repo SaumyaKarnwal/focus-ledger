@@ -76,5 +76,6 @@ Report is not designed yet. The header shows it, but the link stays inert. The o
     - **Stop and log** writes the cycle and goes home at once, with that cycle's task and mode selected. It does not show the bell. The bell shows only when the time runs out by itself.
     - **The header links work on every Start state** (Deep Focus, Execution, Shallow, nothing selected) and on Break, not only on Deep Focus.
     - **The primary button has a ledge** (rule 8): START, PAUSE, and the break START. "Take a break", "Stop and log", and "Start a cycle" stay outlined.
-12. No color literal outside the theme files. See [`../theming.md`](../theming.md).
-13. Deploy only after Settings and all screens above are merged. Report is not needed for the first release.
+12. **Bell sound is a dropdown** (owner request). In The bell card, the Sound row is one dropdown (Bowl, Wood, Chime, Silent) in place of the four chips, with a small ▶ button beside it that previews the chosen sound. A new choice also plays once as a preview; Silent plays nothing. Use a native `<select>` styled with the theme tokens, so the keyboard and screen readers work. The Focus sound card keeps its chips.
+13. No color literal outside the theme files. See [`../theming.md`](../theming.md).
+14. Deploy only after Settings and all screens above are merged. Report is not needed for the first release.
