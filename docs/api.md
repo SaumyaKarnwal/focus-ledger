@@ -137,7 +137,7 @@ There is no delete. The server rejects a change that breaks the cycle rules: min
 
 ### Timer rules in the web app
 
-- **Pause** keeps its paused time in browser storage, keyed by the cycle ID, so a reload does not count paused time as work. A pause over 10 minutes stops the cycle (FR-3.6).
+- **Pause** keeps its paused time in browser storage, keyed by the cycle ID, so a reload does not count paused time as work. A pause has no time limit: the cycle stays paused until the user resumes or stops it (FR-3.6).
 - **Extension** on the bell runs an N-minute countdown. At its end, or on Stop, the app sends `UpdateCycle(minutes = logged + elapsed extension)`. It never writes minutes that were not worked. The extension start also lives in browser storage, so a reload resumes the countdown.
 
 ### Behavior the proto does not show
