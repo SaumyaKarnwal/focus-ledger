@@ -48,7 +48,7 @@ import {
 import { modeKey } from "./modes/modes";
 import { RunningScreen } from "./cycle/RunningScreen";
 import type { CyclePb } from "./gen/focusledger/v1/model_pb";
-import { browserTimeZone, formatHeaderTime } from "./ledger/period";
+import { browserTimeZone } from "./ledger/period";
 import type { LoggedMode } from "./ledger/rollup";
 import { ReportScreen } from "./report/ReportScreen";
 import { loadLocalSettings } from "./settings/localSettings";
@@ -57,7 +57,6 @@ import { SignInScreen } from "./signIn/SignInScreen";
 import type { SignInMethod } from "./signIn/signInMethod";
 import { TasksPage } from "./tasks/TasksPage";
 import { PageHeader } from "./ui/PageHeader";
-import { useNow } from "./useNow";
 import { loadToday } from "./today/loadToday";
 import { PRODUCT_NAME } from "./productName";
 import { taskStrip } from "./start/startModel";
@@ -122,13 +121,6 @@ function replaceAddress(address: Address) {
     pathOf(address) + window.location.search,
   );
 }
-
-const VIEWS: readonly [View, string][] = [
-  ["today", "Today"],
-  ["tree", "Tasks"],
-  ["report", "Report"],
-  ["settings", "Settings"],
-];
 
 type Props = {
   client: LedgerClient;
@@ -578,20 +570,6 @@ export function App({
       ? { timer: timerChip, homeLabel: "back to the timer" }
       : undefined;
 
-  const nav = (
-    <nav className="nav" aria-label="Views">
-      {VIEWS.map(([key, label]) => (
-        <button
-          key={key}
-          type="button"
-          aria-current={view === key ? "page" : undefined}
-          onClick={() => (key === "settings" ? openSettings() : openView(key))}
-        >
-          {label}
-        </button>
-      ))}
-    </nav>
-  );
   const alert = error && (
     <p className="alert page-alert" role="alert">
       {error}
@@ -678,18 +656,14 @@ export function App({
           {alert}
           <ReportScreen
             client={client}
+            email={data.email}
             timeZone={timeZone}
             retryDelaysMs={retryDelaysMs}
-            nav={nav}
-            onOpenHome={() => openView("today")}
-            homeLabel={pageSession?.homeLabel}
-            headerEnd={
-              timerChip && pageSession ? (
-                <HeaderTimer chip={timerChip} />
-              ) : (
-                <HeaderClock timeZone={timeZone} />
-              )
-            }
+            onOpenStart={() => openView("today")}
+            onOpenTasks={() => openView("tree")}
+            onOpenSettings={openSettings}
+            onSignOut={signOut}
+            session={pageSession}
           />
         </>
       )}
@@ -798,24 +772,4 @@ export function App({
       )}
     </div>
   );
-}
-
-function HeaderTimer({ chip }: { chip: TimerChip }) {
-  return (
-    <button
-      type="button"
-      className="screen-timer"
-      data-mode={chip.modeKey}
-      onClick={chip.onOpen}
-    >
-      <span className="screen-timer-mark" aria-hidden="true" />
-      {chip.label}
-      <span className="screen-timer-time">{chip.text}</span>
-    </button>
-  );
-}
-
-function HeaderClock({ timeZone }: { timeZone: string }) {
-  const now = useNow(30_000);
-  return <span className="topbar-meta">{formatHeaderTime(now, timeZone)}</span>;
 }

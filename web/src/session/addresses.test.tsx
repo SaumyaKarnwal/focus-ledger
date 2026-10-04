@@ -90,7 +90,7 @@ describe("Addresses", () => {
     renderAt("/report");
 
     expect(
-      await screen.findByRole("heading", { name: "Node × mode" }),
+      await screen.findByRole("heading", { name: "This week" }),
     ).toBeDefined();
   });
 

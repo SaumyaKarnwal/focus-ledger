@@ -1,0 +1,234 @@
+/* The Report (boards R-Report-*). It reuses the task page's cards and ring. */
+
+.report-main {
+  width: 1328px;
+  max-width: calc(100% - 2 * var(--screen-gutter));
+  margin: 0 auto 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding-top: 30px;
+}
+.report-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px 30px;
+}
+.report-title {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.report-title-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.report-heading {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  color: var(--ink-strong);
+}
+.report-dot {
+  color: var(--ink-faint);
+}
+.report-total {
+  font-family: var(--font-figures);
+  font-size: 24px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-strong);
+}
+.report-change {
+  font-family: var(--font-figures);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+.report-change[data-sign="up"] {
+  color: var(--report-up);
+}
+.report-change[data-sign="down"] {
+  color: var(--report-down);
+}
+.report-steps {
+  display: inline-flex;
+  margin-left: 6px;
+  padding: 2px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+}
+.report-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 26px;
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 13px;
+  color: var(--ink-strong);
+}
+.report-step:disabled {
+  opacity: 0.3;
+}
+.report-step:hover:not(:disabled) {
+  background: var(--row-hover-bg);
+}
+.report-dates {
+  font-size: 13.5px;
+  color: var(--ink-muted);
+}
+.report-kinds {
+  display: flex;
+  padding: 4px;
+  background: var(--control-hover);
+  border-radius: 12px;
+}
+.report-kinds button {
+  min-height: 32px;
+  padding: 0 15px;
+  background: none;
+  border: 0;
+  border-radius: 9px;
+  font-size: 14px;
+  color: var(--ink-muted);
+}
+.report-kinds button[aria-pressed="true"] {
+  background: var(--panel);
+  font-weight: 600;
+  color: var(--ink-strong);
+}
+.report-custom {
+  display: flex;
+  gap: 14px;
+}
+.report-custom label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--ink-muted);
+}
+.report-custom input {
+  min-height: 34px;
+  padding: 0 8px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  color: var(--ink-strong);
+}
+.report-row {
+  display: grid;
+  grid-template-columns: minmax(0, 0.81fr) minmax(0, 1fr);
+  gap: 18px;
+}
+@media (width < 900px) {
+  .report-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* When you focus */
+.report-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12.5px;
+  color: var(--ink-muted);
+}
+.report-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.report-legend .estimate-mode-bar {
+  height: 13px;
+}
+.report-peak {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-strong);
+}
+.report-curves {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+.report-grid {
+  stroke: var(--rule);
+  stroke-dasharray: 3 4;
+}
+.report-base {
+  stroke: var(--rule-strong);
+}
+.report-axis {
+  font-family: var(--font-figures);
+  font-size: 11px;
+  fill: var(--ink-faint);
+}
+.report-curve-line {
+  fill: none;
+  stroke: var(--mode);
+  stroke-width: 2;
+}
+.report-curve-area {
+  fill: var(--mode);
+  fill-opacity: 0.22;
+}
+
+/* Kind of focus */
+.report-kind-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+.report-kind-list li {
+  display: grid;
+  grid-template-columns: auto 1fr auto 48px;
+  align-items: center;
+  gap: 8px 10px;
+}
+.report-kind-name {
+  font-size: 14.5px;
+  color: var(--ink-strong);
+}
+.report-kind-minutes {
+  font-family: var(--font-figures);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-strong);
+}
+.report-kind-percent {
+  font-family: var(--font-figures);
+  font-size: 12.5px;
+  text-align: right;
+  color: var(--ink-faint);
+}
+.report-kind-track {
+  grid-column: 2 / -1;
+  height: 10px;
+  border-radius: 5px;
+  background: var(--track);
+  overflow: hidden;
+}
+.report-kind-track span {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  background: var(--mode);
+}

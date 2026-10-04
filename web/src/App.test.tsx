@@ -942,7 +942,7 @@ describe("Home", () => {
   test("wordmark_fromReport_leadsHome", async () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
     await openFromTasks("Report");
-    await screen.findByRole("heading", { name: "Node × mode" });
+    await screen.findByRole("heading", { name: "This week" });
 
     fireEvent.click(
       screen.getByRole("button", { name: `${PRODUCT_NAME}, back to Start` }),
@@ -955,7 +955,7 @@ describe("Home", () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
     await startCycleOn("Book");
     await openFromTasks("Report");
-    await screen.findByRole("heading", { name: "Node × mode" });
+    await screen.findByRole("heading", { name: "This week" });
 
     fireEvent.click(
       screen.getByRole("button", {

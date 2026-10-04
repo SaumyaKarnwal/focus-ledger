@@ -1,80 +1,88 @@
-import { type CSSProperties, type ReactNode, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import type { LedgerClient } from "../api/ledgerClient";
 import { withRetry } from "../api/retry";
 import type { NodePb } from "../gen/focusledger/v1/model_pb";
-import {
-  dateSpanRange,
-  formatShortDate,
-  lastWeekRange,
-  localDateString,
-  monthRange,
-  type TimeRange,
-  toPeriodPb,
-  weekRange,
-} from "../ledger/period";
-import { LOGGED_MODES, type Totals } from "../ledger/rollup";
+import { localDateString, toPeriodPb } from "../ledger/period";
 import { modeKey } from "../modes/modes";
+import type { TimerChip } from "../session/sessionTimer";
+import { ScreenHeader } from "../start/ScreenHeader";
 import { formatMinutes, MODE_NAMES } from "../today/todayModel";
-import { PageHeader } from "../ui/PageHeader";
+import { useNow } from "../useNow";
+import { SplitRing } from "../ui/SplitRing";
 import {
-  buildReport,
-  type CrossTabRow,
-  percentDifference,
-  share,
-} from "./reportModel";
+  changeLabel,
+  cyclesIn,
+  daysUpToNow,
+  kindOfFocus,
+  minutesByHour,
+  minutesOf,
+  peakLine,
+  whereItWent,
+} from "./reportCards";
+import { FocusCurves } from "./FocusCurves";
+import {
+  comparedSpans,
+  type RangeChoice,
+  type RangeKind,
+  rangeOf,
+  rangeTitle,
+} from "./reportRange";
 
-export type PeriodChoice = "week" | "lastWeek" | "month" | "custom" | "all";
-
-const PERIODS: readonly [PeriodChoice, string][] = [
-  ["week", "This week"],
-  ["lastWeek", "Last week"],
-  ["month", "This month"],
+const KINDS: readonly [RangeKind, string][] = [
+  ["today", "Today"],
+  ["week", "Week"],
+  ["month", "Month"],
   ["custom", "Custom"],
-  ["all", "All"],
 ];
 
 type Props = {
   client: LedgerClient;
+  email: string;
   timeZone: string;
   retryDelaysMs?: readonly number[];
-  nav: ReactNode;
-  headerEnd: ReactNode;
-  onOpenHome?: () => void;
-  homeLabel?: string;
+  onOpenStart: () => void;
+  onOpenTasks: () => void;
+  onOpenSettings: () => void;
+  onSignOut: () => void;
+  /** While a cycle or break runs: the chip, and the brand goes back to it. */
+  session?: { timer?: TimerChip; homeLabel: string };
 };
 
-/** A reading surface: nothing here can be edited (FR-11.5). */
+/** The Report (boards R-Report-*). A reading surface: nothing here can be edited (FR-11.5). */
 export function ReportScreen({
   client,
+  email,
   timeZone,
   retryDelaysMs,
-  nav,
-  headerEnd,
-  onOpenHome,
-  homeLabel,
+  onOpenStart,
+  onOpenTasks,
+  onOpenSettings,
+  onSignOut,
+  session,
 }: Props) {
-  const [choice, setChoice] = useState<PeriodChoice>("week");
-  const [from, setFrom] = useState(() => localDateString(new Date(), timeZone));
-  const [to, setTo] = useState(() => localDateString(new Date(), timeZone));
-  const range = rangeFor(choice, from, to, timeZone);
-  const [nodes, setNodes] = useState<NodePb[]>();
+  const now = useNow(60_000);
+  const [choice, setChoice] = useState<RangeChoice>({ kind: "week", back: 0 });
+  const range = rangeOf(choice, now, timeZone);
+  const spans = comparedSpans(choice, now, timeZone);
+  const fetchStart = spans.before.start.getTime();
+  const fetchEnd = range.end.getTime();
+  const [loaded, setLoaded] = useState<{ key: string; nodes: NodePb[] }>();
   const [error, setError] = useState<string>();
-  const startMs = range?.start.getTime();
-  const endMs = range?.end.getTime();
+  const key = `${fetchStart}-${fetchEnd}`;
 
   useEffect(() => {
     let cancelled = false;
-    const period =
-      startMs === undefined || endMs === undefined
-        ? undefined
-        : toPeriodPb({ start: new Date(startMs), end: new Date(endMs) });
+    const period = toPeriodPb({
+      start: new Date(fetchStart),
+      end: new Date(fetchEnd),
+    });
     withRetry(
       () => client.listNodes({ period, includeClosed: true }),
       retryDelaysMs,
     ).then(
       (response) => {
         if (cancelled) return;
-        setNodes(response.nodes);
+        setLoaded({ key: `${fetchStart}-${fetchEnd}`, nodes: response.nodes });
         setError(undefined);
       },
       (reason: unknown) => {
@@ -84,352 +92,279 @@ export function ReportScreen({
     return () => {
       cancelled = true;
     };
-  }, [client, retryDelaysMs, startMs, endMs]);
+  }, [client, retryDelaysMs, fetchStart, fetchEnd]);
 
-  const report = nodes && buildReport(nodes);
+  const nodes = loaded?.key === key ? loaded.nodes : undefined;
+  const current = nodes ? cyclesIn(nodes, spans.current) : [];
+  const total = minutesOf(current);
+  const change = nodes
+    ? changeLabel(total, minutesOf(cyclesIn(nodes, spans.before)))
+    : undefined;
+  const title = rangeTitle(choice, now, timeZone);
+  const atNow = choice.back === 0;
+  const averaged = choice.kind !== "today";
+  const days = averaged ? daysUpToNow(range, now, timeZone) : 1;
+  const hours = minutesByHour(current, timeZone, days);
+
+  const pick = (kind: RangeKind) =>
+    setChoice({
+      kind,
+      back: 0,
+      custom:
+        kind === "custom"
+          ? {
+              from: localDateString(
+                new Date(now.getTime() - 6 * 24 * 3600_000),
+                timeZone,
+              ),
+              to: localDateString(now, timeZone),
+            }
+          : undefined,
+    });
 
   return (
-    <>
-      <PageHeader
-        framed
-        middle={nav}
-        end={headerEnd}
-        onOpenHome={onOpenHome}
-        homeLabel={homeLabel}
+    <div className="tasks-page report-page" data-surface="page">
+      <ScreenHeader
+        now={now}
+        timeZone={timeZone}
+        email={email}
+        current="report"
+        onOpenHome={onOpenStart}
+        onOpenTasks={onOpenTasks}
+        onOpenReport={() => {}}
+        onOpenSettings={onOpenSettings}
+        onSignOut={onSignOut}
+        timer={session?.timer}
+        homeLabel={session?.homeLabel}
       />
-      <div className="report">
+      <main className="report-main">
         <div className="report-head">
           <div className="report-title">
-            <h2 className="title report-heading">
-              {PERIODS.find(([key]) => key === choice)?.[1]}
-            </h2>
-            <span className="muted">
-              {range ? rangeLabel(range, timeZone) : "All time"}
-              {report && ` · ${report.loggedCycles} cycles`}
-            </span>
-          </div>
-          <div className="report-controls">
-            {choice === "custom" && (
-              <span className="report-dates">
-                <label className="field">
-                  <span className="label">From</span>
-                  <input
-                    className="text-input"
-                    type="date"
-                    value={from}
-                    max={to}
-                    onChange={(event) => setFrom(event.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  <span className="label">To</span>
-                  <input
-                    className="text-input"
-                    type="date"
-                    value={to}
-                    min={from}
-                    onChange={(event) => setTo(event.target.value)}
-                  />
-                </label>
+            <div className="report-title-line">
+              <h1 className="report-heading">{title.title}</h1>
+              <span className="report-dot" aria-hidden="true">
+                ·
               </span>
-            )}
-            <div className="segmented" role="group" aria-label="Period">
-              {PERIODS.map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  aria-pressed={choice === key}
-                  onClick={() => setChoice(key)}
+              <span className="report-total" aria-label="Total">
+                {nodes ? formatMinutes(total) : "—"}
+              </span>
+              {change && (
+                <span
+                  className="report-change"
+                  data-sign={
+                    change.startsWith("+")
+                      ? "up"
+                      : change.startsWith("−")
+                        ? "down"
+                        : "same"
+                  }
+                  aria-label={`Change against the range before: ${change}`}
                 >
-                  {label}
+                  {change}
+                </span>
+              )}
+              <span className="report-steps">
+                <button
+                  type="button"
+                  className="report-step"
+                  aria-label="Earlier"
+                  onClick={() =>
+                    setChoice({ ...choice, back: choice.back + 1 })
+                  }
+                >
+                  <Chevron direction="left" />
                 </button>
-              ))}
+                <button
+                  type="button"
+                  className="report-step"
+                  aria-label="Later"
+                  disabled={atNow}
+                  onClick={() =>
+                    setChoice({ ...choice, back: choice.back - 1 })
+                  }
+                >
+                  <Chevron direction="right" />
+                </button>
+              </span>
             </div>
+            <span className="report-dates">{title.dates}</span>
+          </div>
+          <div className="report-kinds" role="group" aria-label="Range">
+            {KINDS.map(([kind, label]) => (
+              <button
+                key={kind}
+                type="button"
+                aria-pressed={choice.kind === kind}
+                onClick={() => pick(kind)}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
+        {choice.kind === "custom" && choice.custom && (
+          <div className="report-custom">
+            <label>
+              <span>From</span>
+              <input
+                type="date"
+                value={choice.custom.from}
+                max={choice.custom.to}
+                onChange={(event) =>
+                  event.target.value &&
+                  setChoice({
+                    kind: "custom",
+                    back: 0,
+                    custom: {
+                      from: event.target.value,
+                      to: choice.custom?.to ?? event.target.value,
+                    },
+                  })
+                }
+              />
+            </label>
+            <label>
+              <span>To</span>
+              <input
+                type="date"
+                value={choice.custom.to}
+                min={choice.custom.from}
+                onChange={(event) =>
+                  event.target.value &&
+                  setChoice({
+                    kind: "custom",
+                    back: 0,
+                    custom: {
+                      from: choice.custom?.from ?? event.target.value,
+                      to: event.target.value,
+                    },
+                  })
+                }
+              />
+            </label>
+          </div>
+        )}
         {error && (
           <p className="alert" role="alert">
             {error}
           </p>
         )}
-        {report && (
-          <>
-            <div className="report-grid">
-              <section className="report-block" aria-labelledby="by-mode">
-                <h3 id="by-mode" className="label report-block-head">
-                  By mode
-                </h3>
-                <p className="report-total mono">
-                  {formatMinutes(report.grand.minutes)}
-                </p>
-                <ul className="mode-bars">
-                  {LOGGED_MODES.map((mode) => (
-                    <li key={mode} data-mode={modeKey(mode)}>
-                      <span className="mode-bars-head">
-                        <span className="mode-row-name">
-                          {MODE_NAMES[mode]}
-                        </span>
-                        <span className="mono">
-                          {formatMinutes(report.grand.minutesByMode[mode])} ·{" "}
-                          {share(
-                            report.grand.minutesByMode[mode],
-                            report.grand.minutes,
-                          )}
-                        </span>
-                      </span>
-                      <span className="mode-bars-track" aria-hidden="true">
-                        <span
-                          style={{
-                            width: share(
-                              report.grand.minutesByMode[mode],
-                              report.grand.minutes,
-                            ),
-                          }}
-                        />
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              <section className="report-block" aria-labelledby="estimated">
-                <h3 id="estimated" className="label report-block-head">
-                  Estimated against actual
-                </h3>
-                {report.estimates.length === 0 ? (
-                  <p className="note">
-                    No node with an estimate has cycles here.
-                  </p>
-                ) : (
-                  <table className="report-table" aria-labelledby="estimated">
-                    <thead>
-                      <tr>
-                        <th scope="col">Node</th>
-                        <th scope="col">Est</th>
-                        <th scope="col">Done</th>
-                        <th scope="col">Diff</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {report.estimates.map((row) => (
-                        <tr key={row.nodeId}>
-                          <th scope="row">
-                            {row.path.length > 0 && (
-                              <span className="muted">
-                                {row.path.join(" / ")} /{" "}
-                              </span>
-                            )}
-                            {row.name}
-                          </th>
-                          <td>{row.estimatedCycles}</td>
-                          <td>{row.doneCycles}</td>
-                          <td className="strong">
-                            {percentDifference(
-                              row.estimatedCycles,
-                              row.doneCycles,
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-                <p className="note">
-                  Cycles logged on each node itself in this period, against its
-                  own estimate.
-                </p>
-              </section>
-
-              <section className="report-block" aria-labelledby="planned">
-                <h3 id="planned" className="label report-block-head">
-                  Planned against actual
-                </h3>
-                <table className="report-table" aria-labelledby="planned">
-                  <thead>
-                    <tr>
-                      <th scope="col">Mode</th>
-                      <th scope="col">Cycles</th>
-                      <th scope="col">Planned</th>
-                      <th scope="col">Actual</th>
-                      <th scope="col">Diff</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {LOGGED_MODES.map((mode) => {
-                      const row = report.plannedVsActual[mode];
-                      return (
-                        <tr key={mode}>
-                          <th scope="row">{MODE_NAMES[mode]}</th>
-                          <td>{row.doneCycles}</td>
-                          <td>{formatMinutes(row.plannedMinutes)}</td>
-                          <td>{formatMinutes(row.minutes)}</td>
-                          <td className="strong">
-                            {percentDifference(
-                              row.plannedMinutes,
-                              row.minutes,
-                            ) ?? "—"}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-                <p className="note">
-                  The length chosen at Start against the minutes logged.
-                </p>
-              </section>
+        <section
+          className="task-card report-wide"
+          aria-labelledby="report-when"
+        >
+          <div className="task-card-head">
+            <h2 id="report-when" className="task-card-title">
+              When you focus
+            </h2>
+            <ModeLegend />
+          </div>
+          {total === 0 ? (
+            <p className="task-card-empty">No cycles in this range.</p>
+          ) : (
+            <>
+              <p className="report-peak">{peakLine(hours, averaged)}</p>
+              <FocusCurves hours={hours} />
+            </>
+          )}
+        </section>
+        <div className="report-row">
+          <section className="task-card" aria-labelledby="report-kind">
+            <div className="task-card-head">
+              <h2 id="report-kind" className="task-card-title">
+                Kind of focus
+              </h2>
             </div>
-
-            <CrossTab report={report} />
-
-            <p className="report-foot note">
-              Closed nodes are included. A moved node counts under its new
-              parent for every period.
-            </p>
-          </>
-        )}
-      </div>
-    </>
+            {total === 0 ? (
+              <p className="task-card-empty">No cycles in this range.</p>
+            ) : (
+              <ul className="report-kind-list">
+                {kindOfFocus(current).map((share) => (
+                  <li key={share.mode} data-mode={modeKey(share.mode)}>
+                    <span className="estimate-mode-bar" aria-hidden="true" />
+                    <span className="report-kind-name">
+                      {MODE_NAMES[share.mode]}
+                    </span>
+                    <span className="report-kind-minutes">
+                      {formatMinutes(share.minutes)}
+                    </span>
+                    <span className="report-kind-percent">
+                      {share.percent}%
+                    </span>
+                    <span className="report-kind-track" aria-hidden="true">
+                      <span style={{ width: `${share.percent}%` }} />
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section className="task-card" aria-labelledby="report-where">
+            <div className="task-card-head">
+              <h2 id="report-where" className="task-card-title">
+                Where it went
+              </h2>
+            </div>
+            {total === 0 || !nodes ? (
+              <p className="task-card-empty">No cycles in this range.</p>
+            ) : (
+              <WhereItWent nodes={nodes} current={current} />
+            )}
+          </section>
+        </div>
+      </main>
+    </div>
   );
 }
 
-function CrossTab({ report }: { report: ReturnType<typeof buildReport> }) {
-  const [open, setOpen] = useState<Set<string>>(new Set());
-  const toggle = (nodeId: string) =>
-    setOpen((current) => {
-      const next = new Set(current);
-      if (next.has(nodeId)) next.delete(nodeId);
-      else next.add(nodeId);
-      return next;
-    });
-  const visible = (rows: readonly CrossTabRow[]): CrossTabRow[] =>
-    rows.flatMap((row) => [
-      row,
-      ...(open.has(row.nodeId) ? visible(row.children) : []),
-    ]);
-
-  return (
-    <section className="crosstab" aria-labelledby="crosstab-heading">
-      <div className="crosstab-head">
-        <h3 id="crosstab-heading" className="title crosstab-title">
-          Node × mode
-        </h3>
-        <span className="note">Minutes. Rows roll up their children.</span>
-      </div>
-      <table
-        className="report-table crosstab-table"
-        aria-labelledby="crosstab-heading"
-      >
-        <thead>
-          <tr>
-            <th scope="col">Node</th>
-            {LOGGED_MODES.map((mode) => (
-              <th key={mode} scope="col" data-mode={modeKey(mode)}>
-                <span className="crosstab-bar" aria-hidden="true" />
-                {MODE_NAMES[mode]}
-              </th>
-            ))}
-            <th scope="col">Total</th>
-            <th scope="col">Share</th>
-          </tr>
-        </thead>
-        <tbody>
-          {visible(report.rows).map((row) => (
-            <CrossTabLine
-              key={row.nodeId}
-              label={
-                <span
-                  className="crosstab-node"
-                  style={{ "--depth": row.depth } as CSSProperties}
-                >
-                  {row.children.length > 0 ? (
-                    <button
-                      type="button"
-                      className="crosstab-toggle"
-                      aria-expanded={open.has(row.nodeId)}
-                      onClick={() => toggle(row.nodeId)}
-                    >
-                      {row.name}
-                    </button>
-                  ) : (
-                    row.name
-                  )}
-                  {row.closed && <span className="hint"> closed</span>}
-                </span>
-              }
-              totals={row.totals}
-              grand={report.grand.minutes}
-            />
-          ))}
-          <CrossTabLine
-            label="Inbox"
-            totals={report.inbox}
-            grand={report.grand.minutes}
-          />
-          <CrossTabLine
-            label="All"
-            totals={report.grand}
-            grand={report.grand.minutes}
-            strong
-          />
-        </tbody>
-      </table>
-    </section>
-  );
-}
-
-function CrossTabLine({
-  label,
-  totals,
-  grand,
-  strong = false,
+function WhereItWent({
+  nodes,
+  current,
 }: {
-  label: ReactNode;
-  totals: Totals;
-  grand: number;
-  strong?: boolean;
+  nodes: readonly NodePb[];
+  current: ReturnType<typeof cyclesIn>;
 }) {
+  const parts = whereItWent(nodes, current);
   return (
-    <tr className={strong ? "crosstab-total" : undefined}>
-      <th scope="row">{label}</th>
-      {LOGGED_MODES.map((mode) => (
-        <td key={mode} data-empty={totals.minutesByMode[mode] === 0}>
-          {totals.minutesByMode[mode] === 0 ? "—" : totals.minutesByMode[mode]}
-        </td>
-      ))}
-      <td>{totals.minutes}</td>
-      <td className="muted">{share(totals.minutes, grand)}</td>
-    </tr>
+    <SplitRing
+      parts={parts}
+      label="Time split across your tasks"
+      caption={`${parts.length} ${parts.length === 1 ? "task" : "tasks"}`}
+      showModes
+    />
   );
 }
 
-function rangeFor(
-  choice: PeriodChoice,
-  from: string,
-  to: string,
-  timeZone: string,
-): TimeRange | undefined {
-  const now = new Date();
-  switch (choice) {
-    case "week":
-      return weekRange(now, timeZone);
-    case "lastWeek":
-      return lastWeekRange(now, timeZone);
-    case "month":
-      return monthRange(now, timeZone);
-    case "custom":
-      return dateSpanRange(
-        from <= to ? from : to,
-        from <= to ? to : from,
-        timeZone,
-      );
-    case "all":
-      return undefined;
-  }
+function ModeLegend() {
+  return (
+    <span className="report-legend">
+      {Object.entries(MODE_NAMES).map(([mode, name]) => (
+        <span
+          key={mode}
+          data-mode={modeKey(Number(mode) as keyof typeof MODE_NAMES)}
+        >
+          <span className="estimate-mode-bar" aria-hidden="true" />
+          {name}
+        </span>
+      ))}
+    </span>
+  );
 }
 
-/** "26 Oct – 1 Nov", from the first to the last local day of the range. */
-function rangeLabel(range: TimeRange, timeZone: string): string {
-  const lastDay = new Date(range.end.getTime() - 1);
-  return `${formatShortDate(range.start, timeZone)} – ${formatShortDate(lastDay, timeZone)}`;
+function Chevron({ direction }: { direction: "left" | "right" }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 14 14"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d={direction === "left" ? "M8.5 3L4.5 7l4 4" : "M5.5 3l4 4-4 4"} />
+    </svg>
+  );
 }

@@ -12,6 +12,7 @@ import "./styles/modeScreen.css";
 import "./styles/tasksPage.css";
 import "./styles/taskPage.css";
 import "./styles/settingsPage.css";
+import "./styles/report.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
