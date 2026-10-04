@@ -172,7 +172,7 @@
 
   /* Fonts (theming.md, "Fonts"). A component never names a font family. */
   --font-ui: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --font-display: Newsreader, Georgia, serif;
+  --font-display: "Newsreader Variable", Newsreader, Georgia, serif;
   --font-figures: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   /* The timer digits and the main button (README rule 8). The app bundles Nunito. */
   --font-timer: "Nunito", system-ui, sans-serif;

@@ -199,7 +199,7 @@
 .start-mode-name {
   font-family: var(--font-display);
   font-size: 40px;
-  font-weight: 300;
+  font-weight: 400;
   line-height: 1.05;
 }
 .start-mode[aria-checked="true"] .start-mode-name {
