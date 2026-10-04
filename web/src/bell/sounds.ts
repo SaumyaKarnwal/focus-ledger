@@ -9,6 +9,8 @@ export type SoundContext = Pick<
 type Partial = { ratio: number; level: number; decaySeconds: number };
 
 type Voice = {
+  /** The time from one ring to the next when the bell repeats. */
+  repeatSeconds: number;
   baseHz: number;
   wave: OscillatorType;
   attackSeconds: number;
@@ -19,6 +21,7 @@ type Voice = {
 // bowl are inharmonic, as on a real singing bowl.
 const VOICES: Record<BellSound, Voice> = {
   bowl: {
+    repeatSeconds: 2.5,
     baseHz: 220,
     wave: "sine",
     attackSeconds: 0.02,
@@ -30,6 +33,7 @@ const VOICES: Record<BellSound, Voice> = {
     ],
   },
   wood: {
+    repeatSeconds: 0.45,
     baseHz: 760,
     wave: "triangle",
     attackSeconds: 0.002,
@@ -40,6 +44,7 @@ const VOICES: Record<BellSound, Voice> = {
     ],
   },
   chime: {
+    repeatSeconds: 1.3,
     baseHz: 880,
     wave: "sine",
     attackSeconds: 0.005,
@@ -62,6 +67,7 @@ export function playSound(
   sound: BellSound,
   volume: number,
   at = context.currentTime,
+  output: AudioNode = context.destination,
 ): number {
   const voice = VOICES[sound];
   if (volume <= 0) return 0;
@@ -79,10 +85,38 @@ export function playSound(
       gain.gain.linearRampToValueAtTime(partial.level * scale, peakAt);
       gain.gain.exponentialRampToValueAtTime(SILENCE, endAt);
       oscillator.connect(gain);
-      gain.connect(context.destination);
+      gain.connect(output);
       oscillator.start(at);
       oscillator.stop(endAt + 0.05);
       return endAt - at;
     }),
   );
+}
+
+/** A sound that can still be stopped. */
+export type Playing = { stop: () => void };
+
+/**
+ * Rings `times` times, one ring after another. All rings go through one gain
+ * node, so `stop` silences the rest at once.
+ */
+export function playRings(
+  context: SoundContext,
+  sound: BellSound,
+  volume: number,
+  times: number,
+): Playing {
+  const master = context.createGain();
+  master.connect(context.destination);
+  const start = context.currentTime;
+  Array.from({ length: Math.max(0, times) }).forEach((_, index) =>
+    playSound(
+      context,
+      sound,
+      volume,
+      start + index * VOICES[sound].repeatSeconds,
+      master,
+    ),
+  );
+  return { stop: () => master.disconnect() };
 }

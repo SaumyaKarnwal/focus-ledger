@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { LedgerClient } from "../api/ledgerClient";
 import { withRetry } from "../api/retry";
 import { type BellDeps, unlockAudio } from "../bell/bell";
+import type { Playing } from "../bell/sounds";
 import { FocusMode } from "../gen/focusledger/v1/model_pb";
 import type { LoggedMode } from "../ledger/rollup";
 import { modeKey } from "../modes/modes";
@@ -11,6 +12,9 @@ import { stepWithin } from "../tree/estimateModel";
 import { useNow } from "../useNow";
 import {
   type BellSound,
+  FOCUS_SOUNDS,
+  type FocusSound,
+  RING_TIMES,
   LONG_BREAK_EVERY,
   LONG_BREAK_LENGTH,
   type LocalSettings,
@@ -31,6 +35,17 @@ const MODE_FIELDS: readonly [LoggedMode, keyof SettingsForm][] = [
   [FocusMode.EXECUTION, "executionMinutes"],
   [FocusMode.SHALLOW, "shallowMinutes"],
 ];
+
+/** How long a focus sound chip plays its sound. */
+const FOCUS_PREVIEW_MS = 3000;
+
+const FOCUS_NAMES: Record<FocusSound, string> = {
+  none: "None",
+  "tick-fast": "Ticking fast",
+  "tick-slow": "Ticking slow",
+  "white-noise": "White noise",
+  "brown-noise": "Brown noise",
+};
 
 const SOUND_NAMES: Record<BellSound, string> = {
   bowl: "Bowl",
@@ -136,6 +151,30 @@ export function SettingsPage({
           : "The browser blocks notifications for this site. Allow them in the browser settings, then turn this on.",
       );
     }
+  };
+
+  // A focus sound chip plays its sound for a few seconds. A new preview, or
+  // leaving the page, stops the one before.
+  const preview = useRef<{
+    playing: Playing;
+    timer: ReturnType<typeof setTimeout>;
+  }>(undefined);
+  const stopPreview = useCallback(() => {
+    if (!preview.current) return;
+    clearTimeout(preview.current.timer);
+    preview.current.playing.stop();
+    preview.current = undefined;
+  }, []);
+  useEffect(() => stopPreview, [stopPreview]);
+  const previewFocus = (sound: FocusSound, volume: number) => {
+    stopPreview();
+    if (sound === "none") return;
+    unlockAudio();
+    const playing = bell.focus(sound, volume);
+    preview.current = {
+      playing,
+      timer: setTimeout(stopPreview, FOCUS_PREVIEW_MS),
+    };
   };
 
   const changeLocal = (next: Partial<LocalSettings>) => {
@@ -248,8 +287,7 @@ export function SettingsPage({
           <div className="settings-card-head">
             <h2 id="settings-bell">The bell</h2>
             <p>
-              Plays once, when a cycle or break runs out. Nothing starts on its
-              own.
+              Plays when a cycle or break runs out. Nothing starts on its own.
             </p>
           </div>
           <SettingRow label="Sound" labelId="settings-sound">
@@ -268,7 +306,7 @@ export function SettingsPage({
                   onClick={() => {
                     // The click is a user gesture, so the preview may play.
                     unlockAudio();
-                    bell.play(sound, local.volume);
+                    bell.play(sound, local.volume, 1);
                     changeLocal({ sound });
                     if (!form.soundEnabled) change({ soundEnabled: true });
                   }}
@@ -291,26 +329,29 @@ export function SettingsPage({
               </button>
             </span>
           </SettingRow>
+          <SettingRow label="Ring" labelId="settings-ring-times">
+            <Stepper
+              label="Ring times"
+              value={local.ringTimes}
+              unit="times"
+              narrow
+              onStep={(sign) =>
+                changeLocal({
+                  ringTimes: stepWithin(
+                    local.ringTimes,
+                    sign * RING_TIMES.step,
+                    RING_TIMES,
+                  ),
+                })
+              }
+            />
+          </SettingRow>
           <SettingRow label="Volume" labelId="settings-volume">
-            <span className="settings-volume">
-              <SpeakerIcon />
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                aria-labelledby="settings-volume"
-                value={Math.round(local.volume * 100)}
-                style={
-                  {
-                    "--fill": `${Math.round(local.volume * 100)}%`,
-                  } as React.CSSProperties
-                }
-                onChange={(event) =>
-                  changeLocal({ volume: Number(event.target.value) / 100 })
-                }
-              />
-            </span>
+            <VolumeSlider
+              labelId="settings-volume"
+              value={local.volume}
+              onChange={(volume) => changeLocal({ volume })}
+            />
           </SettingRow>
           <SettingRow
             label="Show a notification when it rings"
@@ -330,6 +371,43 @@ export function SettingsPage({
               onToggle={() =>
                 changeLocal({ ringWhenBreakEnds: !local.ringWhenBreakEnds })
               }
+            />
+          </SettingRow>
+        </section>
+        <section className="settings-card" aria-labelledby="settings-focus">
+          <div className="settings-card-head">
+            <h2 id="settings-focus">Focus sound</h2>
+            <p>Plays only while a cycle runs.</p>
+          </div>
+          <SettingRow label="Sound" labelId="settings-focus-sound">
+            <span
+              className="settings-chips"
+              role="radiogroup"
+              aria-labelledby="settings-focus-sound"
+            >
+              {FOCUS_SOUNDS.map((sound) => (
+                <button
+                  key={sound}
+                  type="button"
+                  role="radio"
+                  aria-checked={local.focusSound === sound}
+                  className="settings-chip"
+                  onClick={() => {
+                    previewFocus(sound, local.focusVolume);
+                    changeLocal({ focusSound: sound });
+                  }}
+                >
+                  {sound !== "none" && <PlayIcon />}
+                  {FOCUS_NAMES[sound]}
+                </button>
+              ))}
+            </span>
+          </SettingRow>
+          <SettingRow label="Volume" labelId="settings-focus-volume">
+            <VolumeSlider
+              labelId="settings-focus settings-focus-volume"
+              value={local.focusVolume}
+              onChange={(focusVolume) => changeLocal({ focusVolume })}
             />
           </SettingRow>
         </section>
@@ -406,12 +484,37 @@ function Stepper({
           +
         </button>
       </span>
-      <span
-        className="settings-unit"
-        data-wide={unit === "cycles" || undefined}
-      >
+      <span className="settings-unit" data-wide={unit !== "min" || undefined}>
         {unit}
       </span>
+    </span>
+  );
+}
+
+function VolumeSlider({
+  labelId,
+  value,
+  onChange,
+}: {
+  /** One or more element IDs, as aria-labelledby takes them. */
+  labelId: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  const percent = Math.round(value * 100);
+  return (
+    <span className="settings-volume">
+      <SpeakerIcon />
+      <input
+        type="range"
+        min={0}
+        max={100}
+        step={1}
+        aria-labelledby={labelId}
+        value={percent}
+        style={{ "--fill": `${percent}%` } as React.CSSProperties}
+        onChange={(event) => onChange(Number(event.target.value) / 100)}
+      />
     </span>
   );
 }

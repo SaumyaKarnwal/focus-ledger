@@ -56,7 +56,7 @@ function ring(
 describe("Bell rules", () => {
   test("ring_cycle_playsTheChosenSoundAtTheVolume", () => {
     expect(ring("cycle", ON, { sound: "wood", volume: 0.4 }).played).toEqual([
-      ["wood", 0.4],
+      ["wood", 0.4, 3],
     ]);
   });
 
@@ -70,7 +70,7 @@ describe("Bell rules", () => {
 
   test("ring_breakEnds_playsOnlyWithTheSwitchOn", () => {
     expect(ring("break", ON, { ringWhenBreakEnds: true }).played).toEqual([
-      ["bowl", 0.7],
+      ["bowl", 0.7, 3],
     ]);
     expect(ring("break", ON, { ringWhenBreakEnds: false }).played).toEqual([]);
   });
@@ -190,7 +190,7 @@ async function advance(ms: number) {
 }
 
 describe("Bell in the app", () => {
-  test("cycleRunsOut_ringsOnce", async () => {
+  test("cycleRunsOut_ringsTheSetNumberOfTimes", async () => {
     const bell = renderApp(
       recordingClient(exampleNodesWithNothingRunning()).client,
     );
@@ -199,7 +199,7 @@ describe("Bell in the app", () => {
     await advance(25 * MINUTE_MS + 1000);
     await screen.findByText("25 min logged");
 
-    expect(bell.played).toEqual([["bowl", 0.7]]);
+    expect(bell.played).toEqual([["bowl", 0.7, 3]]);
   });
 
   test("stopByHand_ringsNothing", async () => {
@@ -248,7 +248,7 @@ describe("Bell in the app", () => {
     await advance(5 * MINUTE_MS + 1000);
     await screen.findByText("6 min logged");
 
-    expect(bell.played).toEqual([["bowl", 0.7]]);
+    expect(bell.played).toEqual([["bowl", 0.7, 3]]);
   });
 
   async function startBreak(bell: ReturnType<typeof fakeBell>) {
@@ -268,7 +268,7 @@ describe("Bell in the app", () => {
     await advance(5 * MINUTE_MS + 1000);
     await screen.findByRole("button", { name: "Start" });
 
-    expect(bell.played).toEqual([["bowl", 0.7]]);
+    expect(bell.played).toEqual([["bowl", 0.7, 3]]);
   });
 
   test("breakRunsOut_switchOff_ringsNothing", async () => {
@@ -327,7 +327,7 @@ describe("Bell in Settings", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Wood" }));
     fireEvent.click(screen.getByRole("radio", { name: "Silent" }));
 
-    expect(bell.played).toEqual([["wood", 0.7]]);
+    expect(bell.played).toEqual([["wood", 0.7, 1]]);
   });
 
   test("settings_notificationsOn_asksThenTurnsOn", async () => {

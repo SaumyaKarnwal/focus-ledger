@@ -11,6 +11,7 @@ import {
   unlockAudio,
 } from "./bell/bell";
 import { longBreakDue } from "./bell/rhythm";
+import type { Playing } from "./bell/sounds";
 import { BellScreen } from "./cycle/BellScreen";
 import { BreakScreen, type ComingBackTo } from "./cycle/BreakScreen";
 import { ExtensionScreen } from "./cycle/ExtensionScreen";
@@ -217,11 +218,21 @@ export function App({
     return node;
   };
 
+  // The rings still to come. Any click or key press stops them.
+  const ringing = useRef<Playing>(undefined);
+  const stopRinging = () => {
+    // The first click after a reload also lets the browser start audio.
+    unlockAudio();
+    ringing.current?.stop();
+    ringing.current = undefined;
+  };
+
   const ring = (event: BellEvent, cycle?: CyclePb) => {
     if (!data) return;
+    ringing.current?.stop();
     const mode = cycle ? MODE_NAMES[cycle.mode as LoggedMode] : "Break";
     const task = cycle ? cycleContext(data, cycle).nodeName : "";
-    ringBell(
+    ringing.current = ringBell(
       event,
       data.settings,
       loadLocalSettings(),
@@ -373,7 +384,11 @@ export function App({
   const firstRun = screen.kind === "today" && data && isFirstRun(data);
 
   return (
-    <div className="app">
+    <div
+      className="app"
+      onPointerDownCapture={stopRinging}
+      onKeyDownCapture={stopRinging}
+    >
       {screen.kind === "signIn" && (
         <SignInScreen
           method={signInMethod}
@@ -494,6 +509,7 @@ export function App({
             timeZone={timeZone}
             busy={busy}
             onStop={stop}
+            bell={bell}
             onSignOut={signOut}
           />
         </>
@@ -533,6 +549,7 @@ export function App({
             timeZone={timeZone}
             busy={busy}
             onStop={stopExtension}
+            bell={bell}
             onSignOut={signOut}
           />
         </>

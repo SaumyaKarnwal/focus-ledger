@@ -10,6 +10,8 @@ import {
   ModeScreenFrame,
   ScreenClock,
 } from "../start/ModeScreenFrame";
+import type { BellDeps } from "../bell/bell";
+import { useFocusSound } from "../bell/useFocusSound";
 import { useNow } from "../useNow";
 import {
   type Extension,
@@ -31,6 +33,7 @@ type Props = {
   busy: boolean;
   onStop: (totalMinutes: number, ranOut?: boolean) => void;
   onSignOut: () => void;
+  bell: BellDeps;
 };
 
 /** The countdown of an extension from the bell. It has the layout of the running screen. */
@@ -44,10 +47,12 @@ export function ExtensionScreen({
   busy,
   onStop,
   onSignOut,
+  bell,
 }: Props) {
   const now = useNow();
   const remaining = extensionRemainingMs(extension, now);
   const total = extensionTotalMinutes(extension, now);
+  useFocusSound(remaining > 0, bell);
   const endHandled = useRef(false);
 
   useEffect(() => {
