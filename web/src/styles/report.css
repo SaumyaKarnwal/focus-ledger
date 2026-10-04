@@ -424,3 +424,27 @@
 .report-year-scale .report-year-day {
   width: 11px;
 }
+
+/* Your year: the card for a day (polish rule 4) */
+.report-year-frame {
+  position: relative;
+}
+.report-year:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 4px;
+  border-radius: 4px;
+}
+.report-year-day[data-active] {
+  outline: 2px solid var(--ink-strong);
+  outline-offset: 1px;
+}
+.report-year-tip {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  gap: 10px;
+  width: max-content;
+  padding: 8px 12px;
+  transform: translate(-50%, calc(-100% - 8px));
+  pointer-events: none;
+}

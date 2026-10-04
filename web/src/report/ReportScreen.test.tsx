@@ -229,6 +229,35 @@ describe("Report v2 (boards R-Report-*)", () => {
     expect(finished.querySelectorAll(".report-mark")).toHaveLength(0);
   });
 
+  test("report_year_hoverATapAndTheKeyboardShowTheDaysCard", async () => {
+    await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
+    const year = await screen.findByRole("region", { name: "Your year" });
+    const status = within(year).getByRole("status");
+    const day = (date: string) =>
+      year.querySelector(`[data-date="${date}"]`) as HTMLElement;
+
+    // Sunday 1 November 2026 is today in the example.
+    fireEvent.mouseEnter(day("2026-10-31"));
+    expect(status.textContent).toMatch(/^Sat 31 Oct · /);
+    fireEvent.mouseLeave(day("2026-10-31"));
+    expect(status.textContent).toBe("");
+
+    fireEvent.click(day("2026-01-05"));
+    expect(status.textContent).toBe("Mon 5 Jan · No focus");
+    fireEvent.click(day("2026-01-05"));
+    expect(status.textContent).toBe("");
+
+    const grid = within(year).getByRole("group");
+    fireEvent.focus(grid);
+    expect(status.textContent).toMatch(/^Sun 1 Nov · /);
+    fireEvent.keyDown(grid, { key: "ArrowLeft" });
+    expect(status.textContent).toMatch(/^Sun 25 Oct · /);
+    fireEvent.keyDown(grid, { key: "ArrowUp" });
+    expect(status.textContent).toMatch(/^Sat 24 Oct · /);
+    fireEvent.blur(grid);
+    expect(status.textContent).toBe("");
+  });
+
   test("report_smallCard_followsTheRange", async () => {
     await openReport(recordingClient(exampleNodesWithNothingRunning()).client);
 

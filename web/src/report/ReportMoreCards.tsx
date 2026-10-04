@@ -167,6 +167,26 @@ export function BarsCard({
 
 /** Your year: always the last twelve months; the only place with a streak. */
 export function YearCard({ year }: { year: Year }) {
+  const days = year.weeks.flat().filter((day) => day !== undefined);
+  const [active, setActive] = useState<string>();
+  const [place, setPlace] = useState<{ left: number; top: number }>();
+  const activeDay = days.find((day) => day.date === active);
+  const show = (date: string | undefined, cell?: HTMLElement | null) => {
+    setActive(date);
+    setPlace(
+      cell
+        ? { left: cell.offsetLeft + cell.offsetWidth / 2, top: cell.offsetTop }
+        : undefined,
+    );
+  };
+  const cellOf = (grid: HTMLElement, date: string) =>
+    grid.querySelector<HTMLElement>(`[data-date="${date}"]`);
+  // The arrow keys move a week left or right, or a day up or down.
+  const moveBy = (grid: HTMLElement, steps: number) => {
+    const index = days.findIndex((day) => day.date === active);
+    const next = days[Math.min(days.length - 1, Math.max(0, index + steps))];
+    show(next.date, cellOf(grid, next.date));
+  };
   return (
     <section className="task-card report-wide" aria-labelledby="report-year">
       <div className="task-card-head">
@@ -180,47 +200,92 @@ export function YearCard({ year }: { year: Year }) {
           </span>
         </span>
       </div>
-      <div
-        className="report-year"
-        role="img"
-        aria-label={`${year.daysWithFocus} days with focus since ${year.since}`}
-        style={{
-          gridTemplateColumns: `28px repeat(${year.weeks.length}, minmax(0, 1fr))`,
-        }}
-      >
-        {["Mon", "Wed", "Fri"].map((name, index) => (
-          <span
-            key={name}
-            className="report-year-label"
-            style={{ gridColumn: 1, gridRow: 2 + index * 2 }}
-          >
-            {name}
-          </span>
-        ))}
-        {year.months.map((month, index) =>
-          month ? (
+      <div className="report-year-frame">
+        <div
+          className="report-year"
+          role="group"
+          tabIndex={0}
+          aria-label={`${year.daysWithFocus} days with focus since ${year.since}. Use the arrow keys to read each day.`}
+          style={{
+            gridTemplateColumns: `28px repeat(${year.weeks.length}, minmax(0, 1fr))`,
+          }}
+          onFocus={(event) => {
+            const today = days.at(-1);
+            if (!active && today)
+              show(today.date, cellOf(event.currentTarget, today.date));
+          }}
+          onBlur={() => show(undefined)}
+          onKeyDown={(event) => {
+            const steps = {
+              ArrowLeft: -7,
+              ArrowRight: 7,
+              ArrowUp: -1,
+              ArrowDown: 1,
+            }[event.key];
+            if (steps === undefined || !active) return;
+            event.preventDefault();
+            moveBy(event.currentTarget, steps);
+          }}
+        >
+          {["Mon", "Wed", "Fri"].map((name, index) => (
             <span
-              key={`month-${index}`}
+              key={name}
               className="report-year-label"
-              style={{ gridColumn: index + 2, gridRow: 1 }}
+              aria-hidden="true"
+              style={{ gridColumn: 1, gridRow: 2 + index * 2 }}
             >
-              {month}
+              {name}
             </span>
-          ) : null,
-        )}
-        {year.weeks.flatMap((week, index) =>
-          week.map((day, dayIndex) =>
-            day ? (
+          ))}
+          {year.months.map((month, index) =>
+            month ? (
               <span
-                key={day.date}
-                className="report-year-day"
-                data-level={day.level}
-                title={`${day.date}: ${formatMinutes(day.minutes)}`}
-                style={{ gridColumn: index + 2, gridRow: dayIndex + 2 }}
-              />
+                key={`month-${index}`}
+                className="report-year-label"
+                aria-hidden="true"
+                style={{ gridColumn: index + 2, gridRow: 1 }}
+              >
+                {month}
+              </span>
             ) : null,
-          ),
+          )}
+          {year.weeks.flatMap((week, index) =>
+            week.map((day, dayIndex) =>
+              day ? (
+                <span
+                  key={day.date}
+                  className="report-year-day"
+                  data-date={day.date}
+                  data-level={day.level}
+                  data-active={day.date === active || undefined}
+                  style={{ gridColumn: index + 2, gridRow: dayIndex + 2 }}
+                  onMouseEnter={(event) => show(day.date, event.currentTarget)}
+                  onMouseLeave={() => show(undefined)}
+                  onClick={(event) =>
+                    day.date === active
+                      ? show(undefined)
+                      : show(day.date, event.currentTarget)
+                  }
+                />
+              ) : null,
+            ),
+          )}
+        </div>
+        {activeDay && (
+          <div
+            className="split-tip report-year-tip"
+            aria-hidden="true"
+            style={place ? { left: place.left, top: place.top } : undefined}
+          >
+            <span className="split-tip-name">{dayLabel(activeDay.date)}</span>
+            <span className="split-minutes">{dayTotal(activeDay.minutes)}</span>
+          </div>
         )}
+        <span className="visually-hidden" role="status">
+          {activeDay
+            ? `${dayLabel(activeDay.date)} · ${dayTotal(activeDay.minutes)}`
+            : ""}
+        </span>
       </div>
       <div className="report-year-foot">
         <span>
@@ -236,4 +301,18 @@ export function YearCard({ year }: { year: Year }) {
       </div>
     </section>
   );
+}
+
+// "Tue 22 Sep", from a local date ("2026-09-22").
+function dayLabel(date: string): string {
+  const day = new Date(`${date}T12:00:00Z`);
+  const part = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat("en-US", { timeZone: "UTC", ...options }).format(
+      day,
+    );
+  return `${part({ weekday: "short" })} ${part({ day: "numeric" })} ${part({ month: "short" })}`;
+}
+
+function dayTotal(minutes: number): string {
+  return minutes === 0 ? "No focus" : formatMinutes(minutes);
 }
