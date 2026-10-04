@@ -160,7 +160,7 @@
   --font-display: Newsreader, Georgia, serif;
   --font-figures: "IBM Plex Mono", ui-monospace, Menlo, monospace;
   /* The timer digits and the main button (README rule 8). The app bundles Nunito. */
-  --font-timer: "Arial Rounded MT Bold", Nunito, ui-rounded, sans-serif;
-  --font-cta: "Arial Rounded MT Bold", Nunito, ui-rounded, sans-serif;
+  --font-timer: "Inter Tight", "Inter", system-ui, sans-serif;
+  --font-cta: Nunito, ui-rounded, sans-serif;
   color-scheme: light;
 }
