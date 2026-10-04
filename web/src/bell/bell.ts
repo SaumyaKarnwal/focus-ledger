@@ -1,6 +1,11 @@
 import type { SettingsPb } from "../gen/focusledger/v1/model_pb";
-import type { BellSound, LocalSettings } from "../settings/localSettings";
-import { playSound } from "./sounds";
+import type {
+  BellSound,
+  FocusSound,
+  LocalSettings,
+} from "../settings/localSettings";
+import { startFocusSound } from "./focusSound";
+import { type Playing, playRings } from "./sounds";
 
 /** A cycle ran out (the bell), or a break ran out. */
 export type BellEvent = "cycle" | "break";
@@ -9,7 +14,10 @@ export type NotificationState = NotificationPermission | "unsupported";
 
 /** The browser parts the bell uses. Tests pass their own. */
 export type BellDeps = {
-  play: (sound: BellSound, volume: number) => void;
+  /** Rings `times` times. The result stops the rings still to come. */
+  play: (sound: BellSound, volume: number, times: number) => Playing;
+  /** Loops a focus sound until it is stopped. */
+  focus: (sound: FocusSound, volume: number) => Playing;
   notify: (title: string, body: string) => void;
   isHidden: () => boolean;
   permission: () => NotificationState;
@@ -22,9 +30,10 @@ export type BellSettings = Pick<
 >;
 
 /**
- * Rings once. The sound follows Settings: Silent plays nothing, and a break
- * rings only with "Ring when a break ends". A cycle also shows a notification
- * when the tab is hidden and the browser allows it.
+ * Rings the bell "Ring N times" times. The sound follows Settings: Silent
+ * plays nothing, and a break rings only with "Ring when a break ends". A cycle
+ * also shows a notification when the tab is hidden and the browser allows it.
+ * Returns the rings, so that a click can stop the rest.
  */
 export function ringBell(
   event: BellEvent,
@@ -32,11 +41,12 @@ export function ringBell(
   local: LocalSettings,
   message: { title: string; body: string },
   deps: BellDeps,
-): void {
+): Playing | undefined {
   const ringsForEvent = event === "cycle" || local.ringWhenBreakEnds;
-  if (ringsForEvent && settings.soundEnabled && local.volume > 0) {
-    deps.play(local.sound, local.volume);
-  }
+  const rings =
+    ringsForEvent && settings.soundEnabled && local.volume > 0
+      ? deps.play(local.sound, local.volume, local.ringTimes)
+      : undefined;
   if (
     event === "cycle" &&
     settings.notificationsEnabled &&
@@ -45,7 +55,10 @@ export function ringBell(
   ) {
     deps.notify(message.title, message.body);
   }
+  return rings;
 }
+
+const NOTHING: Playing = { stop: () => undefined };
 
 let sharedContext: AudioContext | undefined;
 
@@ -64,9 +77,13 @@ export function unlockAudio(): void {
 }
 
 export const browserBell: BellDeps = {
-  play: (sound, volume) => {
+  play: (sound, volume, times) => {
     const context = audioContext();
-    if (context) playSound(context, sound, volume);
+    return context ? playRings(context, sound, volume, times) : NOTHING;
+  },
+  focus: (sound, volume) => {
+    const context = audioContext();
+    return context ? startFocusSound(context, sound, volume) : NOTHING;
   },
   notify: (title, body) => {
     if (typeof Notification !== "undefined") new Notification(title, { body });

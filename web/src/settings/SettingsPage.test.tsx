@@ -199,6 +199,9 @@ describe("Settings page", () => {
       sound: "wood",
       volume: 0.4,
       ringWhenBreakEnds: false,
+      ringTimes: 3,
+      focusSound: "none",
+      focusVolume: 0.4,
     });
     expect(checked("radio", "Wood")).toBe("true");
   });

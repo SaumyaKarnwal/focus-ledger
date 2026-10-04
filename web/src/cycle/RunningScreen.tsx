@@ -9,6 +9,8 @@ import {
   ScreenClock,
 } from "../start/ModeScreenFrame";
 import { MODE_NAMES } from "../today/todayModel";
+import type { BellDeps } from "../bell/bell";
+import { useFocusSound } from "../bell/useFocusSound";
 import { useNow } from "../useNow";
 import { loadPause, savePause } from "./pauseStore";
 import {
@@ -34,6 +36,7 @@ type Props = {
   /** `ranOut` is true when the clock reached zero: the bell rings then. */
   onStop: (minutes: number, ranOut?: boolean) => void;
   onSignOut: () => void;
+  bell: BellDeps;
 };
 
 /** The running cycle (board C-Desk-Run): the clock, PAUSE, and Stop and log. */
@@ -46,6 +49,7 @@ export function RunningScreen({
   busy,
   onStop,
   onSignOut,
+  bell,
 }: Props) {
   const now = useNow();
   // The server knows nothing of a pause. Browser storage keeps it over a reload.
@@ -61,6 +65,7 @@ export function RunningScreen({
   const ended = !isPaused && hasEnded(cycle, now, paused);
   const tooLong = pauseTooLong(pause, now);
   const minutes = minutesToLog(cycle, now, paused);
+  useFocusSound(!isPaused && !ended, bell);
   const endHandled = useRef(false);
 
   useEffect(() => {
