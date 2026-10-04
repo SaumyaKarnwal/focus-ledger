@@ -40,8 +40,8 @@ async function expectMatchedPair(
   const unit = first.width / 230;
 
   expect(first.height).toBeCloseTo(Math.max(40, 72 * unit), 0);
-  expect(second.width).toBeCloseTo(238 * unit, 0);
-  expect(second.height).toBeCloseTo(Math.max(40, 78 * unit), 0);
+  expect(second.width).toBeCloseTo(234 * unit, 0);
+  expect(second.height).toBeCloseTo(Math.max(40, 75 * unit), 0);
   expect(second.y + second.height / 2).toBeCloseTo(
     first.y + first.height / 2,
     0,
