@@ -610,11 +610,11 @@
   opacity: 0.3;
 }
 /* The card sits beside the bar, so the bar stays in view: right of it, or left of the last bars. */
-.days-tip {
+.bar-tip {
   top: 0;
   width: 200px;
   transform: translateX(42px);
 }
-.days-tip[data-edge="end"] {
+.bar-tip[data-edge="end"] {
   transform: translateX(calc(-100% - 42px));
 }
