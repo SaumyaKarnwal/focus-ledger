@@ -50,5 +50,8 @@ Report is not designed yet. The header shows it, but the link stays inert. The o
    Auto start, auto check, themes, and other settings are not in this release.
 
    The numbers on the boards (60, 45, 30) are sample values. The defaults stay as in `prd.md`.
-7. No color literal outside the theme files. See [`../theming.md`](../theming.md).
-8. Deploy only after Settings and all screens above are merged. Report is not needed for the first release.
+7. **Navigation while a cycle runs or a break counts down.** The header links work on every screen, Running, Bell, and Break included (owner decision). Leaving the screen does not pause or stop anything: the clock, the focus sound, and the bell keep going.
+   - On any other page, the header shows a small chip with the mode mark and the time left, for example "Deep Focus 47:12". The chip and the Ekagra wordmark both go back to the running screen.
+   - When the time runs out on another page, the app goes back to the running screen and shows the bell there.
+8. No color literal outside the theme files. See [`../theming.md`](../theming.md).
+9. Deploy only after Settings and all screens above are merged. Report is not needed for the first release.
