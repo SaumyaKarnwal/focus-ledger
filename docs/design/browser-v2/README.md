@@ -70,5 +70,11 @@ Report is not designed yet. The header shows it, but the link stays inert. The o
    - **Task line:** one line, cut with an ellipsis. The planned readout and the parent path hide when the line does not fit.
    - **No scroll** on Start, Running, and Break at any step.
 10. **Last seven days, hover** (owner request). At rest, the chart shows no figure above the bars; empty days keep their dash. On hover (or keyboard focus, or a tap on touch), the bar under the pointer stays at full color and the other bars fade, as the "How it splits" ring does. A small card, in the same style as the ring's hover card, shows the day, its total, and the split into Deep Focus, Execution, and Shallow with the mode marks. Leaving the bar restores the chart.
-11. No color literal outside the theme files. See [`../theming.md`](../theming.md).
-12. Deploy only after Settings and all screens above are merged. Report is not needed for the first release.
+11. **Home and Stop** (owner bugs, #132).
+    - **Home** is the Start screen. The Ekagra wordmark leads home from every page. If a cycle runs or a break counts down, it leads to that screen instead (rule 7).
+    - **Start remembers the last cycle.** Start opens with the task and the mode of the most recent cycle selected, and the clock at that mode's length from Settings. With no cycle yet, Start shows nothing selected and Deep Focus.
+    - **Stop and log** writes the cycle and goes home at once, with that cycle's task and mode selected. It does not show the bell. The bell shows only when the time runs out by itself.
+    - **The header links work on every Start state** (Deep Focus, Execution, Shallow, nothing selected) and on Break, not only on Deep Focus.
+    - **The primary button has a ledge** (rule 8): START, PAUSE, and the break START. "Take a break", "Stop and log", and "Start a cycle" stay outlined.
+12. No color literal outside the theme files. See [`../theming.md`](../theming.md).
+13. Deploy only after Settings and all screens above are merged. Report is not needed for the first release.
