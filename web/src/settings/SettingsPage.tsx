@@ -12,6 +12,7 @@ import { MODE_NAMES, type TodayData } from "../today/todayModel";
 import { stepWithin } from "../tree/estimateModel";
 import { useNow } from "../useNow";
 import {
+  BELL_SOUNDS,
   type BellSound,
   FOCUS_SOUNDS,
   type FocusSound,
@@ -36,6 +37,9 @@ const MODE_FIELDS: readonly [LoggedMode, keyof SettingsForm][] = [
   [FocusMode.EXECUTION, "executionMinutes"],
   [FocusMode.SHALLOW, "shallowMinutes"],
 ];
+
+/** The Silent choice of the bell sound: SettingsPb.sound_enabled is false. */
+const SILENT = "silent";
 
 /** How long a focus sound chip plays its sound. */
 const FOCUS_PREVIEW_MS = 3000;
@@ -297,41 +301,43 @@ export function SettingsPage({
             </p>
           </div>
           <SettingRow label="Sound" labelId="settings-sound">
-            <span
-              className="settings-chips"
-              role="radiogroup"
-              aria-labelledby="settings-sound"
-            >
-              {(["bowl", "wood", "chime"] as const).map((sound) => (
-                <button
-                  key={sound}
-                  type="button"
-                  role="radio"
-                  aria-checked={form.soundEnabled && local.sound === sound}
-                  className="settings-chip"
-                  onClick={() => {
-                    // The click is a user gesture, so the preview may play.
-                    unlockAudio();
-                    bell.play(sound, local.volume, 1);
-                    changeLocal({ sound });
-                    if (!form.soundEnabled) change({ soundEnabled: true });
-                  }}
-                >
-                  <PlayIcon />
-                  {SOUND_NAMES[sound]}
-                </button>
-              ))}
+            <span className="settings-sound">
+              <select
+                className="settings-select"
+                aria-labelledby="settings-sound"
+                value={form.soundEnabled ? local.sound : SILENT}
+                onChange={(event) => {
+                  const choice = event.target.value as
+                    BellSound | typeof SILENT;
+                  if (choice === SILENT) {
+                    change({ soundEnabled: false });
+                    return;
+                  }
+                  // The change is a user gesture, so the preview may play.
+                  unlockAudio();
+                  bell.play(choice, local.volume, 1);
+                  changeLocal({ sound: choice });
+                  if (!form.soundEnabled) change({ soundEnabled: true });
+                }}
+              >
+                {BELL_SOUNDS.map((sound) => (
+                  <option key={sound} value={sound}>
+                    {SOUND_NAMES[sound]}
+                  </option>
+                ))}
+                <option value={SILENT}>Silent</option>
+              </select>
               <button
                 type="button"
-                role="radio"
-                aria-checked={!form.soundEnabled}
-                className="settings-chip"
+                className="settings-play"
+                aria-label="Play the bell sound"
+                disabled={!form.soundEnabled}
                 onClick={() => {
-                  if (form.soundEnabled) change({ soundEnabled: false });
+                  unlockAudio();
+                  bell.play(local.sound, local.volume, 1);
                 }}
               >
                 <PlayIcon />
-                Silent
               </button>
             </span>
           </SettingRow>
