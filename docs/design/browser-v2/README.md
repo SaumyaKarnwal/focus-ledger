@@ -44,8 +44,6 @@ Report is designed (`R-Report-*`). The palette tries (`P-Palettes`) are not part
 
 ## Colors on light screens
 
-The page color is `#F7F0EC`, not the boards' `#F4F1EA` (owner, #228; see `theming.md`).
-
 On every light screen (Report, the task page, the Tasks page, Settings, the dialogs) a mode mark uses the soft tint from the New task dialog: Deep Focus lilac `#C9A3C4`, Execution rose `#E9AFB4`, Shallow teal `#A6CFCB`. This is a value change of the `--mode-*-mark` tokens in the default theme only; no component changes. The timer screens keep their deep backgrounds. Task rings use soft tints too (`--chart-*`); a slice may share a hue with a mode, because the ring always has its own legend.
 
 ## Addresses
