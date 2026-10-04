@@ -157,39 +157,43 @@ export function YearCard({ year }: { year: Year }) {
         className="report-year"
         role="img"
         aria-label={`${year.daysWithFocus} days with focus since ${year.since}`}
+        style={{
+          gridTemplateColumns: `28px repeat(${year.weeks.length}, minmax(0, 1fr))`,
+        }}
       >
-        <span className="report-year-days" aria-hidden="true">
-          <span>Mon</span>
-          <span />
-          <span>Wed</span>
-          <span />
-          <span>Fri</span>
-          <span />
-          <span />
-        </span>
-        {year.weeks.map((week, index) => (
-          <span key={index} className="report-year-week">
-            <span className="report-year-month">
-              {year.months[index] ?? ""}
-            </span>
-            {week.map((day, dayIndex) =>
-              day ? (
-                <span
-                  key={day.date}
-                  className="report-year-day"
-                  data-level={day.level}
-                  title={`${day.date}: ${formatMinutes(day.minutes)}`}
-                />
-              ) : (
-                <span
-                  key={`blank-${dayIndex}`}
-                  className="report-year-day"
-                  data-blank="true"
-                />
-              ),
-            )}
+        {["Mon", "Wed", "Fri"].map((name, index) => (
+          <span
+            key={name}
+            className="report-year-label"
+            style={{ gridColumn: 1, gridRow: 2 + index * 2 }}
+          >
+            {name}
           </span>
         ))}
+        {year.months.map((month, index) =>
+          month ? (
+            <span
+              key={`month-${index}`}
+              className="report-year-label"
+              style={{ gridColumn: index + 2, gridRow: 1 }}
+            >
+              {month}
+            </span>
+          ) : null,
+        )}
+        {year.weeks.flatMap((week, index) =>
+          week.map((day, dayIndex) =>
+            day ? (
+              <span
+                key={day.date}
+                className="report-year-day"
+                data-level={day.level}
+                title={`${day.date}: ${formatMinutes(day.minutes)}`}
+                style={{ gridColumn: index + 2, gridRow: dayIndex + 2 }}
+              />
+            ) : null,
+          ),
+        )}
       </div>
       <div className="report-year-foot">
         <span>

@@ -267,8 +267,9 @@
 }
 .report-kind-track {
   position: relative;
+  overflow: visible;
 }
-.report-set-mark {
+.report-kind-track .report-set-mark {
   position: absolute;
   top: -5px;
   width: 2px;
@@ -381,37 +382,23 @@
   color: var(--ink-strong);
 }
 .report-year {
-  display: flex;
-  gap: 2px;
-  overflow-x: auto;
-}
-.report-year-days,
-.report-year-week {
   display: grid;
-  grid-template-rows: 18px repeat(7, 11px);
+  grid-template-rows: 18px;
   gap: 3px;
 }
-.report-year-days {
-  margin-right: 6px;
+.report-year-label {
   font-size: 10.5px;
-  color: var(--ink-faint);
-}
-.report-year-days span:first-child {
-  grid-row: 2;
-}
-.report-year-month {
-  font-size: 10.5px;
+  line-height: 1;
   white-space: nowrap;
   color: var(--ink-faint);
+  align-self: center;
 }
 .report-year-day {
-  width: 11px;
-  height: 11px;
+  width: 100%;
+  max-width: 18px;
+  aspect-ratio: 1;
   border-radius: 3px;
   background: var(--heat-0);
-}
-.report-year-day[data-blank] {
-  background: none;
 }
 .report-year-day[data-level="1"] {
   background: var(--heat-1);
@@ -438,4 +425,7 @@
   align-items: center;
   gap: 4px;
   font-size: 11.5px;
+}
+.report-year-scale .report-year-day {
+  width: 11px;
 }
