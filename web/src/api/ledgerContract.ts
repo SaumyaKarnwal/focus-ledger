@@ -372,6 +372,52 @@ export function describeLedgerContract(
         );
       });
 
+      const closedNames = async () =>
+        (await client.listNodes({ includeClosed: true })).nodes
+          .filter((listed) => listed.closed)
+          .map((listed) => listed.name)
+          .sort();
+
+      test("updateNode_closeThenReopen_closesDownAndReopensUp", async () => {
+        const book = await createNode("Book");
+        const chapter = await createNode("Chapter", book.id);
+        await createNode("Notes", chapter.id);
+        await createNode("Other");
+
+        await client.updateNode({
+          nodeId: book.id,
+          closed: true,
+          updateMask: { paths: ["closed"] },
+        });
+        expect(await closedNames()).toEqual(["Book", "Chapter", "Notes"]);
+
+        await client.updateNode({
+          nodeId: chapter.id,
+          closed: false,
+          updateMask: { paths: ["closed"] },
+        });
+        expect(await closedNames()).toEqual(["Notes"]);
+      });
+
+      test("updateNode_moveUnderAClosedNode_reopensItsAncestors", async () => {
+        const book = await createNode("Book");
+        const chapter = await createNode("Chapter", book.id);
+        const loose = await createNode("Loose");
+        await client.updateNode({
+          nodeId: book.id,
+          closed: true,
+          updateMask: { paths: ["closed"] },
+        });
+
+        await client.updateNode({
+          nodeId: loose.id,
+          parentId: chapter.id,
+          updateMask: { paths: ["parent_id"] },
+        });
+
+        expect(await closedNames()).toEqual([]);
+      });
+
       test("updateNode_nodeWithCycles_responseCarriesNoCycles", async () => {
         const node = await createNode("Book");
         await logEntry(new Date("2026-10-20T09:00:00Z"), node.id);
