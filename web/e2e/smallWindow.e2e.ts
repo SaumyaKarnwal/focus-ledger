@@ -108,10 +108,12 @@ async function expectBoardRatio(page: Page) {
 }
 
 async function expectNoOverlap(page: Page) {
-  const strip = await box(page, ".task-strip");
   const actions = await box(page, ".start-actions");
+  const strip = await page.locator(".task-strip").boundingBox();
   // The START ledge sits under the plate.
-  expect(actions.y + actions.height + 8).toBeLessThanOrEqual(strip.y);
+  expect(actions.y + actions.height + 8).toBeLessThanOrEqual(
+    strip?.y ?? page.viewportSize()?.height ?? 0,
+  );
   const header = await box(page, ".screen-header");
   const middle = await box(page, ".start-layout > :visible");
   expect(header.y + header.height).toBeLessThanOrEqual(middle.y);
@@ -129,6 +131,7 @@ async function expectRunningWithoutPlateOrBar(page: Page) {
 
 for (const [width, height] of [
   [420, 520],
+  [1000, 500],
   [1200, 420],
 ]) {
   test(`${width}x${height}: the timer stays the largest, and nothing overlaps`, async ({
@@ -136,7 +139,9 @@ for (const [width, height] of [
   }) => {
     await openStart(page, width, height);
 
+    // The chips step: the wordmark and the task line go, the menu stays.
     await expect(page.locator(".screen-brand")).toBeHidden();
+    await expect(page.locator(".task-strip")).toBeHidden();
     await expectBoardRatio(page);
     await expectNoOverlap(page);
     await expectNoScroll(page);
@@ -155,4 +160,27 @@ test("1440x900: the board sizes hold, with the plate and the bar on Running", as
   await page.getByRole("button", { name: "Start" }).click();
   await expect(page.locator(".start-mode-plate")).toBeVisible();
   await expect(page.getByRole("progressbar")).toBeVisible();
+});
+
+test("400x260: the chips go before the timer drops below 64px", async ({
+  page,
+}) => {
+  await openStart(page, 400, 260);
+
+  await expect(page.getByRole("radio", { name: "Deep Focus" })).toBeHidden();
+  expect((await box(page, ".start-time")).height).toBeGreaterThanOrEqual(64);
+  await expectBoardRatio(page);
+  await expectNoScroll(page);
+});
+
+test("280x420: the steps go before the timer drops below 64px", async ({
+  page,
+}) => {
+  await openStart(page, 280, 420);
+
+  await expect(
+    page.getByRole("button", { name: "Five minutes more" }),
+  ).toBeHidden();
+  expect((await box(page, ".start-time")).height).toBeGreaterThanOrEqual(64);
+  await expectNoScroll(page);
 });

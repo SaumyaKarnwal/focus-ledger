@@ -143,7 +143,9 @@
  * Side by side, the mode rows keep 600px and the clock gets the rest.
  */
 .start-layout {
-  --u: max(0.3px, min(1px, (100cqw - 600px) / 604));
+  /* The digit box is 132 board pixels, and it never goes below 64px. */
+  --u-floor: calc(64px / 132);
+  --u: max(var(--u-floor), min(1px, (100cqw - 600px) / 604));
   height: 100%;
   display: flex;
   align-items: center;
@@ -973,15 +975,36 @@
   }
   .start-layout {
     /* The mode rows above take about 250px. */
-    --u: max(0.3px, min(1px, 100cqw / 640, (100cqh - 250px) / 250));
+    --u: max(var(--u-floor), min(1px, 100cqw / 640, (100cqh - 250px) / 250));
   }
   .start-clock {
     flex-grow: 0;
   }
 }
 
-/* 3. Chips: the stacked layout does not fit the height, or no layout does. */
-@container screen-main (width < 1100px) and (height < 600px) {
+/*
+ * 3. Chips: the stacked layout does not fit the height, or no layout does.
+ * The step reads the whole screen, because the wordmark and the task line hide
+ * in it, and the main area must not grow back out of the step when they do.
+ */
+@container screen ((width < 1200px) and (height < 700px)) or (height < 520px) {
+  .screen-brand,
+  .task-strip {
+    display: none;
+  }
+  .screen-header {
+    justify-content: flex-end;
+  }
+
+  /* While a cycle runs, the screen color names the mode. */
+  .start-modes[data-cycle],
+  .screen-clock[data-cycle] .screen-progress {
+    display: none;
+  }
+  .screen-clock-mode {
+    display: block;
+  }
+
   .start-modes-label {
     display: none;
   }
@@ -1011,43 +1034,39 @@
     font-size: clamp(13px, calc(26 * var(--u, 1px)), 18px);
     font-weight: 500;
   }
-  .start-layout {
-    /* The chips above take about 70px. */
-    --u: max(0.3px, min(0.8px, 100cqw / 640, (100cqh - 70px) / 260));
+
+  /* Stacked chips: the chips above take about 70px. */
+  @container screen-main (width < 1100px) {
+    .start-layout {
+      --u: max(var(--u-floor), min(0.8px, 100cqw / 640, (100cqh - 70px) / 260));
+    }
+  }
+  /* Wide but short: the clock is about 270 board pixels tall. */
+  @container screen-main (width >= 1100px) {
+    .start-layout {
+      --u: max(var(--u-floor), min(1px, (100cqw - 600px) / 604, 100cqh / 270));
+    }
   }
 }
-@container screen-main (height < 420px) {
-  /* While a cycle runs, the screen color names the mode. */
-  .start-modes[data-cycle],
-  .screen-clock[data-cycle] .screen-progress {
+
+/*
+ * The timer keeps its 64px floor. When even that does not fit, the extras go:
+ * first the chips, then the - and + steps.
+ */
+@container screen-main (width < 1100px) and (height < 200px) {
+  .start-modes {
     display: none;
   }
-  .screen-clock-mode {
-    display: block;
+  .start-layout {
+    --u: max(var(--u-floor), min(0.8px, 100cqw / 640, 100cqh / 260));
   }
-  .start-modes-label {
+}
+@container screen-main (width < 300px) {
+  .start-step {
     display: none;
   }
-  .start-mode-list {
-    flex-direction: row;
-  }
-  .start-mode,
-  .start-mode-plate {
-    width: auto;
-    min-height: clamp(28px, calc(60 * var(--u, 1px)), 44px);
-    padding: 0 14px 0 10px;
-    gap: 8px;
-    border-radius: 999px;
-  }
-  .start-mode-bar {
-    width: 4px;
-    height: 16px;
-  }
-  .start-mode-name,
-  .start-mode[aria-checked="true"] .start-mode-name,
-  .start-mode-plate .start-mode-name {
-    font-size: clamp(13px, calc(26 * var(--u, 1px)), 18px);
-    font-weight: 500;
+  .start-layout {
+    --u: max(var(--u-floor), min(0.8px, 100cqw / 440));
   }
 }
 
@@ -1119,27 +1138,6 @@
   }
 }
 
-/* Wide but short: the clock, about 270 board pixels tall, fits the height. */
-@container screen-main (width >= 1100px) and (height < 420px) {
-  .start-layout {
-    --u: max(0.3px, min(1px, (100cqw - 600px) / 604, 100cqh / 270));
-  }
-}
-
-/* What goes away first: at the chips step the wordmark, then the task line. */
-@container screen ((width < 1200px) and (height < 800px)) or (height < 600px) {
-  .screen-brand {
-    display: none;
-  }
-  .screen-header {
-    justify-content: flex-end;
-  }
-}
-@container screen (height < 380px) {
-  .task-strip {
-    display: none;
-  }
-}
 .task-strip {
   --su: clamp(0.7px, min(100cqh / 900, 100cqw / 1328), 1px);
 }
