@@ -112,6 +112,8 @@
   --control-bg: #fbf2f4;
   --control-edge: #ebc4c9;
   --control-hover: #f6e3e6;
+  /* 3:1 against the page, the card, and the white knob (WCAG 1.4.11) */
+  --control-edge-strong: #bc6c76;
 
   /* Dialog: task picker, bell, new task, edit task */
   --dialog-bg: var(--plum-50);
