@@ -77,9 +77,10 @@ export function RunningScreen({
         />
       }
     >
-      <ModePlate label="Focus for this cycle" name={MODE_NAMES[mode]} />
+      <ModePlate label="Focus for this cycle" name={MODE_NAMES[mode]} cycle />
       <section className="start-clock" aria-label="Cycle">
         <ScreenClock
+          cycleMode={MODE_NAMES[mode]}
           label="Time left"
           text={formatCountdown(remainingMs(cycle, now, paused))}
           progress={elapsedMs(cycle, now, paused) / plannedMs(cycle)}

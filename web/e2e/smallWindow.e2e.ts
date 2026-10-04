@@ -95,3 +95,92 @@ test("420x520: chips, the header menu, and no scroll", async ({ page }) => {
   await expectInView(page, "Pause");
   await expectNoScroll(page);
 });
+
+// README rule 9, second pass: one scale keeps the boards' ratios.
+async function expectBoardRatio(page: Page) {
+  const digits = await box(page, ".start-time");
+  const cta = await box(page, ".screen-cta");
+  // On the boards the START plate is 72px and the digit box 132px.
+  expect(digits.height).toBeGreaterThan(cta.height);
+  expect(cta.height).toBeLessThanOrEqual(
+    Math.max(40, (72 / 132) * digits.height) + 1,
+  );
+}
+
+async function expectNoOverlap(page: Page) {
+  const actions = await box(page, ".start-actions");
+  const strip = await page.locator(".task-strip").boundingBox();
+  // The START ledge sits under the plate.
+  expect(actions.y + actions.height + 8).toBeLessThanOrEqual(
+    strip?.y ?? page.viewportSize()?.height ?? 0,
+  );
+  const header = await box(page, ".screen-header");
+  const middle = await box(page, ".start-layout > :visible");
+  expect(header.y + header.height).toBeLessThanOrEqual(middle.y);
+}
+
+async function expectRunningWithoutPlateOrBar(page: Page) {
+  await page.getByRole("button", { name: "Start" }).click();
+  await expect(page.getByRole("timer", { name: "Time left" })).toBeVisible();
+  await expect(page.locator(".start-mode-plate")).toBeHidden();
+  await expect(page.getByRole("progressbar")).toBeHidden();
+  await expectBoardRatio(page);
+  await expectNoOverlap(page);
+  await expectNoScroll(page);
+}
+
+for (const [width, height] of [
+  [420, 520],
+  [1000, 500],
+  [1200, 420],
+]) {
+  test(`${width}x${height}: the timer stays the largest, and nothing overlaps`, async ({
+    page,
+  }) => {
+    await openStart(page, width, height);
+
+    // The chips step: the wordmark and the task line go, the menu stays.
+    await expect(page.locator(".screen-brand")).toBeHidden();
+    await expect(page.locator(".task-strip")).toBeHidden();
+    await expectBoardRatio(page);
+    await expectNoOverlap(page);
+    await expectNoScroll(page);
+    await expectRunningWithoutPlateOrBar(page);
+  });
+}
+
+test("1440x900: the board sizes hold, with the plate and the bar on Running", async ({
+  page,
+}) => {
+  await openStart(page, 1440, 900);
+
+  await expect(page.locator(".screen-brand")).toBeVisible();
+  expect((await box(page, ".start-time")).height).toBeCloseTo(132, 0);
+  expect((await box(page, ".screen-cta")).height).toBeCloseTo(72, 0);
+  await page.getByRole("button", { name: "Start" }).click();
+  await expect(page.locator(".start-mode-plate")).toBeVisible();
+  await expect(page.getByRole("progressbar")).toBeVisible();
+});
+
+test("400x260: the chips go before the timer drops below 64px", async ({
+  page,
+}) => {
+  await openStart(page, 400, 260);
+
+  await expect(page.getByRole("radio", { name: "Deep Focus" })).toBeHidden();
+  expect((await box(page, ".start-time")).height).toBeGreaterThanOrEqual(64);
+  await expectBoardRatio(page);
+  await expectNoScroll(page);
+});
+
+test("280x420: the steps go before the timer drops below 64px", async ({
+  page,
+}) => {
+  await openStart(page, 280, 420);
+
+  await expect(
+    page.getByRole("button", { name: "Five minutes more" }),
+  ).toBeHidden();
+  expect((await box(page, ".start-time")).height).toBeGreaterThanOrEqual(64);
+  await expectNoScroll(page);
+});

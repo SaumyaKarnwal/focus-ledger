@@ -213,6 +213,16 @@ describe("Stop", () => {
     ).toBe(false);
   });
 
+  test("running_timerRegion_namesTheModeForScreenReaders", async () => {
+    renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
+    await startCycleOn("Book", "Shallow");
+
+    const cycle = screen.getByRole("region", { name: "Cycle" });
+    expect(within(cycle).getByText("Shallow cycle").className).toContain(
+      "visually-hidden",
+    );
+  });
+
   test("running_screen_hasNoLengthOrModeControl", async () => {
     renderApp(recordingClient(exampleNodesWithNothingRunning()).client);
     await startCycleOn("Book");

@@ -61,10 +61,22 @@ export function ModeScreenFrame({
   );
 }
 
-/** A mode name on a plate, not a control (the mode of a running cycle never changes). */
-export function ModePlate({ label, name }: { label: string; name: string }) {
+/**
+ * A mode name on a plate, not a control (the mode of a running cycle never
+ * changes). `cycle` hides it in the stacked and chips steps, where the screen
+ * color names the mode.
+ */
+export function ModePlate({
+  label,
+  name,
+  cycle = false,
+}: {
+  label: string;
+  name: string;
+  cycle?: boolean;
+}) {
   return (
-    <div className="start-modes">
+    <div className="start-modes" data-cycle={cycle || undefined}>
       <span className="screen-label start-modes-label">{label}</span>
       <div className="start-mode start-mode-plate">
         <span className="start-mode-bar" aria-hidden="true" />
@@ -80,15 +92,23 @@ export function ScreenClock({
   text,
   progress,
   note,
+  cycleMode,
 }: {
   label: string;
   text: string;
   /** From 0 to 1. Without it, no bar is drawn. */
   progress?: number;
   note?: ReactNode;
+  /** A running cycle's mode: read out when the small steps hide the plate. */
+  cycleMode?: string;
 }) {
   return (
-    <div className="screen-clock">
+    <div className="screen-clock" data-cycle={cycleMode ? true : undefined}>
+      {cycleMode && (
+        <span className="visually-hidden screen-clock-mode">
+          {cycleMode} cycle
+        </span>
+      )}
       <p className="start-time" role="timer" aria-label={label}>
         {text}
       </p>

@@ -30,6 +30,7 @@
   position: relative;
   flex-grow: 1;
   min-height: 0;
+  container: screen / size;
   display: flex;
   flex-direction: column;
 }
@@ -136,7 +137,15 @@
   padding: clamp(8px, 3vh, 24px) var(--screen-gutter);
   container: screen-main / size;
 }
+/*
+ * --u is one board pixel. The clock and its buttons are sized in board pixels
+ * times --u, so they keep the boards' ratios at every size (README rule 9).
+ * Side by side, the mode rows keep 600px and the clock gets the rest.
+ */
 .start-layout {
+  /* The digit box is 132 board pixels, and it never goes below 64px. */
+  --u-floor: calc(64px / 132);
+  --u: max(var(--u-floor), min(1px, (100cqw - 600px) / 604));
   height: 100%;
   display: flex;
   align-items: center;
@@ -202,23 +211,23 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 30px;
+  gap: calc(30 * var(--u, 1px));
 }
 .start-stepper {
   display: flex;
   align-items: center;
-  gap: 30px;
+  gap: calc(30 * var(--u, 1px));
 }
 .start-step {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 62px;
-  height: 62px;
+  width: max(40px, calc(62 * var(--u, 1px)));
+  height: max(40px, calc(62 * var(--u, 1px)));
   flex-shrink: 0;
   background: none;
   border: 0;
-  font-size: 38px;
+  font-size: calc(38 * var(--u, 1px));
   font-weight: 300;
   line-height: 1;
   color: var(--on-screen-faint);
@@ -227,8 +236,7 @@
   min-width: 2.8em;
   text-align: center;
   font-family: var(--font-timer);
-  /* The digits scale with the space, up to the boards' 150px. */
-  font-size: clamp(48px, min(11cqw, 22cqh), 150px);
+  font-size: calc(150 * var(--u, 1px));
   font-weight: 700;
   line-height: 0.88;
   letter-spacing: -0.045em;
@@ -237,19 +245,20 @@
 .start-actions {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: calc(14 * var(--u, 1px));
 }
 .screen-cta {
-  width: 230px;
-  min-height: 72px;
+  --ledge: max(3px, calc(6 * var(--u, 1px)));
+  width: calc(230 * var(--u, 1px));
+  min-height: max(40px, calc(72 * var(--u, 1px)));
   background: var(--screen-cta-bg);
   color: var(--screen-cta-fg);
   border: 0;
   border-radius: 10px;
   /* The ledge: the plate sits on a darker edge and moves down onto it when pressed. */
-  box-shadow: 0 6px 0 var(--screen-cta-ledge);
+  box-shadow: 0 var(--ledge) 0 var(--screen-cta-ledge);
   font-family: var(--font-cta);
-  font-size: 23px;
+  font-size: max(12px, calc(23 * var(--u, 1px)));
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -258,7 +267,7 @@
     box-shadow 60ms ease-out;
 }
 .screen-cta:active:not(:disabled) {
-  transform: translateY(6px);
+  transform: translateY(var(--ledge));
   box-shadow: 0 0 0 var(--screen-cta-ledge);
 }
 @media (prefers-reduced-motion: reduce) {
@@ -267,16 +276,16 @@
   }
   .screen-cta:active:not(:disabled) {
     transform: none;
-    box-shadow: 0 6px 0 var(--screen-cta-ledge);
+    box-shadow: 0 var(--ledge) 0 var(--screen-cta-ledge);
   }
 }
 .screen-outline {
-  min-height: 72px;
-  padding: 0 26px;
+  min-height: max(40px, calc(72 * var(--u, 1px)));
+  padding: 0 max(12px, calc(26 * var(--u, 1px)));
   background: none;
   border: 1.5px solid var(--on-screen-outline);
   border-radius: 10px;
-  font-size: 16px;
+  font-size: max(12px, calc(16 * var(--u, 1px)));
   color: var(--on-screen-strong);
 }
 .screen-outline-soft {
@@ -307,10 +316,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 22px;
+  gap: calc(22 * var(--u, 1px));
 }
 .screen-progress {
-  width: 520px;
+  width: calc(520 * var(--u, 1px));
   max-width: 100%;
   height: 4px;
   border-radius: 2px;
@@ -602,20 +611,20 @@
   color: var(--on-screen-strong);
 }
 .task-strip-name {
-  font-size: 20px;
+  font-size: calc(20 * var(--su, 1px));
   font-weight: 600;
 }
 .task-strip-path {
-  font-size: 14px;
+  font-size: calc(14 * var(--su, 1px));
   color: var(--on-screen-muted);
 }
 .task-strip-empty {
-  font-size: 20px;
+  font-size: calc(20 * var(--su, 1px));
   color: var(--on-screen);
 }
 .task-strip-time {
   margin-left: auto;
-  font-size: 14px;
+  font-size: calc(14 * var(--su, 1px));
   color: var(--on-screen);
 }
 
@@ -929,8 +938,21 @@
  * no longer fits: side by side, then stacked, then the modes as chips.
  */
 
+.screen-clock-mode {
+  display: none;
+}
+
 /* 2. Stacked: the two columns no longer fit side by side. */
 @container screen-main (width < 1100px) {
+  /* While a cycle runs, the screen color names the mode. */
+  .start-modes[data-cycle],
+  .screen-clock[data-cycle] .screen-progress {
+    display: none;
+  }
+  .screen-clock-mode {
+    display: block;
+  }
+
   .start-layout {
     flex-direction: column;
     justify-content: center;
@@ -951,17 +973,38 @@
   .start-mode-plate .start-mode-name {
     font-size: 30px;
   }
-  .start-time {
-    font-size: clamp(48px, min(16cqw, 18cqh), 150px);
+  .start-layout {
+    /* The mode rows above take about 250px. */
+    --u: max(var(--u-floor), min(1px, 100cqw / 640, (100cqh - 250px) / 250));
   }
   .start-clock {
     flex-grow: 0;
-    gap: 18px;
   }
 }
 
-/* 3. Chips: the stacked layout does not fit the height, or no layout does. */
-@container screen-main (width < 1100px) and (height < 600px) {
+/*
+ * 3. Chips: the stacked layout does not fit the height, or no layout does.
+ * The step reads the whole screen, because the wordmark and the task line hide
+ * in it, and the main area must not grow back out of the step when they do.
+ */
+@container screen ((width < 1200px) and (height < 700px)) or (height < 520px) {
+  .screen-brand,
+  .task-strip {
+    display: none;
+  }
+  .screen-header {
+    justify-content: flex-end;
+  }
+
+  /* While a cycle runs, the screen color names the mode. */
+  .start-modes[data-cycle],
+  .screen-clock[data-cycle] .screen-progress {
+    display: none;
+  }
+  .screen-clock-mode {
+    display: block;
+  }
+
   .start-modes-label {
     display: none;
   }
@@ -976,10 +1019,10 @@
   .start-mode,
   .start-mode-plate {
     width: auto;
-    min-height: 36px;
+    min-height: clamp(28px, calc(60 * var(--u, 1px)), 44px);
     padding: 0 14px 0 10px;
     gap: 8px;
-    border-radius: 18px;
+    border-radius: 999px;
   }
   .start-mode-bar {
     width: 4px;
@@ -988,48 +1031,42 @@
   .start-mode-name,
   .start-mode[aria-checked="true"] .start-mode-name,
   .start-mode-plate .start-mode-name {
-    font-size: 16px;
+    font-size: clamp(13px, calc(26 * var(--u, 1px)), 18px);
     font-weight: 500;
   }
-  .start-time {
-    font-size: clamp(44px, min(18cqw, 24cqh), 120px);
+
+  /* Stacked chips: the chips above take about 70px. */
+  @container screen-main (width < 1100px) {
+    .start-layout {
+      --u: max(var(--u-floor), min(0.8px, 100cqw / 640, (100cqh - 70px) / 260));
+    }
   }
-  .screen-cta,
-  .screen-outline {
-    min-height: 52px;
-  }
-  .screen-cta {
-    width: 150px;
-    font-size: 18px;
-  }
-  .screen-progress {
-    width: min(520px, 100%);
+  /* Wide but short: the clock is about 270 board pixels tall. */
+  @container screen-main (width >= 1100px) {
+    .start-layout {
+      --u: max(var(--u-floor), min(1px, (100cqw - 600px) / 604, 100cqh / 270));
+    }
   }
 }
-@container screen-main (height < 420px) {
-  .start-modes-label {
+
+/*
+ * The timer keeps its 64px floor. When even that does not fit, the extras go:
+ * first the chips, then the - and + steps.
+ */
+@container screen-main (width < 1100px) and (height < 200px) {
+  .start-modes {
     display: none;
   }
-  .start-mode-list {
-    flex-direction: row;
+  .start-layout {
+    --u: max(var(--u-floor), min(0.8px, 100cqw / 640, 100cqh / 260));
   }
-  .start-mode,
-  .start-mode-plate {
-    width: auto;
-    min-height: 36px;
-    padding: 0 14px 0 10px;
-    gap: 8px;
-    border-radius: 18px;
+}
+@container screen-main (width < 300px) {
+  .start-step {
+    display: none;
   }
-  .start-mode-bar {
-    width: 4px;
-    height: 16px;
-  }
-  .start-mode-name,
-  .start-mode[aria-checked="true"] .start-mode-name,
-  .start-mode-plate .start-mode-name {
-    font-size: 16px;
-    font-weight: 500;
+  .start-layout {
+    --u: max(var(--u-floor), min(0.8px, 100cqw / 440));
   }
 }
 
@@ -1099,4 +1136,8 @@
   .task-strip-path {
     display: none;
   }
+}
+
+.task-strip {
+  --su: clamp(0.7px, min(100cqh / 900, 100cqw / 1328), 1px);
 }
