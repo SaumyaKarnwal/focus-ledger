@@ -61,7 +61,7 @@ Report is not designed yet. The header shows it, but the link stays inert. The o
 9. **Small window** (owner request). The layout shrinks in steps, and each step happens only when the content no longer fits. Use container queries on the screen's main area, not fixed window sizes.
    1. **Side by side** (the boards): the mode list on the left, the timer and buttons on the right.
    2. **Stacked:** when the two columns cannot fit side by side at their natural size, the mode list moves above the timer and keeps its rows. The rows may get smaller type.
-   3. **Chips:** only when the stacked layout still does not fit the height, the three mode rows become one row of small chips (mode mark and name). While a cycle runs, only the running mode's chip shows.
+   3. **Chips:** only when the stacked layout still does not fit the height, the three mode rows become one row of small chips (mode mark and name). While a cycle runs, no mode chip shows at all: the screen color names the mode (owner decision). The timer region keeps the mode name for screen readers only. In the side-by-side step, Running keeps the board's "Focus for this cycle" row.
 
    The other parts at every step:
    - **Header:** when the links no longer fit on one line, they collapse into one menu button (Report, Tasks, Settings, account). The date hides first.
