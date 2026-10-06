@@ -51,6 +51,10 @@ Report is designed (`R-Report-*`). The palette tries (`P-Palettes`) are not part
    - Esc leaves the add field and keeps the added branches.
    - Nothing is written until Create (or Save): then every new branch is created, parents first, each with its own `request_id`, and the task goes under the selected row. Cancel creates nothing. A retry after a failure reuses the same `request_id`s.
 
+## Report range arrows stay put (owner, round 3)
+
+The ‹ › pair sits at one fixed place: the right end of the Report's range header row, aligned with the cards' right edge. It never follows the title, the total, or the change figure, so stepping through ranges never moves it under the pointer. The title, total, and change stay on the left; their figures use tabular digits.
+
 ## Colors on light screens
 
 On every light screen (Report, the task page, the Tasks page, Settings, the dialogs) a mode mark uses the soft tint from the New task dialog: Deep Focus lilac `#C9A3C4`, Execution rose `#E9AFB4`, Shallow teal `#A6CFCB`. This is a value change of the `--mode-*-mark` tokens in the default theme only; no component changes. The timer screens keep their deep backgrounds. Task rings use soft tints too (`--chart-*`); a slice may share a hue with a mode, because the ring always has its own legend.
