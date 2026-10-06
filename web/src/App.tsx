@@ -56,7 +56,6 @@ import { SettingsPage } from "./settings/SettingsPage";
 import { hadAccount, setHadAccount } from "./session/accountFlag";
 import { GuestContext } from "./session/guestSession";
 import { SignInScreen } from "./signIn/SignInScreen";
-import { SignInWarning } from "./signIn/SignInWarning";
 import type { SignInMethod } from "./signIn/signInMethod";
 import { TasksPage } from "./tasks/TasksPage";
 import { PageHeader } from "./ui/PageHeader";
@@ -71,7 +70,6 @@ import {
   cycleContext,
   INBOX_ID,
   knownCycles,
-  knownNodes,
   MODE_NAMES,
   taskAfterCycle,
   type TodayData,
@@ -161,7 +159,6 @@ export function App({
   // No session on the server means a guest, never a sign-in wall.
   const [mode, setMode] = useState<"account" | "guest">("account");
   const active = mode === "guest" ? guest.ledger : client;
-  const [warning, setWarning] = useState(false);
   const [data, setData] = useState<TodayData>();
   const [screen, setScreen] = useState<Screen>({ kind: "loading" });
   const [busy, setBusy] = useState(false);
@@ -298,21 +295,9 @@ export function App({
       goHome();
     });
 
-  const showSignIn = () => {
-    setWarning(false);
+  const openSignIn = () => {
     setError(undefined);
     setScreen({ kind: "signIn" });
-  };
-
-  // A guest with a task or a cycle is warned first that sign-in removes them.
-  const openSignIn = () => {
-    const hasHistory =
-      data !== undefined &&
-      // The Inbox node (ID "") is always listed; it is not a task.
-      (knownNodes(data).some((node) => node.id !== INBOX_ID) ||
-        knownCycles(data).length > 0);
-    if (hasHistory) setWarning(true);
-    else showSignIn();
   };
 
   // Back from the sign-in screen as a guest. An account whose session ended
@@ -659,12 +644,6 @@ export function App({
         onPointerDownCapture={stopRinging}
         onKeyDownCapture={stopRinging}
       >
-        {warning && (
-          <SignInWarning
-            onCancel={() => setWarning(false)}
-            onSignIn={showSignIn}
-          />
-        )}
         {screen.kind === "signIn" && (
           <SignInScreen
             method={signInMethod}

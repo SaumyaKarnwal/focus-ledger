@@ -24,7 +24,6 @@ const cancelButtons = components.flatMap(({ file, text }) =>
 describe("the Cancel button (issue 221, board A-Signout)", () => {
   test("cancel_everyDialog_usesTheSharedTextButton", () => {
     expect(cancelButtons.map(({ file }) => file).sort()).toEqual([
-      "signIn/SignInWarning.tsx",
       "start/SignOutConfirm.tsx",
       "task/LogTimeDialog.tsx",
       "task/TaskDialog.tsx",

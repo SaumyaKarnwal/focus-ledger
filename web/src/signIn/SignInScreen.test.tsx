@@ -284,7 +284,7 @@ describe("Sign-in", () => {
 });
 
 describe("Sign in from a guest (README Guest mode, issue 275)", () => {
-  /** A guest ledger with one hand-logged cycle: the guest has history. */
+  /** A guest ledger with one hand-logged cycle. */
   async function guestWithHistory(): Promise<GuestLedger> {
     const guest = guestLedger();
     await guest.ledger.createCycle({
@@ -310,28 +310,11 @@ describe("Sign in from a guest (README Guest mode, issue 275)", () => {
   const guestCycles = async (guest: GuestLedger) =>
     (await guest.ledger.listNodes({})).nodes.flatMap((node) => node.cycles);
 
-  const warning = () => screen.getByRole("alertdialog", { name: "Sign in?" });
-
-  test("signIn_guestWithHistory_warnsFirst_andCancelKeepsTheData", async () => {
-    const guest = await guestWithHistory();
-    renderWith(signedOutClient().client, guest);
-
-    fireEvent.click(await screen.findByRole("button", { name: "Sign in" }));
-
-    expect(warning().textContent).toContain(
-      "Your guest history stays out of your account. Signing in removes it from this browser.",
-    );
-    fireEvent.click(within(warning()).getByRole("button", { name: "Cancel" }));
-    expect(screen.queryByRole("alertdialog")).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Sign in" })).toBeNull();
-    expect(await guestCycles(guest)).toHaveLength(1);
-  });
-
   test("signIn_success_deletesTheGuestData_andShowsTheAccount", async () => {
     const guest = await guestWithHistory();
     renderWith(signedOutClient().client, guest);
+    // No warning: the pill goes straight to the sign-in screen.
     fireEvent.click(await screen.findByRole("button", { name: "Sign in" }));
-    fireEvent.click(within(warning()).getByRole("button", { name: "Sign in" }));
 
     fireEvent.click(
       await screen.findByRole("button", { name: "Continue with Google" }),
@@ -351,8 +334,8 @@ describe("Sign in from a guest (README Guest mode, issue 275)", () => {
       new ConnectError("the token failed the checks", Code.Unauthenticated),
     );
     renderWith(client, guest);
+    // No warning: the pill goes straight to the sign-in screen.
     fireEvent.click(await screen.findByRole("button", { name: "Sign in" }));
-    fireEvent.click(within(warning()).getByRole("button", { name: "Sign in" }));
 
     fireEvent.click(
       await screen.findByRole("button", { name: "Continue with Google" }),
