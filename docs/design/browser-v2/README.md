@@ -19,7 +19,7 @@ Each file is plain HTML with inline styles. It needs the canvas runtime (`suppor
 | Task page | `E-Task`, `E-Task-Edit`, `E-Task-Pie`, `E-Task-Done` | Back arrow (bare arrow, as on `E-Task`), parent path above the name, Mark complete / Completed button, estimate card (editable: minutes × cycles per mode), "How it splits" ring of leaf tasks, and the last seven days. |
 | Settings | `H-Settings-Stacked` | Two cards in one 680px column: Cycles (mode lengths, short break, long break; no "long break every N cycles") and The bell (sound, volume, two switches). |
 | Report | `R-Report-Today`, `-Week`, `-Month`, `-Range` | One page per range (Today, Week, Month), same order every time. A sans title with the dates under it; ‹ › step one range, and › fades out at now. The two nearest steps have names (Today/Yesterday, This week/Last week, This month/Last month); older ones show their dates. One total beside the title with the change against the range before, in small green or red. Cards: When you focus (minutes per hour, one soft curve per mode; Today uses real minutes, Week and Month use averages), Kind of focus (mode bars), Where it went (ring of top-level tasks, Untagged included), What you set vs what you do (average cycle against the setting), Cycles you finished (one mark per cycle: filled = ran to the bell, outlined = stopped early), a third small card for the week, and Your year (always the last twelve months; no streak: the owner removed "N days in a row · best N"). |
-| Sign in | `A-Signin-OnePoint`, `signin-pastel.jpg` | The playful sign-in: the pastel image fills the screen; a frosted card on the left holds एकाग्र, Ekagra, "one-pointed attention", one line, and Continue with Google. Use Google's own sign-in button (Google Identity Services, pill shape), not the drawn "G". The "keep going without an account" link is **not** built: v1 requires an account, and a guest mode is a later decision. |
+| Sign in | `A-Signin-OnePoint`, `signin-pastel.jpg` | The playful sign-in: the pastel image fills the screen; a frosted card on the left holds एकाग्र, Ekagra, "one-pointed attention", one line, and Continue with Google. Use Google's own sign-in button (Google Identity Services, pill shape), not the drawn "G". The "keep going without an account" link returns to the app as a guest (see "Guest mode"). |
 | Account menu | `A-Account-Menu` | The round initial in the header opens a small menu: name, email, Sign out. Nothing else. |
 | Sign out | `A-Signout` | Asks once: "Sign out?" with the board's text, Cancel and Sign out. |
 
@@ -70,6 +70,19 @@ Boards: `G-Tasks-Log-Button`, `G-Tasks-Log`, `G-Tasks-Log-Pick`, `G-Tasks-Log-Wh
 - **The start time is always required** (owner decision): there is no day-only entry, whatever `G-Tasks-Log-Day` shows. The small "logged" tag in lists is not built; it would need a contract change (issue #266, on hold).
 
 The two "timer in Newsreader" boards and `P-Backgrounds` are tries, not part of the build.
+
+## Guest mode (owner decision: the Pomofocus route)
+
+Ekagra works with no account. Signing in is optional, and guest data never moves into an account.
+
+- **No sign-in wall.** The first visit opens Start. Every screen works as a guest: timer, tasks, Log time, Report, Settings.
+- **Guest data lives only in this browser,** in IndexedDB. Nothing reaches the server. The browser applies the same rules as the server: the cycle rules, no delete, complete and reopen.
+- **The header shows a "Sign in" pill** in place of the round initial (the account note on the boards). It opens the playful sign-in screen. The sign-in screen offers "keep going without an account", which returns to the app.
+- **Before sign-in, one warning:** "Your guest history stays out of your account. Signing in removes it from this browser." Choices: Sign in, Cancel. On a successful sign-in, the browser deletes the guest data and the app shows the account's data.
+- **No upload, no merge.** There are no wrong-account uploads, device conflicts, or duplicate tasks to handle.
+- **Signing out** returns to an empty guest session.
+- **Not for guests:** connecting an AI agent (MCP). The account menu says "Sign in to connect an AI agent".
+- **Build shape:** the web app talks to one ledger interface with two versions, a local one (IndexedDB) and the server one (today's gRPC client). The screens never know which one they use. The server and the proto do not change.
 
 ## Colors on light screens
 
