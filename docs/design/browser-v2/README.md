@@ -56,6 +56,21 @@ Report is designed (`R-Report-*`). The palette tries (`P-Palettes`) are not part
 
 The ‹ › pair sits at the left of the range title, before it, with a 16px gap. The title, total, and change follow it and may change width freely: nothing to their left moves, so the arrows never jump and no empty gap opens. (A fixed-width slot after the title left a wide gap for short titles such as "31 Aug – 6 Sep · 0m".) The figures use tabular digits.
 
+## Log time (owner, round 4)
+
+Boards: `G-Tasks-Log-Button`, `G-Tasks-Log`, `G-Tasks-Log-Pick`, `G-Tasks-Log-When`, `G-Tasks-Log-Day`, `E-Task-Log`. This fills the PRD's FR-8 gap (cycles you ran without the timer).
+
+- **Where:** a quiet outlined "Log time" button beside New task on the Tasks page, and beside Mark complete on a task page. New task stays the one strong button.
+- **The dialog** reuses the New task dialog, at one fixed size (580 × 500): nothing inside it moves or resizes it.
+  - **Task:** from Tasks it opens on the last task worked; from a task page it is that task. A click opens the same task picker as the timer (search, recent tasks, Not sure yet, New task), floating over the dialog. Not sure yet logs into Untagged.
+  - **When:** a day from a small floating calendar (days with cycles carry a faint dot, today a ring, future days greyed out), then a start time typed as --:-- with am/pm. The end time is computed and shown beside it.
+  - **Time:** each mode's length × cycles, the same rows as the estimate editor. A row with cycles lights up in its mode colour; every row keeps a 1.5px border so nothing moves.
+- **Log** creates one cycle per counted cycle with `CreateCycle` (minutes set = a hand entry), each with its own `request_id`. The cycles run back to back from the start time, in the order Deep Focus, Execution, Shallow. They count everywhere a timed cycle does.
+- **Overlap:** if the new span overlaps a cycle already on that day, the dialog says so under When and Log stays disabled. The browser checks this from the day's cycles.
+- **Phase 2, waits for the owner's approval** (it needs a contract change, see the proposal issue): a start time that is optional (a day-only entry, kept out of the hour-by-hour curve) and a small "logged" tag in lists. Today a hand entry has no flag, and its `started_at` always has a time. Until then, the start time is required.
+
+The two "timer in Newsreader" boards and `P-Backgrounds` are tries, not part of the build.
+
 ## Colors on light screens
 
 On every light screen (Report, the task page, the Tasks page, Settings, the dialogs) a mode mark uses the soft tint from the New task dialog: Deep Focus lilac `#C9A3C4`, Execution rose `#E9AFB4`, Shallow teal `#A6CFCB`. This is a value change of the `--mode-*-mark` tokens in the default theme only; no component changes. The timer screens keep their deep backgrounds. Task rings use soft tints too (`--chart-*`); a slice may share a hue with a mode, because the ring always has its own legend.
