@@ -5,6 +5,7 @@ import { modeKey } from "../modes/modes";
 import type { TaskRow } from "../tasks/tasksModel";
 import { formatMinutes, MODE_NAMES } from "../today/todayModel";
 import { BarTip } from "../ui/BarTip";
+import { ClockIcon } from "../ui/ClockIcon";
 import { SplitRing } from "../ui/SplitRing";
 import { useBarFocus } from "../ui/useBarFocus";
 import {
@@ -36,6 +37,7 @@ type Props = {
   busy: boolean;
   onBack: () => void;
   onEdit: () => void;
+  onLogTime: () => void;
   onSetCompleted: (completed: boolean) => void;
   /** Resolves true when the write succeeded. */
   onSaveEstimate: (estimates: Estimate[]) => Promise<boolean>;
@@ -51,6 +53,7 @@ export function TaskPage({
   busy,
   onBack,
   onEdit,
+  onLogTime,
   onSetCompleted,
   onSaveEstimate,
 }: Props) {
@@ -80,16 +83,22 @@ export function TaskPage({
             </button>
           </h1>
         </div>
-        <button
-          type="button"
-          className="task-page-complete"
-          aria-pressed={node.closed}
-          disabled={busy}
-          onClick={() => onSetCompleted(!node.closed)}
-        >
-          <CheckIcon />
-          {node.closed ? "Completed" : "Mark complete"}
-        </button>
+        <span className="task-page-actions">
+          <button type="button" className="outline-button" onClick={onLogTime}>
+            <ClockIcon />
+            Log time
+          </button>
+          <button
+            type="button"
+            className="outline-button task-page-complete"
+            aria-pressed={node.closed}
+            disabled={busy}
+            onClick={() => onSetCompleted(!node.closed)}
+          >
+            <CheckIcon />
+            {node.closed ? "Completed" : "Mark complete"}
+          </button>
+        </span>
       </div>
       <div className="task-page-cards">
         <EstimateCard

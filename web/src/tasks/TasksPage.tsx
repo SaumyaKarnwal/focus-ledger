@@ -1,17 +1,21 @@
-import { type DragEvent, useEffect, useState } from "react";
+import { type DragEvent, useCallback, useEffect, useState } from "react";
 import type { LedgerClient } from "../api/ledgerClient";
 import { withRetry } from "../api/retry";
 import type { CyclePb, NodePb } from "../gen/focusledger/v1/model_pb";
+import { type TimeRange, toPeriodPb } from "../ledger/period";
 import { cycleStart, type LoggedMode } from "../ledger/rollup";
 import { modeKey } from "../modes/modes";
 import type { TimerChip } from "../session/sessionTimer";
 import { ScreenHeader } from "../start/ScreenHeader";
 import type { TaskSave } from "../task/saveTask";
+import { LogTimeDialog } from "../task/LogTimeDialog";
+import { defaultLogTask } from "../task/logTimeModel";
 import { TaskDialog } from "../task/TaskDialog";
 import { TaskPage } from "../taskPage/TaskPage";
 import { formatMinutes, MODE_NAMES, type TodayData } from "../today/todayModel";
 import { useAction } from "../useAction";
 import { useListNodes } from "../useListNodes";
+import { ClockIcon } from "../ui/ClockIcon";
 import { useNow } from "../useNow";
 import {
   canMoveUnder,
@@ -81,6 +85,19 @@ export function TasksPage({
   );
   const [allUntagged, setAllUntagged] = useState(false);
   const [dialog, setDialog] = useState<{ editing?: NodePb }>();
+  /** Log time is open, on this task (README "Log time"). */
+  const [logging, setLogging] = useState<{ nodeId: string }>();
+  const listCycles = useCallback(
+    async (range: TimeRange) => {
+      const response = await withRetry(
+        () =>
+          client.listNodes({ includeClosed: true, period: toPeriodPb(range) }),
+        retryDelaysMs,
+      );
+      return response.nodes.flatMap((listed) => listed.cycles);
+    },
+    [client, retryDelaysMs],
+  );
   const [dragging, setDragging] = useState<Dragging>();
   const [dropTarget, setDropTarget] = useState<string | null>();
   const [pointer, setPointer] = useState<{ x: number; y: number }>();
@@ -230,6 +247,7 @@ export function TasksPage({
             busy={busy}
             onBack={() => onOpenTask(undefined)}
             onEdit={() => setDialog({ editing: openRow.node })}
+            onLogTime={() => setLogging({ nodeId: openRow.node.id })}
             onSetCompleted={(completed) =>
               void write(() =>
                 client.updateNode({
@@ -253,6 +271,14 @@ export function TasksPage({
       ) : (
         <main className="tasks-main">
           <div className="tasks-bar">
+            <button
+              type="button"
+              className="outline-button"
+              onClick={() => setLogging({ nodeId: defaultLogTask(data) })}
+            >
+              <ClockIcon />
+              Log time
+            </button>
             <button
               type="button"
               className="tasks-new"
@@ -445,6 +471,21 @@ export function TasksPage({
             <span>{draggedTask?.node.name}</span>
           )}
         </span>
+      )}
+      {logging && (
+        <LogTimeDialog
+          data={data}
+          now={now}
+          timeZone={timeZone}
+          initialNodeId={logging.nodeId}
+          listCycles={listCycles}
+          onSaveTask={async (save) => {
+            const node = await onSaveTask(save);
+            reload();
+            return node;
+          }}
+          onClose={() => setLogging(undefined)}
+        />
       )}
       {dialog && (
         <TaskDialog

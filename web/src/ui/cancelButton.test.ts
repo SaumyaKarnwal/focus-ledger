@@ -25,6 +25,7 @@ describe("the Cancel button (issue 221, board A-Signout)", () => {
   test("cancel_everyDialog_usesTheSharedTextButton", () => {
     expect(cancelButtons.map(({ file }) => file).sort()).toEqual([
       "start/SignOutConfirm.tsx",
+      "task/LogTimeDialog.tsx",
       "task/TaskDialog.tsx",
       "taskPage/TaskPage.tsx",
     ]);
