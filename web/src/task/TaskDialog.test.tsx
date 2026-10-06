@@ -98,20 +98,38 @@ describe("Task dialog model", () => {
     expect(rows.map((row) => row.name)).toEqual(["Book", "Admin"]);
   });
 
-  test("parentRows_branch_isTheLastChildOfItsParent", () => {
-    const rows = parentRows(dataOf(exampleNodes()), undefined, {
-      name: "Drafts",
+  test("parentRows_newBranches_areChildrenOfTheirParent", () => {
+    const rows = parentRows(dataOf(exampleNodes()), undefined, [
+      { key: "drafts", name: "Drafts", parentId: BOOK },
+      { key: "outline", name: "Outline", parentId: "drafts" },
+    ]);
+
+    expect(
+      rows.map((row) => [row.name, row.kind, row.depth, row.last]),
+    ).toEqual([
+      ["Book", "node", 0, false],
+      ["Chapter 1", "node", 1, false],
+      ["Notes", "node", 2, true],
+      ["Drafts", "new", 1, true],
+      ["Outline", "new", 2, true],
+      ["Admin", "node", 0, true],
+    ]);
+    expect(rows[2].guides).toEqual([true]);
+    expect(rows[4].path).toEqual(["Book", "Drafts"]);
+  });
+
+  test("parentRows_addField_isTheLastChildOfItsRow", () => {
+    const rows = parentRows(dataOf(exampleNodes()), undefined, [], {
       parentId: BOOK,
     });
 
-    expect(rows.map((row) => [row.name, row.depth, row.last])).toEqual([
-      ["Book", 0, false],
-      ["Chapter 1", 1, false],
-      ["Notes", 2, true],
-      ["Drafts", 1, true],
-      ["Admin", 0, true],
+    expect(rows.map((row) => [row.id, row.kind, row.depth])).toEqual([
+      [BOOK, "node", 0],
+      [CHAPTER_1, "node", 1],
+      [expect.any(String), "node", 2],
+      ["adding", "input", 1],
+      [expect.any(String), "node", 0],
     ]);
-    expect(rows[2].guides).toEqual([true]);
   });
 
   test("filterParentRows_matchesTheNameOrThePath", () => {
@@ -131,11 +149,11 @@ describe("Task dialog model", () => {
       "Book / Chapter 1",
     );
     expect(
-      parentLabel(data, {
-        kind: "branch",
-        branch: { name: "Drafts", parentId: BOOK },
-      }),
-    ).toBe("Book / Drafts");
+      parentLabel(data, { kind: "branch", key: "outline" }, [
+        { key: "drafts", name: "Drafts", parentId: BOOK },
+        { key: "outline", name: "Outline", parentId: "drafts" },
+      ]),
+    ).toBe("Book / Drafts / Outline");
   });
 });
 
@@ -296,64 +314,88 @@ describe("New task", () => {
   });
 });
 
-describe("New branch in the parent tree", () => {
+describe("New branch in the parent tree (README Paused and the parent picker 2)", () => {
+  function addBranch(under: string, name: string) {
+    fireEvent.click(
+      screen.getByRole("button", { name: `Add a task under ${under}` }),
+    );
+    const input = screen.getByRole("textbox", {
+      name: `New task under ${under}`,
+    });
+    fireEvent.change(input, { target: { value: name } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    return input as HTMLInputElement;
+  }
+
+  function pickRow(name: string) {
+    const row = screen
+      .getAllByRole("button", { pressed: false })
+      .find(
+        (button) => button.querySelector(".parent-name")?.textContent === name,
+      );
+    if (!row) throw new Error(`no row ${name}`);
+    fireEvent.click(row);
+  }
+
+  function pressedRows() {
+    return screen
+      .getAllByRole("button", { pressed: true })
+      .map((button) => button.querySelector(".parent-name")?.textContent);
+  }
+
   async function addBranchUnderBook(client: LedgerClient) {
     await openNewTask(client);
     typeName("Migrations");
     fireEvent.click(parentButton());
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add a task under Book" }),
-    );
-    const input = screen.getByRole("textbox", { name: "New task under Book" });
-    fireEvent.change(input, { target: { value: "Drafts" } });
-    fireEvent.keyDown(input, { key: "Enter" });
+    return addBranch("Book", "Drafts");
   }
 
-  test("branch_isHeldUntilCreate_thenCreatedBeforeTheTask", async () => {
+  test("branch_enter_addsTheBranchAndClearsTheFieldButDoesNotSelect", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await openNewTask(recording.client);
+    fireEvent.click(parentButton());
+    const pickedBefore = pressedRows();
+
+    const input = addBranch("Book", "Drafts");
+
+    expect(input.value).toBe("");
+    expect(document.activeElement).toBe(input);
+    expect(
+      screen.getByText("Drafts", { selector: ".parent-name" }),
+    ).toBeDefined();
+    expect(pressedRows()).toEqual(pickedBefore);
+    expect(pickedBefore).not.toContain("Drafts");
+    expect(recording.createNodeRequestIds).toEqual([]);
+  });
+
+  test("branch_twoBranchesThenSelectOne_createsBothParentsFirstOnCreate", async () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     await addBranchUnderBook(recording.client);
+    addBranch("Drafts", "Outline");
+    fireEvent.keyDown(
+      screen.getByRole("textbox", { name: "New task under Drafts" }),
+      { key: "Escape" },
+    );
 
-    expect(parentButton().textContent).toContain("Book / Drafts");
+    pickRow("Outline");
+
+    expect(parentButton().textContent).toContain("Book / Drafts / Outline");
     expect(recording.createNodeRequestIds).toEqual([]);
     fireEvent.click(screen.getByRole("button", { name: "Create" }));
 
     await screen.findByText("Migrations", { selector: ".task-strip-name" });
-    const [branch] = await createdNodes(recording.client, "Drafts");
+    const [drafts] = await createdNodes(recording.client, "Drafts");
+    const [outline] = await createdNodes(recording.client, "Outline");
     const [task] = await createdNodes(recording.client, "Migrations");
-    expect(branch.parentId).toBe(BOOK);
-    expect(task.parentId).toBe(branch.id);
-    expect(new Set(recording.createNodeRequestIds).size).toBe(2);
+    expect(drafts.parentId).toBe(BOOK);
+    expect(outline.parentId).toBe(drafts.id);
+    expect(task.parentId).toBe(outline.id);
+    expect(new Set(recording.createNodeRequestIds).size).toBe(3);
   });
 
-  test("branch_showsAsPickedInTheTree", async () => {
+  test("branch_escape_leavesAddModeAndKeepsTheBranches", async () => {
     await addBranchUnderBook(
       recordingClient(exampleNodesWithNothingRunning()).client,
-    );
-
-    fireEvent.click(parentButton());
-
-    expect(
-      screen
-        .getByRole("button", { pressed: true })
-        .querySelector(".parent-name")?.textContent,
-    ).toBe("Drafts");
-  });
-
-  test("branch_cancel_createsNothing", async () => {
-    const recording = recordingClient(exampleNodesWithNothingRunning());
-    await addBranchUnderBook(recording.client);
-
-    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
-
-    expect(recording.createNodeRequestIds).toEqual([]);
-    expect(await createdNodes(recording.client, "Drafts")).toEqual([]);
-  });
-
-  test("branch_escapeWhileAdding_dropsTheNewRowOnly", async () => {
-    await openNewTask(recordingClient(exampleNodesWithNothingRunning()).client);
-    fireEvent.click(parentButton());
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add a task under Book" }),
     );
 
     fireEvent.keyDown(
@@ -364,9 +406,45 @@ describe("New branch in the parent tree", () => {
     expect(
       screen.queryByRole("textbox", { name: "New task under Book" }),
     ).toBeNull();
+    const search = screen.getByRole("textbox", {
+      name: "Search for a parent",
+    }) as HTMLInputElement;
+    expect(search.disabled).toBe(false);
     expect(
-      screen.getByRole("textbox", { name: "Search for a parent" }),
+      screen.getByText("Drafts", { selector: ".parent-name" }),
     ).toBeDefined();
+
+    fireEvent.keyDown(search, { key: "Escape" });
+    fireEvent.click(parentButton());
+
+    expect(
+      screen.getByText("Drafts", { selector: ".parent-name" }),
+    ).toBeDefined();
+  });
+
+  test("branch_arrowKeys_moveToARowThatAClickPicks", async () => {
+    await openNewTask(recordingClient(exampleNodesWithNothingRunning()).client);
+    fireEvent.click(parentButton());
+    const search = screen.getByRole("textbox", { name: "Search for a parent" });
+
+    fireEvent.keyDown(search, { key: "ArrowDown" });
+    fireEvent.keyDown(document.activeElement as Element, { key: "ArrowDown" });
+
+    const focused = document.activeElement as HTMLElement;
+    expect(focused.querySelector(".parent-name")?.textContent).toBe("Book");
+    fireEvent.click(focused);
+    expect(parentButton().textContent).toContain("Book");
+  });
+
+  test("branch_cancel_createsNothing", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    await addBranchUnderBook(recording.client);
+    pickRow("Drafts");
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(recording.createNodeRequestIds).toEqual([]);
+    expect(await createdNodes(recording.client, "Drafts")).toEqual([]);
   });
 
   test("branch_taskCreateFails_keepsTheDialogAndARetryReusesBothIds", async () => {
@@ -397,12 +475,8 @@ describe("New branch in the parent tree", () => {
     );
     typeName("Migrations");
     fireEvent.click(parentButton());
-    fireEvent.click(
-      screen.getByRole("button", { name: "Add a task under Book" }),
-    );
-    const input = screen.getByRole("textbox", { name: "New task under Book" });
-    fireEvent.change(input, { target: { value: "Drafts" } });
-    fireEvent.keyDown(input, { key: "Enter" });
+    addBranch("Book", "Drafts");
+    pickRow("Drafts");
 
     fireEvent.click(screen.getByRole("button", { name: "Create" }));
     expect((await screen.findByRole("alert")).textContent).toContain(
@@ -418,7 +492,9 @@ describe("New branch in the parent tree", () => {
     expect(retryBranchId).toBe(branchId);
     expect(retryTaskId).toBe(taskId);
     expect(await createdNodes(inner, "Drafts")).toHaveLength(1);
-    expect(await createdNodes(inner, "Migrations")).toHaveLength(1);
+    const [task] = await createdNodes(inner, "Migrations");
+    const [drafts] = await createdNodes(inner, "Drafts");
+    expect(task.parentId).toBe(drafts.id);
   });
 });
 

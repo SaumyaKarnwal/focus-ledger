@@ -2,19 +2,20 @@ import type { LedgerClient } from "../api/ledgerClient";
 import { withRetry } from "../api/retry";
 import type { EstimatePb, NodePb } from "../gen/focusledger/v1/model_pb";
 import { toEstimates } from "../tree/estimateModel";
-import type { BranchDraft, TaskDraft } from "./taskDialogModel";
+import type { TaskDraft } from "./taskDialogModel";
 
 type Estimate = Pick<EstimatePb, "mode" | "cycleMinutes" | "cycleCount">;
 
 /** The writes for one Create or Save. The request IDs stay the same on a retry. */
 export type TaskSave = {
-  branch?: BranchDraft & { requestId: string };
+  /** The new branches, parents first. parentId is a node ID or an earlier branch's request ID. */
+  branches: { requestId: string; name: string; parentId?: string }[];
   /** The task as the dialog opened it. Undefined for a new task. */
   editing?: NodePb;
-  /** The task's request ID for a new task. A function, because the parent ID can come from the branch. */
+  /** The task's request ID for a new task. A function, because the parent ID can come from a branch. */
   taskRequestId: (content: unknown) => string;
   name: string;
-  /** The existing parent, when there is no branch to create. */
+  /** A node ID, a branch's request ID, or undefined for the top. */
   parentId?: string;
   estimates: Estimate[];
 };
@@ -22,45 +23,52 @@ export type TaskSave = {
 export function taskSave(
   draft: TaskDraft,
   editing: NodePb | undefined,
-  branchRequestId: (content: unknown) => string,
   taskRequestId: (content: unknown) => string,
 ): TaskSave {
   const { parent } = draft;
-  const branch =
-    parent.kind === "branch"
-      ? { ...parent.branch, name: parent.branch.name.trim() }
-      : undefined;
   return {
-    branch: branch && { ...branch, requestId: branchRequestId(branch) },
+    branches: draft.branches.map(({ key, name, parentId }) => ({
+      requestId: key,
+      name,
+      parentId,
+    })),
     editing,
     taskRequestId,
     name: draft.name.trim(),
-    parentId: parent.kind === "node" ? parent.nodeId : undefined,
+    parentId:
+      parent.kind === "node"
+        ? parent.nodeId
+        : parent.kind === "branch"
+          ? parent.key
+          : undefined,
     // A mode with no cycles has no estimate row.
     estimates: toEstimates(draft.estimate).filter((row) => row.cycleCount > 0),
   };
 }
 
-/** Creates the branch, if any, then creates or updates the task. Returns the task. */
+/** Creates the new branches in order, then creates or updates the task. Returns the task. */
 export async function writeTask(
   client: LedgerClient,
   save: TaskSave,
   retryDelaysMs?: readonly number[],
 ): Promise<NodePb | undefined> {
-  const branch = save.branch;
-  const parentId = branch
-    ? (
-        await withRetry(
-          () =>
-            client.createNode({
-              requestId: branch.requestId,
-              parentId: branch.parentId,
-              name: branch.name,
-            }),
-          retryDelaysMs,
-        )
-      ).node?.id
-    : save.parentId;
+  // A branch's request ID maps to the node the server created for it.
+  const created = new Map<string, string>();
+  const resolve = (id?: string) =>
+    id === undefined ? id : (created.get(id) ?? id);
+  for (const branch of save.branches) {
+    const response = await withRetry(
+      () =>
+        client.createNode({
+          requestId: branch.requestId,
+          parentId: resolve(branch.parentId),
+          name: branch.name,
+        }),
+      retryDelaysMs,
+    );
+    if (response.node) created.set(branch.requestId, response.node.id);
+  }
+  const parentId = resolve(save.parentId);
   const fields = { parentId, name: save.name, estimates: save.estimates };
   const editing = save.editing;
   if (editing !== undefined) {

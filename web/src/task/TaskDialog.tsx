@@ -1,5 +1,12 @@
 import { create } from "@bufbuild/protobuf";
-import { type FormEvent, type KeyboardEvent, useId, useState } from "react";
+import {
+  type FormEvent,
+  type KeyboardEvent,
+  useId,
+  useRef,
+  useState,
+} from "react";
+import { newRequestId } from "../api/requestId";
 import { useRequestId } from "../api/useRequestId";
 import { type NodePb, NodePbSchema } from "../gen/focusledger/v1/model_pb";
 import { LOGGED_MODES, type LoggedMode } from "../ledger/rollup";
@@ -54,12 +61,12 @@ export function TaskDialog({
     parent: editing
       ? parentChoiceOf(editing)
       : (initialParent ?? { kind: "root" }),
+    branches: [],
     estimate: estimateRows(editing ?? create(NodePbSchema), data.settings),
   }));
   const [choosingParent, setChoosingParent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const branchKey = useRequestId();
   const taskKey = useRequestId();
   const title = editing ? "Edit task" : "New task";
   const canSave = draft.name.trim() !== "" && !busy;
@@ -70,10 +77,7 @@ export function TaskDialog({
     setBusy(true);
     setError(undefined);
     try {
-      const node = await onSave(
-        taskSave(draft, editing, branchKey.requestIdFor, taskKey.requestIdFor),
-      );
-      branchKey.done();
+      const node = await onSave(taskSave(draft, editing, taskKey.requestIdFor));
       taskKey.done();
       if (node) onDone(node);
     } catch {
@@ -102,6 +106,13 @@ export function TaskDialog({
           taskName={draft.name.trim()}
           editingId={editing?.id}
           parent={draft.parent}
+          branches={draft.branches}
+          onAddBranch={(branch) =>
+            setDraft((current) => ({
+              ...current,
+              branches: [...current.branches, branch],
+            }))
+          }
           onPick={(parent) => {
             setDraft((current) => ({ ...current, parent }));
             setChoosingParent(false);
@@ -139,7 +150,7 @@ export function TaskDialog({
           >
             <span className="task-dialog-label">Parent</span>
             <span className="task-dialog-parent-path">
-              {parentLabel(data, draft.parent)}
+              {parentLabel(data, draft.parent, draft.branches)}
             </span>
             <Chevron />
           </button>
@@ -290,12 +301,18 @@ function Stepper({
   );
 }
 
-/** The parent list: None, then the open tasks as a tree. A row's "+" adds a branch under it. */
+/**
+ * The parent list: None, then the open tasks as a tree. A row's "+" opens an
+ * add field under it: Enter adds a branch and keeps the field open, and Esc
+ * closes it. A click, or Enter on a row reached with the arrow keys, picks.
+ */
 function ParentChooser({
   data,
   taskName,
   editingId,
   parent,
+  branches,
+  onAddBranch,
   onPick,
   onBack,
 }: {
@@ -303,27 +320,60 @@ function ParentChooser({
   taskName: string;
   editingId?: string;
   parent: ParentChoice;
+  branches: readonly BranchDraft[];
+  onAddBranch: (branch: BranchDraft) => void;
   onPick: (parent: ParentChoice) => void;
   onBack: () => void;
 }) {
   const [query, setQuery] = useState("");
-  const [adding, setAdding] = useState<BranchDraft>();
-  const heldBranch = parent.kind === "branch" ? parent.branch : undefined;
+  const [adding, setAdding] = useState<{ parentId?: string }>();
+  const [newName, setNewName] = useState("");
+  const list = useRef<HTMLDivElement>(null);
+  const searching = query.trim() !== "" && adding === undefined;
   const rows = adding
-    ? parentRows(data, editingId, adding)
-    : filterParentRows(parentRows(data, editingId, heldBranch), query);
+    ? parentRows(data, editingId, branches, adding)
+    : filterParentRows(parentRows(data, editingId, branches), query);
 
   const isPicked = (row: ParentRow) =>
-    row.nodeId === undefined
-      ? parent.kind === "branch"
-      : parent.kind === "node" && parent.nodeId === row.nodeId;
+    row.kind === "new"
+      ? parent.kind === "branch" && parent.key === row.id
+      : parent.kind === "node" && parent.nodeId === row.id;
 
-  const escape = (event: KeyboardEvent) => {
+  const moveFocus = (step: 1 | -1) => {
+    const picks = [
+      ...(list.current?.querySelectorAll<HTMLButtonElement>(".parent-pick") ??
+        []),
+    ];
+    const index = picks.indexOf(document.activeElement as HTMLButtonElement);
+    const next =
+      index === -1
+        ? step === 1
+          ? 0
+          : picks.length - 1
+        : Math.min(picks.length - 1, Math.max(0, index + step));
+    picks[next]?.focus();
+  };
+
+  const keyDown = (event: KeyboardEvent) => {
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      moveFocus(event.key === "ArrowDown" ? 1 : -1);
+      return;
+    }
     if (event.key !== "Escape") return;
     event.preventDefault();
     event.stopPropagation();
-    if (adding) setAdding(undefined);
-    else onBack();
+    if (adding) {
+      setAdding(undefined);
+      setNewName("");
+    } else onBack();
+  };
+
+  const addBranch = () => {
+    const name = newName.trim();
+    if (name === "" || adding === undefined) return;
+    onAddBranch({ key: newRequestId(), name, parentId: adding.parentId });
+    setNewName("");
   };
 
   return (
@@ -332,7 +382,7 @@ function ParentChooser({
       role="dialog"
       aria-modal="true"
       aria-label="Choose a parent"
-      onKeyDown={escape}
+      onKeyDown={keyDown}
     >
       <label className="picker-search">
         <SearchIcon />
@@ -345,8 +395,8 @@ function ParentChooser({
           onChange={(event) => setQuery(event.target.value)}
         />
       </label>
-      <div className="task-parent-list">
-        {(query.trim() === "" || adding) && (
+      <div className="task-parent-list" ref={list}>
+        {!searching && (
           <div className="parent-row" data-none="true">
             <button
               type="button"
@@ -359,43 +409,40 @@ function ParentChooser({
           </div>
         )}
         {rows.map((row) =>
-          row.nodeId === undefined && adding ? (
-            <div key="adding" className="parent-row" data-adding="true">
+          row.kind === "input" ? (
+            <div key={row.id} className="parent-row" data-adding="true">
               <Guides row={row} />
               <input
                 className="parent-new-name"
                 aria-label={`New task under ${row.path.at(-1) ?? "the top"}`}
                 autoFocus
-                value={adding.name}
-                onChange={(event) =>
-                  setAdding({ ...adding, name: event.target.value })
-                }
+                value={newName}
+                onChange={(event) => setNewName(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === "Enter" && adding.name.trim() !== "") {
-                    event.preventDefault();
-                    onPick({ kind: "branch", branch: adding });
-                  }
+                  if (event.key !== "Enter") return;
+                  event.preventDefault();
+                  addBranch();
                 }}
               />
             </div>
           ) : (
-            <div key={row.nodeId ?? "branch"} className="parent-row">
+            <div key={row.id} className="parent-row">
               <button
                 type="button"
                 className="parent-pick"
                 aria-pressed={isPicked(row)}
                 onClick={() =>
                   onPick(
-                    row.nodeId === undefined && heldBranch
-                      ? { kind: "branch", branch: heldBranch }
-                      : { kind: "node", nodeId: row.nodeId as string },
+                    row.kind === "new"
+                      ? { kind: "branch", key: row.id }
+                      : { kind: "node", nodeId: row.id },
                   )
                 }
               >
-                {query.trim() === "" && <Guides row={row} />}
+                {!searching && <Guides row={row} />}
                 <span className="parent-name">
                   {row.name}
-                  {query.trim() !== "" && row.path.length > 0 && (
+                  {searching && row.path.length > 0 && (
                     <span className="parent-path">
                       {" "}
                       · {row.path.join(" / ")}
@@ -406,19 +453,18 @@ function ParentChooser({
                   {row.minutes > 0 ? formatMinutes(row.minutes) : ""}
                 </span>
               </button>
-              {row.nodeId !== undefined && (
-                <button
-                  type="button"
-                  className="parent-add"
-                  aria-label={`Add a task under ${row.name}`}
-                  onClick={() => {
-                    setQuery("");
-                    setAdding({ name: "", parentId: row.nodeId });
-                  }}
-                >
-                  <PlusIcon />
-                </button>
-              )}
+              <button
+                type="button"
+                className="parent-add"
+                aria-label={`Add a task under ${row.name}`}
+                onClick={() => {
+                  setQuery("");
+                  setNewName("");
+                  setAdding({ parentId: row.id });
+                }}
+              >
+                <PlusIcon />
+              </button>
             </div>
           ),
         )}
