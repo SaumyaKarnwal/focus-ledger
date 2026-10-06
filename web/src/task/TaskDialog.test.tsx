@@ -449,26 +449,34 @@ describe("New branch in the parent tree (README Paused and the parent picker 2)"
     return onDone;
   }
 
-  test("branch_emptyTree_addsATopLevelBranchAndCreatesTheTaskUnderIt", async () => {
+  function search(text: string) {
+    const field = screen.getByRole("textbox", { name: "Search for a parent" });
+    fireEvent.change(field, { target: { value: text } });
+    return field as HTMLInputElement;
+  }
+
+  test("branch_emptyTree_showsAHintAndEnterCreatesAtTheTopWithoutSelecting", async () => {
     const recording = recordingClient([]);
     const onDone = renderDialogOn(recording.client, []);
     typeName("Migrations");
     fireEvent.click(parentButton());
+    expect(screen.getByText("Type a name to create one")).toBeDefined();
     expect(
       screen
         .getAllByRole("button")
-        .map((button) => button.querySelector(".parent-name")?.textContent)
-        .filter(Boolean),
-    ).toEqual(["None", "+ New parent"]);
+        .map((button) => button.querySelector(".parent-name")?.textContent),
+    ).toEqual(["None"]);
 
-    fireEvent.click(screen.getByRole("button", { name: "+ New parent" }));
-    const input = screen.getByRole("textbox", { name: "New parent" });
-    fireEvent.change(input, { target: { value: "Work" } });
-    fireEvent.keyDown(input, { key: "Enter" });
-    fireEvent.keyDown(input, { key: "Escape" });
+    const field = search("Work");
+    fireEvent.keyDown(field, { key: "Enter" });
+
+    expect(field.value).toBe("");
+    const focused = document.activeElement as HTMLElement;
+    expect(focused.querySelector(".parent-name")?.textContent).toBe("Work");
     expect(pressedRows()).toEqual(["None"]);
-    pickRow("Work");
     expect(recording.createNodeRequestIds).toEqual([]);
+    // A second Enter on the focused row is a click on it.
+    fireEvent.click(focused);
     fireEvent.click(screen.getByRole("button", { name: "Create" }));
 
     await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce());
@@ -478,7 +486,20 @@ describe("New branch in the parent tree (README Paused and the parent picker 2)"
     expect(task.parentId).toBe(work.id);
   });
 
-  test("branch_searchWithNoMatch_addsTheTextAtTheTopLevel", async () => {
+  test("branch_createRow_showsOnlyWithoutAnExactMatch", async () => {
+    renderDialogOn(
+      recordingClient(exampleNodesWithNothingRunning()).client,
+      exampleNodesWithNothingRunning(),
+    );
+    fireEvent.click(parentButton());
+
+    search("book");
+    expect(screen.queryByRole("button", { name: /^Create "/ })).toBeNull();
+    search("Chap");
+    expect(screen.getByRole("button", { name: 'Create "Chap"' })).toBeDefined();
+  });
+
+  test("branch_createRowClick_addsTheTextAtTheTopLevel", async () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     const onDone = renderDialogOn(
       recording.client,
@@ -486,20 +507,11 @@ describe("New branch in the parent tree (README Paused and the parent picker 2)"
     );
     typeName("Migrations");
     fireEvent.click(parentButton());
-    fireEvent.change(
-      screen.getByRole("textbox", { name: "Search for a parent" }),
-      { target: { value: "Garden" } },
-    );
+    const field = search("Garden");
 
-    fireEvent.click(screen.getByRole("button", { name: '+ Create "Garden"' }));
+    fireEvent.click(screen.getByRole("button", { name: 'Create "Garden"' }));
 
-    expect(
-      (
-        screen.getByRole("textbox", {
-          name: "Search for a parent",
-        }) as HTMLInputElement
-      ).value,
-    ).toBe("");
+    expect(field.value).toBe("");
     expect(pressedRows()).not.toContain("Garden");
     pickRow("Garden");
     fireEvent.click(screen.getByRole("button", { name: "Create" }));
