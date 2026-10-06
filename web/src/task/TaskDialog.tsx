@@ -2,6 +2,7 @@ import { create } from "@bufbuild/protobuf";
 import {
   type FormEvent,
   type KeyboardEvent,
+  useEffect,
   useId,
   useRef,
   useState,
@@ -376,12 +377,38 @@ function ParentChooser({
     setNewName("");
   };
 
-  const addingAtTop = adding !== undefined && adding.parentId === undefined;
+  // Create "<text>" shows while no row has exactly the search text as its name.
+  const searchName = query.trim();
+  const canCreate =
+    searching &&
+    !rows.some((row) => row.name.toLowerCase() === searchName.toLowerCase());
+  const focusNext = useRef<string>(undefined);
 
-  const addSearchAtTop = () => {
-    onAddBranch({ key: newRequestId(), name: query.trim() });
+  const pickRow = (row: ParentRow) =>
+    onPick(
+      row.kind === "new"
+        ? { kind: "branch", key: row.id }
+        : { kind: "node", nodeId: row.id },
+    );
+
+  const createFromSearch = () => {
+    const key = newRequestId();
+    onAddBranch({ key, name: searchName });
     setQuery("");
+    focusNext.current = key;
   };
+
+  // The new row takes the focus after it renders, so a second Enter selects it.
+  useEffect(() => {
+    const key = focusNext.current;
+    if (key === undefined) return;
+    const row = list.current?.querySelector<HTMLButtonElement>(
+      `[data-id="${key}"]`,
+    );
+    if (!row) return;
+    row.focus();
+    focusNext.current = undefined;
+  });
 
   return (
     <section
@@ -400,10 +427,84 @@ function ParentChooser({
           value={query}
           disabled={adding !== undefined}
           onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" || !searching) return;
+            event.preventDefault();
+            // The first match is highlighted; with no match, Enter creates.
+            if (rows.length > 0) pickRow(rows[0]);
+            else if (canCreate) createFromSearch();
+          }}
         />
       </label>
-      <div className="task-parent-list" ref={list}>
-        {!searching && (
+      <div className="task-parent-body" ref={list}>
+        <div
+          className="task-parent-list"
+          data-empty={(searching && rows.length === 0) || undefined}
+        >
+          {!searching && rows.length === 0 && adding === undefined && (
+            <p className="parent-hint">Type a name to create one</p>
+          )}
+          {rows.map((row, index) =>
+            row.kind === "input" ? (
+              <div key={row.id} className="parent-row" data-adding="true">
+                <Guides row={row} />
+                <input
+                  className="parent-new-name"
+                  aria-label={`New task under ${row.path.at(-1) ?? "the top"}`}
+                  autoFocus
+                  value={newName}
+                  onChange={(event) => setNewName(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter") return;
+                    event.preventDefault();
+                    addBranch();
+                  }}
+                />
+              </div>
+            ) : (
+              <div
+                key={row.id}
+                className="parent-row"
+                data-highlight={(searching && index === 0) || undefined}
+              >
+                <button
+                  type="button"
+                  className="parent-pick"
+                  data-id={row.id}
+                  aria-pressed={isPicked(row)}
+                  onClick={() => pickRow(row)}
+                >
+                  {!searching && <Guides row={row} />}
+                  <span className="parent-name">
+                    {row.name}
+                    {searching && row.path.length > 0 && (
+                      <span className="parent-path">
+                        {" "}
+                        · {row.path.join(" / ")}
+                      </span>
+                    )}
+                  </span>
+                  <span className="parent-time">
+                    {row.minutes > 0 ? formatMinutes(row.minutes) : ""}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="parent-add"
+                  aria-label={`Add a task under ${row.name}`}
+                  onClick={() => {
+                    setQuery("");
+                    setNewName("");
+                    setAdding({ parentId: row.id });
+                  }}
+                >
+                  <PlusIcon />
+                </button>
+              </div>
+            ),
+          )}
+        </div>
+        <div className="task-parent-pinned">
           <div className="parent-row" data-none="true">
             <button
               type="button"
@@ -414,99 +515,24 @@ function ParentChooser({
               <span className="parent-name">None</span>
             </button>
           </div>
-        )}
-        {searching && rows.length === 0 && (
-          <div className="parent-row" data-action="true">
-            <button
-              type="button"
-              className="parent-pick"
-              onClick={addSearchAtTop}
+          {canCreate && (
+            <div
+              className="parent-row"
+              data-highlight={rows.length === 0 || undefined}
             >
-              <span className="parent-name">
-                {`+ Add "${query.trim()}" at the top level`}
-              </span>
-            </button>
-          </div>
-        )}
-        {rows.map((row) =>
-          row.kind === "input" ? (
-            <div key={row.id} className="parent-row" data-adding="true">
-              <Guides row={row} />
-              <input
-                className="parent-new-name"
-                aria-label={
-                  row.path.length === 0
-                    ? "New top-level branch"
-                    : `New task under ${row.path.at(-1)}`
-                }
-                autoFocus
-                value={newName}
-                onChange={(event) => setNewName(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key !== "Enter") return;
-                  event.preventDefault();
-                  addBranch();
-                }}
-              />
-            </div>
-          ) : (
-            <div key={row.id} className="parent-row">
               <button
                 type="button"
                 className="parent-pick"
-                aria-pressed={isPicked(row)}
-                onClick={() =>
-                  onPick(
-                    row.kind === "new"
-                      ? { kind: "branch", key: row.id }
-                      : { kind: "node", nodeId: row.id },
-                  )
-                }
+                onClick={createFromSearch}
               >
-                {!searching && <Guides row={row} />}
                 <span className="parent-name">
-                  {row.name}
-                  {searching && row.path.length > 0 && (
-                    <span className="parent-path">
-                      {" "}
-                      · {row.path.join(" / ")}
-                    </span>
-                  )}
+                  <span className="parent-create">Create</span>{" "}
+                  {`"${searchName}"`}
                 </span>
-                <span className="parent-time">
-                  {row.minutes > 0 ? formatMinutes(row.minutes) : ""}
-                </span>
-              </button>
-              <button
-                type="button"
-                className="parent-add"
-                aria-label={`Add a task under ${row.name}`}
-                onClick={() => {
-                  setQuery("");
-                  setNewName("");
-                  setAdding({ parentId: row.id });
-                }}
-              >
-                <PlusIcon />
               </button>
             </div>
-          ),
-        )}
-        {!addingAtTop && (
-          <div className="parent-row" data-action="true">
-            <button
-              type="button"
-              className="parent-pick"
-              onClick={() => {
-                setQuery("");
-                setNewName("");
-                setAdding({});
-              }}
-            >
-              <span className="parent-name">+ New top-level branch</span>
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </section>
   );
