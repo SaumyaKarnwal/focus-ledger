@@ -7,3 +7,9 @@ import type { LedgerService } from "../gen/focusledger/v1/ledger_service_pb";
  * know which version they talk to.
  */
 export type Ledger = Client<typeof LedgerService>;
+
+/** The guest's ledger in this browser, and a way to remove all its data. */
+export type GuestLedger = {
+  ledger: Ledger;
+  clear: () => Promise<void>;
+};

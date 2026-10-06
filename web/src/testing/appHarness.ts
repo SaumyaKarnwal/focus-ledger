@@ -1,15 +1,15 @@
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, type Transport } from "@connectrpc/connect";
 import { createFakeLedgerTransport } from "../api/fakeLedgerService";
-import type { Ledger } from "../api/ledger";
-import { createLocalLedger, memoryStore } from "../api/localLedger";
+import type { GuestLedger, Ledger } from "../api/ledger";
+import { createGuestLedger, memoryStore } from "../api/localLedger";
 import { createServerLedger } from "../api/serverLedger";
 import { NodePbSchema, type NodePb } from "../gen/focusledger/v1/model_pb";
 import { exampleNodes } from "../ledger/exampleData";
 
 /** An empty guest ledger in memory, for App's guest prop. */
-export function guestLedger(): Ledger {
-  return createLocalLedger(memoryStore());
+export function guestLedger(): GuestLedger {
+  return createGuestLedger(memoryStore());
 }
 
 /** The example nodes without the running cycle. */

@@ -1,8 +1,18 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
+import { Code, ConnectError } from "@connectrpc/connect";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
-import type { Ledger } from "../api/ledger";
+import type { GuestLedger, Ledger } from "../api/ledger";
+import { newRequestId } from "../api/requestId";
+import { FocusMode } from "../gen/focusledger/v1/model_pb";
+import { hadAccount, setHadAccount } from "../session/accountFlag";
 import { exampleNow } from "../ledger/exampleData";
 import {
   exampleNodesWithNothingRunning,
@@ -97,7 +107,7 @@ describe("Sign-in", () => {
 
     expect(await screen.findByRole("button", { name: "Pause" })).toBeDefined();
     expect(recording.createCycleRequestIds).toEqual([]);
-    const { nodes } = await guest.listNodes({});
+    const { nodes } = await guest.ledger.listNodes({});
     expect(nodes.flatMap((node) => node.cycles)).toHaveLength(1);
   });
 
@@ -258,7 +268,7 @@ describe("Sign-in", () => {
     expect(signOut).toHaveBeenCalledTimes(1);
   });
 
-  test("session_endsDuringUse_nextActionOpensSignIn", async () => {
+  test("session_endsDuringUse_saysTheSessionEnded", async () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     renderApp(client);
     await screen.findByRole("button", { name: "Start" });
@@ -267,8 +277,127 @@ describe("Sign-in", () => {
     fireEvent.click(screen.getByRole("button", { name: "Start" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Sign in" }),
+      await screen.findByRole("heading", { name: "Your session ended" }),
     ).toBeDefined();
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+describe("Sign in from a guest (README Guest mode, issue 275)", () => {
+  /** A guest ledger with one hand-logged cycle. */
+  async function guestWithHistory(): Promise<GuestLedger> {
+    const guest = guestLedger();
+    await guest.ledger.createCycle({
+      requestId: newRequestId(),
+      mode: FocusMode.SHALLOW,
+      minutes: 25,
+      startedAt: {
+        seconds: BigInt(exampleNow.getTime() / 1000 - 3600),
+        nanos: 0,
+      },
+    });
+    return guest;
+  }
+
+  function renderWith(client: Ledger, guest: GuestLedger) {
+    render(
+      <StrictMode>
+        <App client={client} guest={guest} timeZone="UTC" retryDelaysMs={[0]} />
+      </StrictMode>,
+    );
+  }
+
+  const guestCycles = async (guest: GuestLedger) =>
+    (await guest.ledger.listNodes({})).nodes.flatMap((node) => node.cycles);
+
+  test("signIn_success_deletesTheGuestData_andShowsTheAccount", async () => {
+    const guest = await guestWithHistory();
+    renderWith(signedOutClient().client, guest);
+    // No warning: the pill goes straight to the sign-in screen.
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in" }));
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Continue with Google" }),
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "Your account" }),
+    ).toBeDefined();
+    expect(await guestCycles(guest)).toEqual([]);
+    expect(hadAccount()).toBe(true);
+  });
+
+  test("signIn_failure_keepsTheGuestData", async () => {
+    const guest = await guestWithHistory();
+    const { client } = signedOutClient();
+    vi.spyOn(client, "signIn").mockRejectedValue(
+      new ConnectError("the token failed the checks", Code.Unauthenticated),
+    );
+    renderWith(client, guest);
+    // No warning: the pill goes straight to the sign-in screen.
+    fireEvent.click(await screen.findByRole("button", { name: "Sign in" }));
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Continue with Google" }),
+    );
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Continue with Google" }),
+      ).toBeDefined(),
+    );
+    expect(await guestCycles(guest)).toHaveLength(1);
+    expect(hadAccount()).toBe(false);
+  });
+
+  test("signOut_startsAnEmptyGuestSession_andClearsTheFlag", async () => {
+    const guest = await guestWithHistory();
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    renderWith(client, guest);
+    await screen.findByRole("button", { name: "Your account" });
+    expect(hadAccount()).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "Your account" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
+    confirmSignOut();
+
+    expect(
+      await screen.findByRole("button", { name: "Sign in" }),
+    ).toBeDefined();
+    expect(await guestCycles(guest)).toEqual([]);
+    expect(hadAccount()).toBe(false);
+  });
+
+  test("expiredSession_withTheFlag_showsSessionEnded_thenGuestClearsTheFlag", async () => {
+    setHadAccount(true);
+    renderWith(signedOutClient().client, guestLedger());
+
+    expect(
+      await screen.findByRole("heading", { name: "Your session ended" }),
+    ).toBeDefined();
+    const buttons = screen
+      .getAllByRole("button")
+      .map((button) => button.textContent);
+    expect(buttons).toEqual(["Sign in again", "Keep going as a guest"]);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Keep going as a guest" }),
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "Sign in" }),
+    ).toBeDefined();
+    expect(hadAccount()).toBe(false);
+  });
+
+  test("expiredSession_withoutTheFlag_opensGuestMode", async () => {
+    renderWith(signedOutClient().client, guestLedger());
+
+    expect(
+      await screen.findByRole("button", { name: "Sign in" }),
+    ).toBeDefined();
+    expect(
+      screen.queryByRole("heading", { name: "Your session ended" }),
+    ).toBeNull();
   });
 });
