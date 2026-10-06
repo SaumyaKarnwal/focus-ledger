@@ -14,6 +14,8 @@ async function openReport(page: Page) {
   await expect(
     page.getByRole("heading", { name: "This week", level: 1 }),
   ).toBeVisible();
+  // A font that loads late changes the widths that the checks measure.
+  await page.evaluate(() => document.fonts.ready);
 }
 
 test("What you set: the set mark is the quiet grey, not black", async ({
@@ -41,12 +43,13 @@ test("What you set: the set mark is the quiet grey, not black", async ({
   colors.marks.forEach((mark) => expect(mark).toBe(colors.muted));
 });
 
-// README "Report range arrows stay put": the ‹ › pair ends the header row.
-test("the range arrows stay put between Today and Yesterday, and between two weeks", async ({
+// README "Report range arrows stay put": the ‹ › pair follows a title slot as
+// wide as the widest title for the range kind, so it never moves.
+test("the range arrows stay put between Today, Yesterday, and an older day, and between two weeks", async ({
   page,
 }) => {
   await openReport(page);
-  const heading = page.locator(".report-heading");
+  const heading = page.locator("h1.report-heading");
   const arrowsAt = async () => {
     const earlier = await page
       .getByRole("button", { name: "Earlier" })
@@ -65,6 +68,7 @@ test("the range arrows stay put between Today and Yesterday, and between two wee
 
   const thisWeek = await arrowsAt();
   await stepBack();
+  await expect(heading).toHaveText("Last week");
   expect(await arrowsAt()).toEqual(thisWeek);
 
   await page
@@ -76,11 +80,13 @@ test("the range arrows stay put between Today and Yesterday, and between two wee
   await stepBack();
   await expect(heading).toHaveText("Yesterday");
   expect(await arrowsAt()).toEqual(today);
+  await stepBack();
+  await expect(heading).toHaveText(/^\w{3} \d{1,2} \w{3}$/);
+  expect(await arrowsAt()).toEqual(today);
 
+  // The arrows sit beside the title slot, not at the far end of the row.
+  const slot = await page.locator(".report-title-slot").boundingBox();
   const steps = await page.locator(".report-steps").boundingBox();
-  const card = await page
-    .getByRole("region", { name: "When you focus" })
-    .boundingBox();
-  if (!steps || !card) throw new Error("no boxes");
-  expect(steps.x + steps.width).toBeCloseTo(card.x + card.width, 0);
+  if (!slot || !steps) throw new Error("no boxes");
+  expect(steps.x - (slot.x + slot.width)).toBeCloseTo(16, 0);
 });

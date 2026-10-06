@@ -24,11 +24,34 @@
 .report-title-line {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 10px;
+}
+/* The visible line and its hidden widest copies share one cell, so the arrows after it stay put. */
+.report-title-slot {
+  display: grid;
+  min-width: 0;
+}
+.report-title-slot > * {
+  grid-area: 1 / 1;
+}
+.report-title-figures {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+.report-title-sizer {
+  visibility: hidden;
+}
+.report-title-stack {
+  display: inline-grid;
+}
+.report-title-stack > * {
+  grid-area: 1 / 1;
 }
 .report-heading {
   margin: 0;
+  font-variant-numeric: tabular-nums;
   font-family: var(--font-ui);
   font-size: 26px;
   font-weight: 600;
@@ -58,15 +81,9 @@
 .report-change[data-sign="down"] {
   color: var(--report-down);
 }
-/* The arrows end the header row, so stepping through ranges never moves them. */
-.report-head-end {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-left: auto;
-}
 .report-steps {
   display: inline-flex;
+  margin-left: 6px;
   padding: 2px;
   background: var(--panel);
   border: 1px solid var(--panel-border);

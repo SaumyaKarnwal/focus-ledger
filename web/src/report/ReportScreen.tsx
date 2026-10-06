@@ -38,6 +38,8 @@ import {
   type RangeKind,
   rangeOf,
   rangeTitle,
+  widestFigures,
+  widestTitles,
 } from "./reportRange";
 
 const KINDS: readonly [RangeKind, string][] = [
@@ -180,63 +182,70 @@ export function ReportScreen({
         <div className="report-head">
           <div className="report-title">
             <div className="report-title-line">
-              <h1 className="report-heading">{title.title}</h1>
-              <span className="report-dot" aria-hidden="true">
-                ·
-              </span>
-              <span className="report-total" aria-label="Total">
-                {nodes ? formatMinutes(total) : "—"}
-              </span>
-              {change && (
-                <span
-                  className="report-change"
-                  data-sign={
-                    change.startsWith("+")
-                      ? "up"
-                      : change.startsWith("−")
-                        ? "down"
-                        : "same"
+              <div className="report-title-slot">
+                <div className="report-title-figures">
+                  <h1 className="report-heading">{title.title}</h1>
+                  <span className="report-dot" aria-hidden="true">
+                    ·
+                  </span>
+                  <span className="report-total" aria-label="Total">
+                    {nodes ? formatMinutes(total) : "—"}
+                  </span>
+                  {change && (
+                    <span
+                      className="report-change"
+                      data-sign={
+                        change.startsWith("+")
+                          ? "up"
+                          : change.startsWith("−")
+                            ? "down"
+                            : "same"
+                      }
+                      aria-label={`Change against the range before: ${change}`}
+                    >
+                      {change}
+                    </span>
+                  )}
+                </div>
+                <TitleSizers kind={choice.kind} />
+              </div>
+              <span className="report-steps">
+                <button
+                  type="button"
+                  className="report-step"
+                  aria-label="Earlier"
+                  onClick={() =>
+                    setChoice({ ...choice, back: choice.back + 1 })
                   }
-                  aria-label={`Change against the range before: ${change}`}
                 >
-                  {change}
-                </span>
-              )}
+                  <Chevron direction="left" />
+                </button>
+                <button
+                  type="button"
+                  className="report-step"
+                  aria-label="Later"
+                  disabled={atNow}
+                  onClick={() =>
+                    setChoice({ ...choice, back: choice.back - 1 })
+                  }
+                >
+                  <Chevron direction="right" />
+                </button>
+              </span>
             </div>
             <span className="report-dates">{title.dates}</span>
           </div>
-          <div className="report-head-end">
-            <div className="report-kinds" role="group" aria-label="Range">
-              {KINDS.map(([kind, label]) => (
-                <button
-                  key={kind}
-                  type="button"
-                  aria-pressed={choice.kind === kind}
-                  onClick={() => pick(kind)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <span className="report-steps">
+          <div className="report-kinds" role="group" aria-label="Range">
+            {KINDS.map(([kind, label]) => (
               <button
+                key={kind}
                 type="button"
-                className="report-step"
-                aria-label="Earlier"
-                onClick={() => setChoice({ ...choice, back: choice.back + 1 })}
+                aria-pressed={choice.kind === kind}
+                onClick={() => pick(kind)}
               >
-                <Chevron direction="left" />
+                {label}
               </button>
-              <button
-                type="button"
-                className="report-step"
-                aria-label="Later"
-                disabled={atNow}
-                onClick={() => setChoice({ ...choice, back: choice.back - 1 })}
-              >
-                <Chevron direction="right" />
-              </button>
-            </span>
+            ))}
           </div>
         </div>
         {choice.kind === "custom" && choice.custom && (
@@ -461,6 +470,39 @@ function ModeLegend() {
       ))}
     </span>
   );
+}
+
+/**
+ * Hidden copies of the widest title line for the range kind. They share a grid
+ * cell with the visible line, so the slot is as wide as the widest one and the
+ * arrows after it never move.
+ */
+function TitleSizers({ kind }: { kind: RangeKind }) {
+  const figures = widestFigures(kind);
+  return widestTitles(kind).map((parts, line) => (
+    <div
+      key={line}
+      className="report-title-figures report-title-sizer"
+      aria-hidden="true"
+    >
+      <span className="report-heading">
+        {parts.map((part, index) =>
+          typeof part === "string" ? (
+            part
+          ) : (
+            <span key={index} className="report-title-stack">
+              {part.map((text) => (
+                <span key={text}>{text}</span>
+              ))}
+            </span>
+          ),
+        )}
+      </span>
+      <span className="report-dot">·</span>
+      <span className="report-total">{figures.total}</span>
+      <span className="report-change">{figures.change}</span>
+    </div>
+  ));
 }
 
 function Chevron({ direction }: { direction: "left" | "right" }) {
