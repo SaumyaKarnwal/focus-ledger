@@ -831,6 +831,9 @@
 .parent-row[data-none] .parent-pick {
   color: var(--dialog-faint);
 }
+.parent-row[data-action] .parent-pick {
+  color: var(--dialog-muted);
+}
 .parent-name {
   flex-grow: 1;
   display: flex;

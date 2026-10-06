@@ -376,6 +376,13 @@ function ParentChooser({
     setNewName("");
   };
 
+  const addingAtTop = adding !== undefined && adding.parentId === undefined;
+
+  const addSearchAtTop = () => {
+    onAddBranch({ key: newRequestId(), name: query.trim() });
+    setQuery("");
+  };
+
   return (
     <section
       className="picker task-parent"
@@ -408,13 +415,30 @@ function ParentChooser({
             </button>
           </div>
         )}
+        {searching && rows.length === 0 && (
+          <div className="parent-row" data-action="true">
+            <button
+              type="button"
+              className="parent-pick"
+              onClick={addSearchAtTop}
+            >
+              <span className="parent-name">
+                {`+ Add "${query.trim()}" at the top level`}
+              </span>
+            </button>
+          </div>
+        )}
         {rows.map((row) =>
           row.kind === "input" ? (
             <div key={row.id} className="parent-row" data-adding="true">
               <Guides row={row} />
               <input
                 className="parent-new-name"
-                aria-label={`New task under ${row.path.at(-1) ?? "the top"}`}
+                aria-label={
+                  row.path.length === 0
+                    ? "New top-level branch"
+                    : `New task under ${row.path.at(-1)}`
+                }
                 autoFocus
                 value={newName}
                 onChange={(event) => setNewName(event.target.value)}
@@ -467,6 +491,21 @@ function ParentChooser({
               </button>
             </div>
           ),
+        )}
+        {!addingAtTop && (
+          <div className="parent-row" data-action="true">
+            <button
+              type="button"
+              className="parent-pick"
+              onClick={() => {
+                setQuery("");
+                setNewName("");
+                setAdding({});
+              }}
+            >
+              <span className="parent-name">+ New top-level branch</span>
+            </button>
+          </div>
         )}
       </div>
     </section>

@@ -436,6 +436,85 @@ describe("New branch in the parent tree (README Paused and the parent picker 2)"
     expect(parentButton().textContent).toContain("Book");
   });
 
+  function renderDialogOn(client: LedgerClient, nodes: NodePb[]) {
+    const onDone = vi.fn();
+    render(
+      <TaskDialog
+        data={dataOf(nodes)}
+        onSave={(save) => writeTask(client, save, [0])}
+        onDone={onDone}
+        onClose={() => {}}
+      />,
+    );
+    return onDone;
+  }
+
+  test("branch_emptyTree_addsATopLevelBranchAndCreatesTheTaskUnderIt", async () => {
+    const recording = recordingClient([]);
+    const onDone = renderDialogOn(recording.client, []);
+    typeName("Migrations");
+    fireEvent.click(parentButton());
+    expect(
+      screen
+        .getAllByRole("button")
+        .map((button) => button.querySelector(".parent-name")?.textContent)
+        .filter(Boolean),
+    ).toEqual(["None", "+ New top-level branch"]);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "+ New top-level branch" }),
+    );
+    const input = screen.getByRole("textbox", { name: "New top-level branch" });
+    fireEvent.change(input, { target: { value: "Work" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.keyDown(input, { key: "Escape" });
+    expect(pressedRows()).toEqual(["None"]);
+    pickRow("Work");
+    expect(recording.createNodeRequestIds).toEqual([]);
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce());
+    const [work] = await createdNodes(recording.client, "Work");
+    const [task] = await createdNodes(recording.client, "Migrations");
+    expect(work.parentId).toBeUndefined();
+    expect(task.parentId).toBe(work.id);
+  });
+
+  test("branch_searchWithNoMatch_addsTheTextAtTheTopLevel", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    const onDone = renderDialogOn(
+      recording.client,
+      exampleNodesWithNothingRunning(),
+    );
+    typeName("Migrations");
+    fireEvent.click(parentButton());
+    fireEvent.change(
+      screen.getByRole("textbox", { name: "Search for a parent" }),
+      { target: { value: "Garden" } },
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: '+ Add "Garden" at the top level' }),
+    );
+
+    expect(
+      (
+        screen.getByRole("textbox", {
+          name: "Search for a parent",
+        }) as HTMLInputElement
+      ).value,
+    ).toBe("");
+    expect(pressedRows()).not.toContain("Garden");
+    pickRow("Garden");
+    fireEvent.click(screen.getByRole("button", { name: "Create" }));
+
+    await vi.waitFor(() => expect(onDone).toHaveBeenCalledOnce());
+    const [garden] = await createdNodes(recording.client, "Garden");
+    const [task] = await createdNodes(recording.client, "Migrations");
+    expect(garden.parentId).toBeUndefined();
+    expect(task.parentId).toBe(garden.id);
+  });
+
   test("branch_cancel_createsNothing", async () => {
     const recording = recordingClient(exampleNodesWithNothingRunning());
     await addBranchUnderBook(recording.client);
