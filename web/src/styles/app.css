@@ -207,6 +207,25 @@ button:disabled {
   background: var(--control-hover);
 }
 
+/* A quiet outlined button on a light page: Log time and Mark complete. */
+.outline-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 15px 0 11px;
+  background: none;
+  border: 1px solid var(--rule-strong);
+  border-radius: 18px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-strong);
+}
+.outline-button > svg {
+  flex-shrink: 0;
+  color: var(--ink-muted);
+}
+
 .icon-button {
   display: inline-flex;
   align-items: center;

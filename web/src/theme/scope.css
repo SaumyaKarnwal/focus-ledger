@@ -27,6 +27,12 @@
   --mode: var(--mode-break-mark);
 }
 [data-mode] {
+  /* A Log time row with cycles takes this tint of its mode. */
+  --dialog-mode-tint: color-mix(
+    in srgb,
+    var(--dialog-mode) 18%,
+    var(--dialog-bg)
+  );
   --screen-cta-fg: var(--screen-bg);
   --screen-cta-ledge: color-mix(
     in srgb,

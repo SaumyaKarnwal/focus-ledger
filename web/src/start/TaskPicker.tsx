@@ -11,6 +11,8 @@ type Props = {
   onPick: (nodeId: string) => void;
   onNewTask: () => void;
   onClose: () => void;
+  /** Over another dialog: it covers that dialog only and adds no second dim. */
+  floating?: boolean;
 };
 
 /**
@@ -25,6 +27,7 @@ export function TaskPicker({
   onPick,
   onNewTask,
   onClose,
+  floating = false,
 }: Props) {
   const ids = useId();
   const [query, setQuery] = useState("");
@@ -51,9 +54,12 @@ export function TaskPicker({
       setHighlighted(options[Math.max(0, index - 1)]);
     } else if (event.key === "Enter") {
       event.preventDefault();
+      event.stopPropagation();
       onPick(active);
     } else if (event.key === "Escape") {
+      // Only the picker closes, not a dialog under it.
       event.preventDefault();
+      event.stopPropagation();
       onClose();
     }
   };
@@ -71,6 +77,7 @@ export function TaskPicker({
   return (
     <div
       className="picker-scrim"
+      data-floating={floating || undefined}
       onMouseDown={(event) => {
         if (event.target === event.currentTarget) onClose();
       }}

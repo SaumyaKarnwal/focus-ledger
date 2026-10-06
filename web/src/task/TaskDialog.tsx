@@ -11,15 +11,9 @@ import { newRequestId } from "../api/requestId";
 import { useRequestId } from "../api/useRequestId";
 import { type NodePb, NodePbSchema } from "../gen/focusledger/v1/model_pb";
 import { LOGGED_MODES, type LoggedMode } from "../ledger/rollup";
-import { modeKey } from "../modes/modes";
-import {
-  ESTIMATE_COUNT,
-  ESTIMATE_LENGTH,
-  type EstimateRow,
-  estimateRows,
-  stepWithin,
-} from "../tree/estimateModel";
-import { formatMinutes, MODE_NAMES, type TodayData } from "../today/todayModel";
+import { type EstimateRow, estimateRows } from "../tree/estimateModel";
+import { formatMinutes, type TodayData } from "../today/todayModel";
+import { EstimateLine } from "./EstimateLine";
 import { type TaskSave, taskSave } from "./saveTask";
 import {
   type BranchDraft,
@@ -200,105 +194,6 @@ export function TaskDialog({
         </form>
       )}
     </div>
-  );
-}
-
-function EstimateLine({
-  mode,
-  row,
-  onChange,
-}: {
-  mode: LoggedMode;
-  row: EstimateRow;
-  onChange: (row: EstimateRow) => void;
-}) {
-  const name = MODE_NAMES[mode];
-  return (
-    <div className="task-estimate" data-mode={modeKey(mode)}>
-      <span className="task-estimate-bar" aria-hidden="true" />
-      <span className="task-estimate-name">{name}</span>
-      <Stepper
-        label={`${name} minutes per cycle`}
-        value={row.cycleMinutes}
-        less="5 minutes less"
-        more="5 minutes more"
-        onStep={(sign) =>
-          onChange({
-            ...row,
-            cycleMinutes: stepWithin(
-              row.cycleMinutes,
-              sign * ESTIMATE_LENGTH.step,
-              ESTIMATE_LENGTH,
-            ),
-          })
-        }
-      />
-      <span className="task-estimate-unit">min</span>
-      <span className="task-estimate-unit" aria-hidden="true">
-        ×
-      </span>
-      <Stepper
-        label={`${name} cycles`}
-        value={row.cycleCount}
-        less="One cycle less"
-        more="One cycle more"
-        narrow
-        onStep={(sign) =>
-          onChange({
-            ...row,
-            cycleCount: stepWithin(
-              row.cycleCount,
-              sign * ESTIMATE_COUNT.step,
-              ESTIMATE_COUNT,
-            ),
-          })
-        }
-      />
-    </div>
-  );
-}
-
-function Stepper({
-  label,
-  value,
-  less,
-  more,
-  narrow = false,
-  onStep,
-}: {
-  label: string;
-  value: number;
-  less: string;
-  more: string;
-  narrow?: boolean;
-  onStep: (sign: 1 | -1) => void;
-}) {
-  return (
-    <span className="estimate-stepper" role="group" aria-label={label}>
-      <button
-        type="button"
-        className="estimate-step"
-        aria-label={`${label}: ${less}`}
-        onClick={() => onStep(-1)}
-      >
-        −
-      </button>
-      <output
-        className="estimate-value"
-        data-narrow={narrow || undefined}
-        aria-label={label}
-      >
-        {value}
-      </output>
-      <button
-        type="button"
-        className="estimate-step"
-        aria-label={`${label}: ${more}`}
-        onClick={() => onStep(1)}
-      >
-        +
-      </button>
-    </span>
   );
 }
 
