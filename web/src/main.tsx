@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { ledgerClient, selectBackend } from "./api/ledgerClient";
+import { ledger, selectBackend } from "./api/selectLedger";
 import { App } from "./App";
 import { readGoogleClientId } from "./signIn/googleClientId";
 import "@fontsource/ibm-plex-mono/400.css";
@@ -25,7 +25,7 @@ import "./styles/report.css";
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <App
-      client={ledgerClient()}
+      client={ledger()}
       signInMethod={
         selectBackend(
           window.location.search,

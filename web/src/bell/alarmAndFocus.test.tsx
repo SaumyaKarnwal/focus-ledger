@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import { exampleNow } from "../ledger/exampleData";
 import {
   LOCAL_DEFAULTS,
@@ -38,7 +38,7 @@ function withLocal(local: Partial<LocalSettings>) {
   saveLocalSettings({ ...LOCAL_DEFAULTS, ...local });
 }
 
-function renderApp(client: LedgerClient, bell = fakeBell()) {
+function renderApp(client: Ledger, bell = fakeBell()) {
   render(
     <StrictMode>
       <App

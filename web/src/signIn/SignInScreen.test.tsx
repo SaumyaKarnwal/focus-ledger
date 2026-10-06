@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import { exampleNow } from "../ledger/exampleData";
 import {
   exampleNodesWithNothingRunning,
@@ -36,7 +36,7 @@ function confirmSignOut() {
   );
 }
 
-function renderApp(client: LedgerClient, signInMethod?: SignInMethod) {
+function renderApp(client: Ledger, signInMethod?: SignInMethod) {
   return render(
     <StrictMode>
       <App

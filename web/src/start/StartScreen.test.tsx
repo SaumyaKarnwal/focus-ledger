@@ -3,7 +3,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import { FocusMode, SettingsPbSchema } from "../gen/focusledger/v1/model_pb";
 import { exampleNodes, exampleNow } from "../ledger/exampleData";
 import { weekRange } from "../ledger/period";
@@ -29,7 +29,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function renderApp(client: LedgerClient) {
+function renderApp(client: Ledger) {
   return render(
     <StrictMode>
       <App client={client} timeZone="UTC" retryDelaysMs={[0]} />

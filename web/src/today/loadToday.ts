@@ -1,9 +1,9 @@
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import { toPeriodPb, weekRange } from "../ledger/period";
 import type { TodayData } from "./todayModel";
 
 export async function loadToday(
-  client: LedgerClient,
+  client: Ledger,
   now: Date,
   timeZone: string,
 ): Promise<TodayData> {

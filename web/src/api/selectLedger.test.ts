@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { selectBackend } from "./ledgerClient";
+import { selectBackend } from "./selectLedger";
 
 test.each([
   ["", undefined, "real"],

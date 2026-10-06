@@ -1,6 +1,6 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { LedgerClient } from "./api/ledgerClient";
+import type { Ledger } from "./api/ledger";
 import {
   type Address,
   HOME,
@@ -125,7 +125,7 @@ function replaceAddress(address: Address) {
 }
 
 type Props = {
-  client: LedgerClient;
+  client: Ledger;
   timeZone?: string;
   retryDelaysMs?: readonly number[];
   /** main.tsx passes Google for the real backend. The default suits the fake. */

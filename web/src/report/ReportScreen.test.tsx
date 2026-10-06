@@ -4,7 +4,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import {
   CyclePbSchema,
   FocusMode,
@@ -30,7 +30,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-async function openReport(client: LedgerClient) {
+async function openReport(client: Ledger) {
   render(
     <StrictMode>
       <App client={client} timeZone="UTC" retryDelaysMs={[0]} />

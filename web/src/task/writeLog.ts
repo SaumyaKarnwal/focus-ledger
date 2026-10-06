@@ -1,5 +1,5 @@
 import { timestampFromDate } from "@bufbuild/protobuf/wkt";
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import { withRetry } from "../api/retry";
 import type { LogEntry } from "./logTimeModel";
 
@@ -9,7 +9,7 @@ import type { LogEntry } from "./logTimeModel";
  * sends the same request IDs, and the server returns the rows it already made.
  */
 export async function writeLog(
-  client: LedgerClient,
+  client: Ledger,
   entries: readonly LogEntry[],
   retryDelaysMs?: readonly number[],
 ): Promise<void> {

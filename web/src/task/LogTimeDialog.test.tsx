@@ -10,7 +10,7 @@ import {
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import {
   type CyclePb,
   CyclePbSchema,
@@ -310,7 +310,7 @@ describe("Log time dialog (README Log time)", () => {
 });
 
 describe("Log time buttons (README Log time)", () => {
-  async function openApp(client: LedgerClient) {
+  async function openApp(client: Ledger) {
     render(
       <StrictMode>
         <App client={client} timeZone="UTC" retryDelaysMs={[0]} />
