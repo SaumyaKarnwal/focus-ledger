@@ -58,9 +58,15 @@
 .report-change[data-sign="down"] {
   color: var(--report-down);
 }
+/* The arrows end the header row, so stepping through ranges never moves them. */
+.report-head-end {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
 .report-steps {
   display: inline-flex;
-  margin-left: 6px;
   padding: 2px;
   background: var(--panel);
   border: 1px solid var(--panel-border);
