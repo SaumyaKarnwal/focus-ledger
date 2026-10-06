@@ -459,12 +459,10 @@ describe("New branch in the parent tree (README Paused and the parent picker 2)"
         .getAllByRole("button")
         .map((button) => button.querySelector(".parent-name")?.textContent)
         .filter(Boolean),
-    ).toEqual(["None", "+ New top-level branch"]);
+    ).toEqual(["None", "+ New parent"]);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "+ New top-level branch" }),
-    );
-    const input = screen.getByRole("textbox", { name: "New top-level branch" });
+    fireEvent.click(screen.getByRole("button", { name: "+ New parent" }));
+    const input = screen.getByRole("textbox", { name: "New parent" });
     fireEvent.change(input, { target: { value: "Work" } });
     fireEvent.keyDown(input, { key: "Enter" });
     fireEvent.keyDown(input, { key: "Escape" });
@@ -493,9 +491,7 @@ describe("New branch in the parent tree (README Paused and the parent picker 2)"
       { target: { value: "Garden" } },
     );
 
-    fireEvent.click(
-      screen.getByRole("button", { name: '+ Add "Garden" at the top level' }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: '+ Create "Garden"' }));
 
     expect(
       (

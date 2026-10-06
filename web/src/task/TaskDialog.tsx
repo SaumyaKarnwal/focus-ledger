@@ -423,7 +423,7 @@ function ParentChooser({
               onClick={addSearchAtTop}
             >
               <span className="parent-name">
-                {`+ Add "${query.trim()}" at the top level`}
+                {`+ Create "${query.trim()}"`}
               </span>
             </button>
           </div>
@@ -436,7 +436,7 @@ function ParentChooser({
                 className="parent-new-name"
                 aria-label={
                   row.path.length === 0
-                    ? "New top-level branch"
+                    ? "New parent"
                     : `New task under ${row.path.at(-1)}`
                 }
                 autoFocus
@@ -503,7 +503,7 @@ function ParentChooser({
                 setAdding({});
               }}
             >
-              <span className="parent-name">+ New top-level branch</span>
+              <span className="parent-name">+ New parent</span>
             </button>
           </div>
         )}
