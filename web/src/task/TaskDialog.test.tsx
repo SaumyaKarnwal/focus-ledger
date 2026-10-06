@@ -277,7 +277,7 @@ describe("New task", () => {
       screen
         .getAllByRole("button", { pressed: false })
         .map((button) => button.querySelector(".parent-name")?.textContent),
-    ).toEqual(["Notes · Book / Chapter 1"]);
+    ).toEqual(["Notes · Book / Chapter 1", "None"]);
   });
 
   test("newTask_escapeInTheParentList_goesBackToTheForm", async () => {
@@ -427,8 +427,8 @@ describe("New branch in the parent tree (README Paused and the parent picker 2)"
     fireEvent.click(parentButton());
     const search = screen.getByRole("textbox", { name: "Search for a parent" });
 
+    // The first row of the tree; None is pinned under the list.
     fireEvent.keyDown(search, { key: "ArrowDown" });
-    fireEvent.keyDown(document.activeElement as Element, { key: "ArrowDown" });
 
     const focused = document.activeElement as HTMLElement;
     expect(focused.querySelector(".parent-name")?.textContent).toBe("Book");
@@ -496,7 +496,39 @@ describe("New branch in the parent tree (README Paused and the parent picker 2)"
     search("book");
     expect(screen.queryByRole("button", { name: /^Create "/ })).toBeNull();
     search("Chap");
-    expect(screen.getByRole("button", { name: 'Create "Chap"' })).toBeDefined();
+    expect(
+      screen
+        .getAllByRole("button")
+        .map((button) => button.querySelector(".parent-name")?.textContent)
+        .filter(Boolean)
+        .at(-1),
+    ).toBe('Create "Chap"');
+
+    search("Garden");
+    expect(
+      document.querySelector(".parent-row[data-highlight] .parent-name")
+        ?.textContent,
+    ).toBe('Create "Garden"');
+    expect(document.querySelector(".task-parent-pinned")?.textContent).toBe(
+      'NoneCreate "Garden"',
+    );
+  });
+
+  test("branch_enterInTheSearch_picksTheFirstMatch", async () => {
+    renderDialogOn(
+      recordingClient(exampleNodesWithNothingRunning()).client,
+      exampleNodesWithNothingRunning(),
+    );
+    fireEvent.click(parentButton());
+    const field = search("Chap");
+    expect(
+      document.querySelector(".parent-row[data-highlight] .parent-name")
+        ?.firstChild?.textContent,
+    ).toBe("Chapter 1");
+
+    fireEvent.keyDown(field, { key: "Enter" });
+
+    expect(parentButton().textContent).toContain("Book / Chapter 1");
   });
 
   test("branch_createRowClick_addsTheTextAtTheTopLevel", async () => {
