@@ -42,6 +42,15 @@ Report is designed (`R-Report-*`). The palette tries (`P-Palettes`) are not part
 
 5. **Every bar chart shows its figures on hover only** (Your week, Week by week, This week so far, Last seven days, and any later one). At rest, no figure sits above a bar. On hover, focus, or tap, that bar stays full and the others fade, and a small card shows the label and the value, as rule 10 says for the task page.
 
+## Paused and the parent picker (owner, round 3)
+
+1. **Paused shows no label.** The word "Paused" under the timer goes away. The RESUME button is the only sign of the paused state.
+2. **In the parent picker, Enter adds and never selects.** This replaces the earlier rule that showed a new branch "in the tree as picked".
+   - Enter in the add field adds the branch to the tree, clears the field, and keeps it open for the next name. A new branch can go under any existing or new branch.
+   - Selecting the parent is a separate action: a click on a row, or ↑↓ to a row and Enter on that row (not in the add field).
+   - Esc leaves the add field and keeps the added branches.
+   - Nothing is written until Create (or Save): then every new branch is created, parents first, each with its own `request_id`, and the task goes under the selected row. Cancel creates nothing. A retry after a failure reuses the same `request_id`s.
+
 ## Colors on light screens
 
 On every light screen (Report, the task page, the Tasks page, Settings, the dialogs) a mode mark uses the soft tint from the New task dialog: Deep Focus lilac `#C9A3C4`, Execution rose `#E9AFB4`, Shallow teal `#A6CFCB`. This is a value change of the `--mode-*-mark` tokens in the default theme only; no component changes. The timer screens keep their deep backgrounds. Task rings use soft tints too (`--chart-*`); a slice may share a hue with a mode, because the ring always has its own legend.
