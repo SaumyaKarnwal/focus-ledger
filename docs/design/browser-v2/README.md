@@ -53,7 +53,7 @@ Report is designed (`R-Report-*`). The palette tries (`P-Palettes`) are not part
 
 ## Report range arrows stay put (owner, round 3)
 
-The ‹ › pair sits at one fixed place: the right end of the Report's range header row, aligned with the cards' right edge. It never follows the title, the total, or the change figure, so stepping through ranges never moves it under the pointer. The title, total, and change stay on the left; their figures use tabular digits.
+The ‹ › pair stays next to the title, but never moves. The title, the total, and the change figure sit in one slot with a fixed width: the widest text that slot can hold for that range kind, for example "Yesterday" or "Wed 30 Sep" for a day, with the longest total and change ("13h 59m", "−16h 30m"). The arrows follow that slot, so stepping through ranges never moves them under the pointer. Use tabular digits, and size the slot in `ch` units or by measuring the widest label once, not per range.
 
 ## Colors on light screens
 
