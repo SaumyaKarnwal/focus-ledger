@@ -82,7 +82,7 @@ Ekagra works with no account. Signing in is optional, and guest data never moves
 - **No upload, no merge.** There are no wrong-account uploads, device conflicts, or duplicate tasks to handle.
 - **Signing out** returns to an empty guest session.
 - **An expired session is not guest mode.** At a successful sign-in, the browser stores one flag, "had an account" (no data, no email). A deliberate sign-out clears it. When the server answers `UNAUTHENTICATED` and the flag is set, the app shows the sign-in screen titled "Your session ended" with "Sign in again" first and "Keep going as a guest" second. Choosing guest clears the flag. A cycle that ran on the server continues after the user signs in again.
-- **Not for guests:** connecting an AI agent (MCP). The "Sign in" pill goes straight to the sign-in screen (no guest menu), and that screen's muted line under "keep going without an account" reads "An account also lets you connect an AI agent."
+- **The "Sign in" pill** goes straight to the sign-in screen (no guest menu). The app shows no line about AI agents (owner decision); an agent connection (MCP) simply needs an account.
 - **Build shape:** the web app talks to one ledger interface with two versions, a local one (IndexedDB) and the server one (today's gRPC client). The screens never know which one they use. The server and the proto do not change.
 
 ## Colors on light screens
