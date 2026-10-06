@@ -78,10 +78,10 @@ Ekagra works with no account. Signing in is optional, and guest data never moves
 - **No sign-in wall.** The first visit opens Start. Every screen works as a guest: timer, tasks, Log time, Report, Settings.
 - **Guest data lives only in this browser,** in IndexedDB. Nothing reaches the server. The browser applies the same rules as the server: the cycle rules, no delete, complete and reopen.
 - **The header shows a "Sign in" pill** in place of the round initial (the account note on the boards). It opens the playful sign-in screen. The sign-in screen offers "keep going without an account", which returns to the app.
-- **Before sign-in, one warning:** "Your guest history stays out of your account. Signing in removes it from this browser." Choices: Sign in, Cancel. On a successful sign-in, the browser deletes the guest data and the app shows the account's data.
+- **Before sign-in, one warning** (only when the guest has at least one task or cycle): "Your guest history stays out of your account. Signing in removes it from this browser." Choices: Sign in, Cancel. On a successful sign-in, the browser deletes the guest data and the app shows the account's data.
 - **No upload, no merge.** There are no wrong-account uploads, device conflicts, or duplicate tasks to handle.
 - **Signing out** returns to an empty guest session.
-- **Not for guests:** connecting an AI agent (MCP). The account menu says "Sign in to connect an AI agent".
+- **Not for guests:** connecting an AI agent (MCP). The "Sign in" pill goes straight to the sign-in screen (no guest menu), and that screen's muted line under "keep going without an account" reads "An account also lets you connect an AI agent."
 - **Build shape:** the web app talks to one ledger interface with two versions, a local one (IndexedDB) and the server one (today's gRPC client). The screens never know which one they use. The server and the proto do not change.
 
 ## Colors on light screens
