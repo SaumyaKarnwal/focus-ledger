@@ -43,8 +43,8 @@ test("What you set: the set mark is the quiet grey, not black", async ({
   colors.marks.forEach((mark) => expect(mark).toBe(colors.muted));
 });
 
-// README "Report range arrows stay put": the ‹ › pair follows a title slot as
-// wide as the widest title for the range kind, so it never moves.
+// README "Report range arrows stay put": the ‹ › pair comes before the title,
+// so a title of any width never moves it.
 test("the range arrows stay put between Today, Yesterday, and an older day, and between two weeks", async ({
   page,
 }) => {
@@ -84,9 +84,9 @@ test("the range arrows stay put between Today, Yesterday, and an older day, and 
   await expect(heading).toHaveText(/^\w{3} \d{1,2} \w{3}$/);
   expect(await arrowsAt()).toEqual(today);
 
-  // The arrows sit beside the title slot, not at the far end of the row.
-  const slot = await page.locator(".report-title-slot").boundingBox();
+  // The title starts 16px after the arrows.
   const steps = await page.locator(".report-steps").boundingBox();
-  if (!slot || !steps) throw new Error("no boxes");
-  expect(steps.x - (slot.x + slot.width)).toBeCloseTo(16, 0);
+  const title = await heading.boundingBox();
+  if (!steps || !title) throw new Error("no boxes");
+  expect(title.x - (steps.x + steps.width)).toBeCloseTo(16, 0);
 });
