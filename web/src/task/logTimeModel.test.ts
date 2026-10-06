@@ -1,5 +1,7 @@
+import { create } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { describe, expect, test } from "vitest";
-import { FocusMode } from "../gen/focusledger/v1/model_pb";
+import { CyclePbSchema, FocusMode } from "../gen/focusledger/v1/model_pb";
 import { exampleNodesWithNothingRunning } from "../testing/appHarness";
 import { INBOX_ID, type TodayData } from "../today/todayModel";
 import {
@@ -7,8 +9,11 @@ import {
   defaultLogTask,
   endClock,
   formatClock,
+  logEntries,
+  logSpan,
   monthGrid,
   monthLabel,
+  overlappingCycle,
   parseStartTime,
   shiftMonth,
   totalMinutes,
@@ -116,5 +121,124 @@ describe("Log time model (README Log time)", () => {
         weekNodes: [],
       } as unknown as TodayData),
     ).toBe(INBOX_ID);
+  });
+});
+
+describe("Log time entries (README Log time, issue 268)", () => {
+  const ids = ["a", "b", "c", "d", "e"];
+  const clock = (entry: { startedAt: Date; minutes: number }) => [
+    entry.startedAt.toISOString().slice(11, 16),
+    new Date(entry.startedAt.getTime() + entry.minutes * 60_000)
+      .toISOString()
+      .slice(11, 16),
+  ];
+
+  test("logEntries_designExample_runBackToBackWithNoSharedStart", () => {
+    // Start 9:00, Deep Focus 60 × 1 and Execution 30 × 2.
+    const entries = logEntries(
+      {
+        nodeId: "task",
+        day: "2026-09-21",
+        start: "09:00",
+        time: rows([60, 1], [30, 2], [25, 0]),
+      },
+      "UTC",
+      ids,
+    );
+
+    expect(entries.map(clock)).toEqual([
+      ["09:00", "10:00"],
+      ["10:00", "10:30"],
+      ["10:30", "11:00"],
+    ]);
+    expect(entries.map((entry) => entry.mode)).toEqual([
+      FocusMode.DEEP_FOCUS,
+      FocusMode.EXECUTION,
+      FocusMode.EXECUTION,
+    ]);
+    expect(entries.map((entry) => entry.requestId)).toEqual(["a", "b", "c"]);
+  });
+
+  test("logEntries_orderIsDeepFocusThenExecutionThenShallow", () => {
+    const entries = logEntries(
+      {
+        nodeId: "task",
+        day: "2026-09-21",
+        start: "15:30",
+        time: rows([60, 1], [45, 1], [30, 1]),
+      },
+      "UTC",
+      ids,
+    );
+
+    expect(entries.map((entry) => entry.mode)).toEqual([
+      FocusMode.DEEP_FOCUS,
+      FocusMode.EXECUTION,
+      FocusMode.SHALLOW,
+    ]);
+    expect(entries.map(clock)).toEqual([
+      ["15:30", "16:30"],
+      ["16:30", "17:15"],
+      ["17:15", "17:45"],
+    ]);
+  });
+
+  test("logEntries_startIsInTheUsersTimeZone", () => {
+    const [entry] = logEntries(
+      {
+        nodeId: "task",
+        day: "2026-09-21",
+        start: "09:00",
+        time: rows([60, 1], [45, 0], [30, 0]),
+      },
+      "America/Los_Angeles",
+      ids,
+    );
+
+    // 9:00 in Los Angeles in September is 16:00 UTC.
+    expect(entry.startedAt.toISOString()).toBe("2026-09-21T16:00:00.000Z");
+  });
+
+  test("logEntries_notSureYet_hasNoTask", () => {
+    const [entry] = logEntries(
+      {
+        nodeId: INBOX_ID,
+        day: "2026-09-21",
+        start: "09:00",
+        time: rows([60, 1], [45, 0], [30, 0]),
+      },
+      "UTC",
+      ids,
+    );
+
+    expect(entry.nodeId).toBeUndefined();
+  });
+
+  test("overlappingCycle_findsAnOverlap_butNotACycleThatEndsAtTheStart", () => {
+    const cycle = create(CyclePbSchema, {
+      mode: FocusMode.EXECUTION,
+      plannedMinutes: 50,
+      minutes: 50,
+      startedAt: timestampFromDate(new Date("2026-09-21T08:10:00Z")),
+    });
+    const spanFrom = (start: string) =>
+      logSpan(
+        logEntries(
+          {
+            nodeId: "task",
+            day: "2026-09-21",
+            start,
+            time: rows([60, 1], [45, 0], [30, 0]),
+          },
+          "UTC",
+          ids,
+        ),
+      );
+
+    // The cycle runs 8:10–9:00.
+    expect(overlappingCycle(spanFrom("08:30")!, [cycle])).toBe(cycle);
+    expect(overlappingCycle(spanFrom("07:30")!, [cycle])).toBe(cycle);
+    expect(overlappingCycle(spanFrom("09:00")!, [cycle])).toBeUndefined();
+    expect(overlappingCycle(spanFrom("07:10")!, [cycle])).toBeUndefined();
   });
 });

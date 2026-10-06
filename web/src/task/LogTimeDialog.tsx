@@ -1,5 +1,6 @@
 import { create } from "@bufbuild/protobuf";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { newRequestId } from "../api/requestId";
 import {
   type CyclePb,
   type NodePb,
@@ -7,10 +8,12 @@ import {
 } from "../gen/focusledger/v1/model_pb";
 import {
   localDateString,
+  localTimeString,
   monthRange,
   type TimeRange,
   zonedDateTimeToInstant,
 } from "../ledger/period";
+import { cycleStart } from "../ledger/rollup";
 import { LOGGED_MODES, type LoggedMode } from "../ledger/rollup";
 import { TaskPicker } from "../start/TaskPicker";
 import { type EstimateRow, estimateRows } from "../tree/estimateModel";
@@ -25,10 +28,17 @@ import {
   cycleDaysOf,
   dayLabel,
   endClock,
+  entryCount,
+  formatClock,
   type LogDraft,
+  type LogEntry,
+  logEntries,
+  logSpan,
   type Meridiem,
   monthGrid,
   monthLabel,
+  overlapRange,
+  overlappingCycle,
   parseStartTime,
   shiftMonth,
   totalMinutes,
@@ -43,11 +53,11 @@ type Props = {
   timeZone: string;
   /** The task it opens on: a task page's own task, or the last task worked. */
   initialNodeId: string;
-  /** The cycles that started in a range, for the calendar's dots. */
+  /** The cycles that started in a range: the calendar's dots and the overlap check. */
   listCycles: (range: TimeRange) => Promise<CyclePb[]>;
   onSaveTask: (save: TaskSave) => Promise<NodePb | undefined>;
-  /** Writes the cycles. Without it, Log stays disabled. */
-  onLog?: (draft: LogDraft) => Promise<void>;
+  /** Writes the cycles, one hand entry each. Without it, Log stays disabled. */
+  onLog?: (entries: LogEntry[]) => Promise<void>;
   onClose: () => void;
 };
 
@@ -84,7 +94,34 @@ export function LogTimeDialog({
 
   const start = parseStartTime(startText, meridiem);
   const minutes = totalMinutes(time);
-  const canLog = start !== undefined && minutes > 0 && !busy;
+  const draft: LogDraft | undefined =
+    start === undefined ? undefined : { nodeId, day, start, time };
+
+  // One request ID per entry. The same draft keeps its IDs, so a retry after
+  // a failure writes no second copy.
+  const requestIds = useRef<{ key: string; ids: string[] }>(undefined);
+  const idsFor = (logged: LogDraft) => {
+    const key = JSON.stringify(logged);
+    if (requestIds.current?.key !== key) {
+      requestIds.current = {
+        key,
+        ids: Array.from({ length: entryCount(logged.time) }, newRequestId),
+      };
+    }
+    return requestIds.current.ids;
+  };
+
+  // The cycles around the day, for the overlap check.
+  const dayCycles = useDayCycles(day, timeZone, listCycles);
+  const span =
+    draft && minutes > 0 ? logSpan(logEntries(draft, timeZone, [])) : undefined;
+  const overlap =
+    span && dayCycles.cycles
+      ? overlappingCycle(span, dayCycles.cycles)
+      : undefined;
+  const checked = dayCycles.cycles !== undefined;
+  const canLog =
+    draft !== undefined && minutes > 0 && checked && !overlap && !busy;
 
   const nodes = knownNodes(data);
   // The Inbox node also has the ID "": it is "Not sure yet", not a task.
@@ -99,11 +136,11 @@ export function LogTimeDialog({
     setTime((current) => ({ ...current, [mode]: row }));
 
   const log = async () => {
-    if (!canLog || !onLog || start === undefined) return;
+    if (!canLog || !onLog || draft === undefined) return;
     setBusy(true);
     setError(undefined);
     try {
-      await onLog({ nodeId, day, start, time });
+      await onLog(logEntries(draft, timeZone, idsFor(draft)));
       onClose();
     } catch {
       setError("The time was not logged. Check the connection and try again.");
@@ -160,6 +197,16 @@ export function LogTimeDialog({
           </span>
           <Chevron />
         </button>
+        {overlap && (
+          <p className="log-overlap" role="alert">
+            {overlapMessage(overlap, timeZone)}
+          </p>
+        )}
+        {dayCycles.failed && (
+          <p className="log-overlap" role="alert">
+            The cycles of that day did not load, so Log waits. Try again.
+          </p>
+        )}
         <div className="task-dialog-estimate" role="group" aria-label="Time">
           <div className="task-dialog-estimate-head">
             <span className="task-dialog-label">Time</span>
@@ -252,6 +299,47 @@ export function LogTimeDialog({
       </section>
     </div>
   );
+}
+
+/** "This overlaps a cycle from 2:00 pm to 3:30 pm." */
+function overlapMessage(cycle: CyclePb, timeZone: string): string {
+  const start = cycleStart(cycle);
+  const end = new Date(
+    start.getTime() + (cycle.minutes ?? cycle.plannedMinutes) * 60_000,
+  );
+  const clock = (instant: Date) =>
+    formatClock(localTimeString(instant, timeZone));
+  return `This overlaps a cycle from ${clock(start)} to ${clock(end)}.`;
+}
+
+/** The cycles of the day and the days on each side, read again when the day changes. */
+function useDayCycles(
+  day: string,
+  timeZone: string,
+  listCycles: (range: TimeRange) => Promise<CyclePb[]>,
+): { cycles?: CyclePb[]; failed: boolean } {
+  const [loaded, setLoaded] = useState<{
+    day: string;
+    cycles?: CyclePb[];
+    failed: boolean;
+  }>();
+  useEffect(() => {
+    let current = true;
+    listCycles(overlapRange(day, timeZone)).then(
+      (cycles) => {
+        if (current) setLoaded({ day, cycles, failed: false });
+      },
+      () => {
+        if (current) setLoaded({ day, failed: true });
+      },
+    );
+    return () => {
+      current = false;
+    };
+  }, [day, listCycles, timeZone]);
+  return loaded?.day === day
+    ? { cycles: loaded.cycles, failed: loaded.failed }
+    : { failed: false };
 }
 
 /** The day and the start time (boards G-Tasks-Log-When, -Day). */

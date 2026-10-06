@@ -1,4 +1,5 @@
 import { create } from "@bufbuild/protobuf";
+import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import {
   fireEvent,
   render,
@@ -11,6 +12,8 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
 import type { LedgerClient } from "../api/ledgerClient";
 import {
+  type CyclePb,
+  CyclePbSchema,
   FocusMode,
   type NodePb,
   SettingsPbSchema,
@@ -24,7 +27,7 @@ import {
 import { openTasks } from "../testing/navigation";
 import { INBOX_ID, type TodayData } from "../today/todayModel";
 import { LogTimeDialog } from "./LogTimeDialog";
-import type { LogDraft } from "./logTimeModel";
+import type { LogEntry } from "./logTimeModel";
 
 const NOTES = "00000000-0000-4000-8000-00000000000d";
 
@@ -56,12 +59,14 @@ function dataOf(nodes: NodePb[]): TodayData {
 function renderDialog(
   options: {
     nodeId?: string;
-    onLog?: (draft: LogDraft) => Promise<void>;
+    onLog?: (entries: LogEntry[]) => Promise<void>;
+    /** What listCycles returns: by default no cycle, so nothing overlaps. */
+    cycles?: CyclePb[];
   } = {},
 ) {
   const nodes = exampleNodesWithNothingRunning();
   const onClose = vi.fn();
-  const listCycles = vi.fn(async () => nodes.flatMap((node) => node.cycles));
+  const listCycles = vi.fn(async () => options.cycles ?? []);
   render(
     <LogTimeDialog
       data={dataOf(nodes)}
@@ -136,7 +141,9 @@ describe("Log time dialog (README Log time)", () => {
   });
 
   test("logTime_calendar_marksTodayAndCycleDays_andGreysTheFuture", async () => {
-    const { listCycles } = renderDialog();
+    const { listCycles } = renderDialog({
+      cycles: exampleNodesWithNothingRunning().flatMap((node) => node.cycles),
+    });
 
     fireEvent.click(whenRow());
 
@@ -201,10 +208,11 @@ describe("Log time dialog (README Log time)", () => {
     ]);
   });
 
-  test("logTime_log_needsAStartTimeAndACycle", async () => {
-    const onLog = vi.fn<(draft: LogDraft) => Promise<void>>(
-      async () => undefined,
-    );
+  const logWriter = () =>
+    vi.fn<(entries: LogEntry[]) => Promise<void>>(async () => undefined);
+
+  test("logTime_log_needsAStartTimeAndACycle_andSendsOneEntryPerCycle", async () => {
+    const onLog = logWriter();
     renderDialog({ onLog });
     expect(logButton().disabled).toBe(true);
 
@@ -212,19 +220,73 @@ describe("Log time dialog (README Log time)", () => {
     expect(logButton().disabled).toBe(true);
     enterStart("9:00", "am");
     fireEvent.keyDown(dialog(), { key: "Escape" });
-    expect(logButton().disabled).toBe(false);
+    await waitFor(() => expect(logButton().disabled).toBe(false));
     fireEvent.click(logButton());
 
     await waitFor(() => expect(onLog).toHaveBeenCalledOnce());
-    expect(onLog.mock.calls[0][0]).toMatchObject({
-      nodeId: NOTES,
-      day: "2026-11-01",
-      start: "09:00",
+    expect(onLog.mock.calls[0][0]).toEqual([
+      {
+        requestId: expect.any(String),
+        nodeId: NOTES,
+        mode: FocusMode.DEEP_FOCUS,
+        minutes: 90,
+        startedAt: new Date("2026-11-01T09:00:00Z"),
+      },
+    ]);
+  });
+
+  test("logTime_overlap_saysSoUnderWhen_andDisablesLog", async () => {
+    // A cycle from 9:30 to 10:20 on the same day.
+    const cycle = create(CyclePbSchema, {
+      id: "c1",
+      mode: FocusMode.EXECUTION,
+      plannedMinutes: 50,
+      minutes: 50,
+      startedAt: timestampFromDate(new Date("2026-11-01T09:30:00Z")),
     });
-    expect(onLog.mock.calls[0][0].time[FocusMode.DEEP_FOCUS]).toEqual({
-      cycleMinutes: 90,
-      cycleCount: 1,
-    });
+    renderDialog({ onLog: logWriter(), cycles: [cycle] });
+    addCycle("Deep Focus");
+
+    enterStart("9:00", "am");
+    fireEvent.keyDown(dialog(), { key: "Escape" });
+
+    expect((await screen.findByRole("alert")).textContent).toBe(
+      "This overlaps a cycle from 9:30 am to 10:20 am.",
+    );
+    expect(logButton().disabled).toBe(true);
+
+    // 10:20 starts as that cycle ends: back to back is no overlap.
+    enterStart("10:20", "am");
+    fireEvent.keyDown(dialog(), { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
+    expect(logButton().disabled).toBe(false);
+  });
+
+  test("logTime_retryAfterAFailure_reusesTheRequestIds", async () => {
+    const onLog = vi
+      .fn<(entries: LogEntry[]) => Promise<void>>()
+      .mockRejectedValueOnce(new Error("the call failed"))
+      .mockResolvedValueOnce(undefined);
+    const { onClose } = renderDialog({ onLog });
+    addCycle("Deep Focus");
+    addCycle("Execution");
+    enterStart("9:00", "am");
+    fireEvent.keyDown(dialog(), { key: "Escape" });
+    await waitFor(() => expect(logButton().disabled).toBe(false));
+
+    fireEvent.click(logButton());
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "not logged",
+    );
+    fireEvent.click(logButton());
+    await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
+
+    const ids = onLog.mock.calls.map((call) =>
+      call[0].map((entry) => entry.requestId),
+    );
+    expect(ids[0]).toHaveLength(2);
+    expect(new Set(ids[0]).size).toBe(2);
+    expect(ids[1]).toEqual(ids[0]);
   });
 
   test("logTime_withoutAWriter_logStaysDisabled", () => {
@@ -236,9 +298,7 @@ describe("Log time dialog (README Log time)", () => {
   });
 
   test("logTime_cancel_closesAndWritesNothing", () => {
-    const onLog = vi.fn<(draft: LogDraft) => Promise<void>>(
-      async () => undefined,
-    );
+    const onLog = logWriter();
     const { onClose } = renderDialog({ onLog });
     addCycle("Deep Focus");
 
@@ -270,6 +330,48 @@ describe("Log time buttons (README Log time)", () => {
     fireEvent.click(within(dialog()).getByRole("button", { name: "Cancel" }));
     expect(screen.queryByRole("dialog", { name: "Log time" })).toBeNull();
     expect(recording.createCycleRequestIds).toEqual([]);
+  });
+
+  test("tasksPage_log_writesOneHandEntryPerCycleBackToBack", async () => {
+    const recording = recordingClient(exampleNodesWithNothingRunning());
+    const before = new Set(
+      exampleNodesWithNothingRunning()
+        .flatMap((node) => node.cycles)
+        .map((cycle) => cycle.id),
+    );
+    await openApp(recording.client);
+    fireEvent.click(screen.getByRole("button", { name: "Log time" }));
+    addCycle("Deep Focus");
+    addCycle("Execution");
+    fireEvent.click(whenRow());
+    fireEvent.click(screen.getByRole("button", { name: "Earlier month" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sat 31 Oct" }));
+    enterStart("3:00", "am");
+    fireEvent.keyDown(dialog(), { key: "Escape" });
+    await waitFor(() => expect(logButton().disabled).toBe(false));
+
+    fireEvent.click(logButton());
+
+    await waitFor(() =>
+      expect(screen.queryByRole("dialog", { name: "Log time" })).toBeNull(),
+    );
+    expect(new Set(recording.createCycleRequestIds).size).toBe(2);
+    const { nodes } = await recording.client.listNodes({ includeClosed: true });
+    const logged = nodes
+      .flatMap((node) => node.cycles.map((cycle) => ({ node, cycle })))
+      .filter(({ cycle }) => !before.has(cycle.id))
+      .map(({ node, cycle }) => [
+        node.id,
+        cycle.mode,
+        cycle.minutes,
+        cycle.plannedMinutes,
+        timestampDate(cycle.startedAt!).toISOString(),
+      ])
+      .sort((left, right) => String(left[4]).localeCompare(String(right[4])));
+    expect(logged).toEqual([
+      [NOTES, FocusMode.DEEP_FOCUS, 90, 90, "2026-10-31T03:00:00.000Z"],
+      [NOTES, FocusMode.EXECUTION, 50, 50, "2026-10-31T04:30:00.000Z"],
+    ]);
   });
 
   test("taskPage_logTime_opensOnThatTask", async () => {

@@ -839,6 +839,11 @@
 .log-when[data-open] {
   border-color: var(--accent);
 }
+.log-overlap {
+  margin: -12px 2px 0;
+  font-size: 13.5px;
+  color: var(--over-estimate);
+}
 .log-dialog .task-estimate {
   padding: 10.5px 13.5px;
   border-width: 1.5px;
