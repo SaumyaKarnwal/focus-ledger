@@ -85,7 +85,7 @@ export function ExtensionScreen({
           text={formatCountdown(remaining)}
           progress={elapsed / (extension.minutes * MINUTE_MS)}
           note={
-            <p className="screen-note">
+            <p className="visually-hidden">
               {extension.loggedMinutes} min already logged · ends{" "}
               {localTimeString(endsAt, timeZone)}
             </p>

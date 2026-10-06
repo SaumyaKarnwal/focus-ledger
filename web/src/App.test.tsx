@@ -58,6 +58,21 @@ async function allCycles(client: LedgerClient): Promise<CyclePb[]> {
 }
 
 /** A manual Stop writes the cycle and lands on Start, with no bell (README rule 11). */
+/** The words a sighted user sees next to the timer; only the digits may show. */
+function visibleWordsByTheTimer() {
+  const clocks = [...document.querySelectorAll(".screen-clock")];
+  if (clocks.length === 0) throw new Error("no timer on the screen");
+  return clocks
+    .map((clock) => {
+      const copy = clock.cloneNode(true) as HTMLElement;
+      copy
+        .querySelectorAll(".visually-hidden, [role='timer']")
+        .forEach((hidden) => hidden.remove());
+      return copy.textContent?.trim();
+    })
+    .join("");
+}
+
 async function backOnStart() {
   const start = await screen.findByRole("button", { name: "Start" });
   expect(screen.queryByRole("dialog")).toBeNull();
@@ -253,6 +268,19 @@ describe("Pause", () => {
     return screen.getByRole("timer", { name: "Time left" }).textContent;
   }
 
+  test("running_andPaused_showNoStatusWordByTheTimer", async () => {
+    await startShallow(
+      recordingClient(exampleNodesWithNothingRunning()).client,
+    );
+    expect(visibleWordsByTheTimer()).toBe("");
+
+    fireEvent.click(screen.getByRole("button", { name: "Pause" }));
+
+    expect(visibleWordsByTheTimer()).toBe("");
+    expect(screen.getByRole("status").textContent).toBe("Paused");
+    expect(screen.getByRole("button", { name: "Resume" })).toBeDefined();
+  });
+
   test("pause_stopsTheCountdownAndResumeContinuesIt", async () => {
     await startShallow(
       recordingClient(exampleNodesWithNothingRunning()).client,
@@ -264,7 +292,7 @@ describe("Pause", () => {
     await advance(3 * MINUTE_MS);
 
     expect(timeLeft()).toBe("20:00");
-    expect(screen.getByRole("status").textContent).toContain("Paused");
+    expect(screen.getByRole("button", { name: "Resume" })).toBeDefined();
     fireEvent.click(screen.getByRole("button", { name: "Resume" }));
     await advance(MINUTE_MS);
     expect(timeLeft()).toBe("19:00");
@@ -294,7 +322,7 @@ describe("Pause", () => {
     await advance(2 * 60 * MINUTE_MS);
 
     expect(timeLeft()).toBe("17:40");
-    expect(screen.getByRole("status").textContent).toBe("Paused");
+    expect(screen.getByRole("button", { name: "Resume" })).toBeDefined();
     expect(recording.updateCycleMinutes).toEqual([]);
     fireEvent.click(screen.getByRole("button", { name: "Resume" }));
     await advance(3 * MINUTE_MS);
@@ -436,6 +464,18 @@ describe("Bell and extension", () => {
     fireEvent.click(screen.getByRole("button", { name: "Keep going" }));
     return screen.findByRole("timer", { name: "Time left" });
   }
+
+  test("bellAndExtension_showNoStatusWordByTheTimer", async () => {
+    await ringAfterFullCycle(
+      recordingClient(exampleNodesWithNothingRunning()).client,
+    );
+    expect(screen.getByText("50 min logged").className).toBe("visually-hidden");
+
+    await keepGoingFor(15);
+
+    expect(visibleWordsByTheTimer()).toBe("");
+    expect(screen.getByText(/^50 min already logged/)).toBeDefined();
+  });
 
   async function loggedMinutesOfNewCycle(client: LedgerClient) {
     const seeded = new Set(
@@ -590,6 +630,7 @@ describe("Break", () => {
     expect(timer.textContent).toBe("05:00");
     expect(screen.queryByText(/Breaks are not logged/)).toBeNull();
     expect(screen.queryByText(/of 5 min/)).toBeNull();
+    expect(visibleWordsByTheTimer()).toBe("");
   });
 
   test("break_plusFiveIsThePrimaryPlate_startACycleStaysOutlined", async () => {

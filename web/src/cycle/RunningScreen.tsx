@@ -89,7 +89,7 @@ export function RunningScreen({
           progress={elapsedMs(cycle, now, paused) / plannedMs(cycle)}
           note={
             isPaused && (
-              <p className="screen-note" role="status">
+              <p className="visually-hidden" role="status">
                 Paused
               </p>
             )
