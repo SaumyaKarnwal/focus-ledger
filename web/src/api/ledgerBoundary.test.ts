@@ -17,7 +17,7 @@ const screens = readdirSync(SRC, { recursive: true, encoding: "utf8" })
 
 // A version of the ledger, or what builds one, stays inside api/.
 const VERSIONS =
-  /from "@connectrpc\/connect-web"|from "[./]*api\/(serverLedger|fakeLedgerService)"|\bcreateClient\b/;
+  /from "@connectrpc\/connect-web"|from "[./]*api\/(serverLedger|fakeLedgerService|localLedger|ledgerRules)"|\bcreateClient\b/;
 
 describe("one ledger interface (README Guest mode)", () => {
   test("ledgerBoundary_noScreenImportsAVersionOfTheLedger", () => {

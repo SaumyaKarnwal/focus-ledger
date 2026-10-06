@@ -14,6 +14,7 @@ import { exampleNow } from "../ledger/exampleData";
 import { weekRange } from "../ledger/period";
 import {
   exampleNodesWithNothingRunning,
+  guestLedger,
   recordingClient,
 } from "../testing/appHarness";
 import { openFromTasks } from "../testing/navigation";
@@ -33,7 +34,12 @@ afterEach(() => {
 async function openReport(client: Ledger) {
   render(
     <StrictMode>
-      <App client={client} timeZone="UTC" retryDelaysMs={[0]} />
+      <App
+        client={client}
+        guest={guestLedger()}
+        timeZone="UTC"
+        retryDelaysMs={[0]}
+      />
     </StrictMode>,
   );
   await openFromTasks("Report");

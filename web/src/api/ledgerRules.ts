@@ -198,7 +198,10 @@ export function createLedgerRules(
   return {
     signIn(request) {
       if (guest) {
-        throw new ConnectError("a guest ledger has no sign-in", Code.Unimplemented);
+        throw new ConnectError(
+          "a guest ledger has no sign-in",
+          Code.Unimplemented,
+        );
       }
       if (
         request.credential.case !== "googleIdToken" ||

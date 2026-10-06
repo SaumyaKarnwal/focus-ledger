@@ -16,6 +16,7 @@ import { exampleNodes, exampleNow } from "./ledger/exampleData";
 import { PRODUCT_NAME } from "./productName";
 import {
   exampleNodesWithNothingRunning,
+  guestLedger,
   recordingClient,
 } from "./testing/appHarness";
 import {
@@ -41,7 +42,12 @@ afterEach(() => {
 function renderApp(client: Ledger) {
   return render(
     <StrictMode>
-      <App client={client} timeZone="UTC" retryDelaysMs={[0]} />
+      <App
+        client={client}
+        guest={guestLedger()}
+        timeZone="UTC"
+        retryDelaysMs={[0]}
+      />
     </StrictMode>,
   );
 }

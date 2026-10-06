@@ -53,6 +53,7 @@ import type { LoggedMode } from "./ledger/rollup";
 import { ReportScreen } from "./report/ReportScreen";
 import { loadLocalSettings } from "./settings/localSettings";
 import { SettingsPage } from "./settings/SettingsPage";
+import { GuestContext } from "./session/guestSession";
 import { SignInScreen } from "./signIn/SignInScreen";
 import type { SignInMethod } from "./signIn/signInMethod";
 import { TasksPage } from "./tasks/TasksPage";
@@ -125,7 +126,10 @@ function replaceAddress(address: Address) {
 }
 
 type Props = {
+  /** The server's ledger: the account's data once signed in. */
   client: Ledger;
+  /** This browser's ledger, for a guest (README "Guest mode"). */
+  guest: Ledger;
   timeZone?: string;
   retryDelaysMs?: readonly number[];
   /** main.tsx passes Google for the real backend. The default suits the fake. */
@@ -140,21 +144,25 @@ function isUnauthenticated(reason: unknown): boolean {
 
 export function App({
   client,
+  guest,
   timeZone = browserTimeZone(),
   retryDelaysMs,
   signInMethod = { kind: "fake" },
   bell = browserBell,
 }: Props) {
+  // No session on the server means a guest, never a sign-in wall.
+  const [mode, setMode] = useState<"account" | "guest">("account");
+  const active = mode === "guest" ? guest : client;
   const [data, setData] = useState<TodayData>();
   const [screen, setScreen] = useState<Screen>({ kind: "loading" });
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
   const refresh = useCallback(async () => {
-    const loaded = await loadToday(client, new Date(), timeZone);
+    const loaded = await loadToday(active, new Date(), timeZone);
     setData(loaded);
     return loaded;
-  }, [client, timeZone]);
+  }, [active, timeZone]);
 
   const act = useCallback(async (action: () => Promise<void>) => {
     setBusy(true);
@@ -226,7 +234,7 @@ export function App({
   useEffect(() => {
     let cancelled = false;
     withRetry(
-      () => loadToday(client, new Date(), timeZone),
+      () => loadToday(active, new Date(), timeZone),
       retryDelaysMs,
     ).then(
       (loaded) => {
@@ -236,14 +244,15 @@ export function App({
       },
       (reason: unknown) => {
         if (cancelled) return;
-        if (isUnauthenticated(reason)) setScreen({ kind: "signIn" });
+        // No session: the app opens as a guest on this browser's ledger.
+        if (isUnauthenticated(reason)) setMode("guest");
         else setError(String(reason));
       },
     );
     return () => {
       cancelled = true;
     };
-  }, [client, timeZone, screenFor, retryDelaysMs, loadAttempt]);
+  }, [active, timeZone, screenFor, retryDelaysMs, loadAttempt]);
 
   const signIn = (idToken: string) =>
     void act(async () => {
@@ -254,17 +263,41 @@ export function App({
           }),
         retryDelaysMs,
       );
+      setMode("account");
+      setData(undefined);
       setScreen({ kind: "loading" });
       goHome();
       setLoadAttempt((attempt) => attempt + 1);
     });
 
+  // Signing out leaves the app as a guest, not on a sign-in wall.
   const signOut = () =>
     void act(async () => {
       await withRetry(() => client.signOut({}), retryDelaysMs);
       setData(undefined);
-      setScreen({ kind: "signIn" });
+      setMode("guest");
+      setScreen({ kind: "loading" });
+      goHome();
     });
+
+  const openSignIn = () => {
+    setError(undefined);
+    setScreen({ kind: "signIn" });
+  };
+
+  // Back from the sign-in screen as a guest. An account whose session ended
+  // becomes a guest; a guest returns to what it was doing.
+  const keepGoing = () => {
+    setError(undefined);
+    if (mode === "guest" && data) {
+      setScreen(screenFor(data));
+      return;
+    }
+    setData(undefined);
+    setMode("guest");
+    setScreen({ kind: "loading" });
+    setLoadAttempt((attempt) => attempt + 1);
+  };
 
   const retryFirstLoad = () => {
     setError(undefined);
@@ -277,7 +310,7 @@ export function App({
   );
 
   const saveTask = async (save: TaskSave) => {
-    const node = await writeTask(client, save, retryDelaysMs);
+    const node = await writeTask(active, save, retryDelaysMs);
     // The task is saved. A failed reload must not show the save as failed.
     await refreshWithRetry().catch(() => undefined);
     return node;
@@ -285,7 +318,7 @@ export function App({
 
   /** Log time: the hand entries, then the data again (README "Log time"). */
   const logTime = async (entries: LogEntry[]) => {
-    await writeLog(client, entries, retryDelaysMs);
+    await writeLog(active, entries, retryDelaysMs);
     await refreshWithRetry().catch(() => undefined);
   };
 
@@ -326,7 +359,7 @@ export function App({
         plannedMinutes,
       };
       const { cycle } = await withRetry(
-        () => client.createCycle(request),
+        () => active.createCycle(request),
         retryDelaysMs,
       );
       if (cycle) {
@@ -351,7 +384,7 @@ export function App({
         await act(async () => {
           const response = await withRetry(
             () =>
-              client.updateCycle({
+              active.updateCycle({
                 cycleId: cycle.id,
                 minutes,
                 updateMask: { paths: ["minutes"] },
@@ -367,7 +400,7 @@ export function App({
         writing.current = false;
       }
     },
-    [act, client, refreshWithRetry, retryDelaysMs],
+    [act, active, refreshWithRetry, retryDelaysMs],
   );
 
   const showBell = (written: CyclePb) =>
@@ -587,204 +620,213 @@ export function App({
   const showSession = session && !away;
 
   return (
-    <div
-      className="app"
-      onPointerDownCapture={stopRinging}
-      onKeyDownCapture={stopRinging}
+    <GuestContext.Provider
+      value={mode === "guest" ? { onSignIn: openSignIn } : undefined}
     >
-      {screen.kind === "signIn" && (
-        <SignInScreen
-          method={signInMethod}
-          busy={busy}
-          error={error}
-          onIdToken={signIn}
-        />
-      )}
-      {screen.kind === "loading" && (
-        <>
-          <PageHeader framed />
-          {alert}
-          {error ? (
-            <p className="page-alert">
-              <button type="button" className="button" onClick={retryFirstLoad}>
-                Try again
-              </button>
-            </p>
-          ) : (
-            <p className="note page-alert">Loading…</p>
-          )}
-        </>
-      )}
-      {screen.kind === "today" && data && view === "today" && (
-        <>
-          {alert}
-          <StartScreen
-            key={`${preselectedNodeId ?? "start"}-${preselectedMode ?? ""}`}
-            data={data}
-            timeZone={timeZone}
+      <div
+        className="app"
+        onPointerDownCapture={stopRinging}
+        onKeyDownCapture={stopRinging}
+      >
+        {screen.kind === "signIn" && (
+          <SignInScreen
+            method={signInMethod}
             busy={busy}
-            initialNodeId={preselectedNodeId}
-            initialMode={preselectedMode}
-            onStart={(nodeId, mode, plannedMinutes) =>
-              void start(nodeId, mode, plannedMinutes)
-            }
-            onBreak={(nodeId, mode) => breakFromStart(data, nodeId, mode)}
-            onSaveTask={saveTask}
-            onOpenTasks={() => openView("tree")}
-            onOpenSettings={openSettings}
-            onOpenReport={() => openView("report")}
-            onSignOut={signOut}
+            error={error}
+            onIdToken={signIn}
+            onKeepGoing={keepGoing}
           />
-        </>
-      )}
-      {showPage && data && view === "tree" && (
-        <>
-          {alert}
-          <TasksPage
-            client={client}
-            data={data}
-            timeZone={timeZone}
-            retryDelaysMs={retryDelaysMs}
-            onSaveTask={saveTask}
-            onLogTime={logTime}
-            openTaskId={address.taskId}
-            onOpenTask={(taskId) => navigate({ view: "tree", taskId })}
-            onUnknownTask={() => {
-              replaceAddress(HOME);
-              setAddress(HOME);
-            }}
-            onOpenStart={() => openView("today")}
-            onOpenReport={() => openView("report")}
-            onOpenSettings={openSettings}
-            onSignOut={signOut}
-            session={pageSession}
-          />
-        </>
-      )}
-      {showPage && data && view === "report" && (
-        <>
-          {alert}
-          <ReportScreen
-            client={client}
+        )}
+        {screen.kind === "loading" && (
+          <>
+            <PageHeader framed />
+            {alert}
+            {error ? (
+              <p className="page-alert">
+                <button
+                  type="button"
+                  className="button"
+                  onClick={retryFirstLoad}
+                >
+                  Try again
+                </button>
+              </p>
+            ) : (
+              <p className="note page-alert">Loading…</p>
+            )}
+          </>
+        )}
+        {screen.kind === "today" && data && view === "today" && (
+          <>
+            {alert}
+            <StartScreen
+              key={`${preselectedNodeId ?? "start"}-${preselectedMode ?? ""}`}
+              data={data}
+              timeZone={timeZone}
+              busy={busy}
+              initialNodeId={preselectedNodeId}
+              initialMode={preselectedMode}
+              onStart={(nodeId, mode, plannedMinutes) =>
+                void start(nodeId, mode, plannedMinutes)
+              }
+              onBreak={(nodeId, mode) => breakFromStart(data, nodeId, mode)}
+              onSaveTask={saveTask}
+              onOpenTasks={() => openView("tree")}
+              onOpenSettings={openSettings}
+              onOpenReport={() => openView("report")}
+              onSignOut={signOut}
+            />
+          </>
+        )}
+        {showPage && data && view === "tree" && (
+          <>
+            {alert}
+            <TasksPage
+              client={active}
+              data={data}
+              timeZone={timeZone}
+              retryDelaysMs={retryDelaysMs}
+              onSaveTask={saveTask}
+              onLogTime={logTime}
+              openTaskId={address.taskId}
+              onOpenTask={(taskId) => navigate({ view: "tree", taskId })}
+              onUnknownTask={() => {
+                replaceAddress(HOME);
+                setAddress(HOME);
+              }}
+              onOpenStart={() => openView("today")}
+              onOpenReport={() => openView("report")}
+              onOpenSettings={openSettings}
+              onSignOut={signOut}
+              session={pageSession}
+            />
+          </>
+        )}
+        {showPage && data && view === "report" && (
+          <>
+            {alert}
+            <ReportScreen
+              client={active}
+              email={data.email}
+              timeZone={timeZone}
+              retryDelaysMs={retryDelaysMs}
+              onOpenStart={() => openView("today")}
+              onOpenTasks={() => openView("tree")}
+              onOpenSettings={openSettings}
+              onSignOut={signOut}
+              session={pageSession}
+            />
+          </>
+        )}
+        {showPage && data && view === "settings" && (
+          <>
+            {alert}
+            <SettingsPage
+              client={active}
+              bell={bell}
+              data={data}
+              timeZone={timeZone}
+              retryDelaysMs={retryDelaysMs}
+              onSaved={() =>
+                void refreshWithRetry().catch((reason: unknown) =>
+                  setError(String(reason)),
+                )
+              }
+              onOpenStart={() => openView("today")}
+              onOpenTasks={() => openView("tree")}
+              onOpenReport={() => openView("report")}
+              onSignOut={signOut}
+              session={pageSession}
+            />
+          </>
+        )}
+        {showSession && screen.kind === "running" && data && (
+          <>
+            {alert}
+            <RunningScreen
+              key={screen.cycle.id}
+              cycle={screen.cycle}
+              nodeName={cycleContext(data, screen.cycle).nodeName}
+              path={cycleContext(data, screen.cycle).path}
+              email={data.email}
+              timeZone={timeZone}
+              busy={busy}
+              now={now}
+              pause={pauseOf(screen.cycle.id)}
+              onTogglePause={() => togglePause(screen.cycle.id)}
+              onStop={(minutes) => stop(minutes)}
+              onOpenTasks={() => openView("tree")}
+              onOpenSettings={openSettings}
+              onOpenReport={() => openView("report")}
+              onSignOut={signOut}
+            />
+          </>
+        )}
+        {showSession && screen.kind === "bell" && data && (
+          <>
+            {alert}
+            <BellScreen
+              data={data}
+              cycle={screen.cycle}
+              timeZone={timeZone}
+              busy={busy}
+              onExtend={(moreMinutes) =>
+                startExtension(screen.cycle, moreMinutes)
+              }
+              onBreak={() => breakAfterCycle(data, screen.cycle)}
+              onNewCycle={() =>
+                backToStart(
+                  taskAfterCycle(data, screen.cycle),
+                  screen.cycle.mode as LoggedMode,
+                )
+              }
+              onOpenTasks={() => openView("tree")}
+              onOpenSettings={openSettings}
+              onOpenReport={() => openView("report")}
+              onSignOut={signOut}
+            />
+          </>
+        )}
+        {showSession && screen.kind === "extension" && data && (
+          <>
+            {alert}
+            <ExtensionScreen
+              key={`${screen.cycle.id}-${screen.extension.startedAtMs}`}
+              cycle={screen.cycle}
+              extension={screen.extension}
+              nodeName={cycleContext(data, screen.cycle).nodeName}
+              path={cycleContext(data, screen.cycle).path}
+              email={data.email}
+              timeZone={timeZone}
+              busy={busy}
+              now={now}
+              onStop={(total) => stopExtension(total)}
+              onOpenTasks={() => openView("tree")}
+              onOpenSettings={openSettings}
+              onOpenReport={() => openView("report")}
+              onSignOut={signOut}
+            />
+          </>
+        )}
+        {showSession && screen.kind === "break" && data && (
+          <BreakScreen
+            comingBackTo={screen.comingBackTo}
+            timer={screen.timer}
+            breakMinutes={data.settings.breakMinutes}
             email={data.email}
             timeZone={timeZone}
-            retryDelaysMs={retryDelaysMs}
-            onOpenStart={() => openView("today")}
-            onOpenTasks={() => openView("tree")}
-            onOpenSettings={openSettings}
-            onSignOut={signOut}
-            session={pageSession}
-          />
-        </>
-      )}
-      {showPage && data && view === "settings" && (
-        <>
-          {alert}
-          <SettingsPage
-            client={client}
-            bell={bell}
-            data={data}
-            timeZone={timeZone}
-            retryDelaysMs={retryDelaysMs}
-            onSaved={() =>
-              void refreshWithRetry().catch((reason: unknown) =>
-                setError(String(reason)),
-              )
-            }
-            onOpenStart={() => openView("today")}
-            onOpenTasks={() => openView("tree")}
-            onOpenReport={() => openView("report")}
-            onSignOut={signOut}
-            session={pageSession}
-          />
-        </>
-      )}
-      {showSession && screen.kind === "running" && data && (
-        <>
-          {alert}
-          <RunningScreen
-            key={screen.cycle.id}
-            cycle={screen.cycle}
-            nodeName={cycleContext(data, screen.cycle).nodeName}
-            path={cycleContext(data, screen.cycle).path}
-            email={data.email}
-            timeZone={timeZone}
-            busy={busy}
             now={now}
-            pause={pauseOf(screen.cycle.id)}
-            onTogglePause={() => togglePause(screen.cycle.id)}
-            onStop={(minutes) => stop(minutes)}
-            onOpenTasks={() => openView("tree")}
-            onOpenSettings={openSettings}
-            onOpenReport={() => openView("report")}
-            onSignOut={signOut}
-          />
-        </>
-      )}
-      {showSession && screen.kind === "bell" && data && (
-        <>
-          {alert}
-          <BellScreen
-            data={data}
-            cycle={screen.cycle}
-            timeZone={timeZone}
-            busy={busy}
-            onExtend={(moreMinutes) =>
-              startExtension(screen.cycle, moreMinutes)
-            }
-            onBreak={() => breakAfterCycle(data, screen.cycle)}
-            onNewCycle={() =>
-              backToStart(
-                taskAfterCycle(data, screen.cycle),
-                screen.cycle.mode as LoggedMode,
-              )
+            onTimerChange={(timer) => setScreen({ ...screen, timer })}
+            onDone={() =>
+              backToStart(screen.comingBackTo.nodeId, screen.comingBackTo.mode)
             }
             onOpenTasks={() => openView("tree")}
             onOpenSettings={openSettings}
             onOpenReport={() => openView("report")}
             onSignOut={signOut}
           />
-        </>
-      )}
-      {showSession && screen.kind === "extension" && data && (
-        <>
-          {alert}
-          <ExtensionScreen
-            key={`${screen.cycle.id}-${screen.extension.startedAtMs}`}
-            cycle={screen.cycle}
-            extension={screen.extension}
-            nodeName={cycleContext(data, screen.cycle).nodeName}
-            path={cycleContext(data, screen.cycle).path}
-            email={data.email}
-            timeZone={timeZone}
-            busy={busy}
-            now={now}
-            onStop={(total) => stopExtension(total)}
-            onOpenTasks={() => openView("tree")}
-            onOpenSettings={openSettings}
-            onOpenReport={() => openView("report")}
-            onSignOut={signOut}
-          />
-        </>
-      )}
-      {showSession && screen.kind === "break" && data && (
-        <BreakScreen
-          comingBackTo={screen.comingBackTo}
-          timer={screen.timer}
-          breakMinutes={data.settings.breakMinutes}
-          email={data.email}
-          timeZone={timeZone}
-          now={now}
-          onTimerChange={(timer) => setScreen({ ...screen, timer })}
-          onDone={() =>
-            backToStart(screen.comingBackTo.nodeId, screen.comingBackTo.mode)
-          }
-          onOpenTasks={() => openView("tree")}
-          onOpenSettings={openSettings}
-          onOpenReport={() => openView("report")}
-          onSignOut={signOut}
-        />
-      )}
-    </div>
+        )}
+      </div>
+    </GuestContext.Provider>
   );
 }

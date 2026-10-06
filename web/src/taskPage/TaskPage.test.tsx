@@ -8,6 +8,7 @@ import { exampleNow } from "../ledger/exampleData";
 import { findRow, taskTree } from "../tasks/tasksModel";
 import {
   exampleNodesWithNothingRunning,
+  guestLedger,
   recordingClient,
 } from "../testing/appHarness";
 import { openTasks } from "../testing/navigation";
@@ -118,7 +119,12 @@ describe("Task page model", () => {
 async function openTaskPage(client: Ledger, name: string) {
   render(
     <StrictMode>
-      <App client={client} timeZone="UTC" retryDelaysMs={[0]} />
+      <App
+        client={client}
+        guest={guestLedger()}
+        timeZone="UTC"
+        retryDelaysMs={[0]}
+      />
     </StrictMode>,
   );
   await screen.findByRole("button", { name: "Start" });

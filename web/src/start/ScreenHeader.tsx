@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useContext, useState } from "react";
 import { SignOutConfirm } from "./SignOutConfirm";
 import { formatDayLabel } from "../ledger/period";
 import { PRODUCT_NAME } from "../productName";
+import { GuestContext } from "../session/guestSession";
 import type { TimerChip } from "../session/sessionTimer";
 
 type Props = {
@@ -40,6 +41,7 @@ export function ScreenHeader({
   timer,
   onSignOut,
 }: Props) {
+  const guest = useContext(GuestContext);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmingSignOut, setConfirmingSignOut] = useState(false);
   // Sign out asks first (board A-Signout); the menus close behind the question.
@@ -118,32 +120,50 @@ export function ScreenHeader({
           {linksOpen && (
             <span className="screen-menu" role="menu">
               {links("menuitem")}
-              <span className="screen-menu-email">{email}</span>
-              <button type="button" role="menuitem" onClick={askSignOut}>
-                Sign out
-              </button>
+              {guest ? (
+                <button type="button" role="menuitem" onClick={guest.onSignIn}>
+                  Sign in
+                </button>
+              ) : (
+                <>
+                  <span className="screen-menu-email">{email}</span>
+                  <button type="button" role="menuitem" onClick={askSignOut}>
+                    Sign out
+                  </button>
+                </>
+              )}
             </span>
           )}
         </span>
-        <span className="screen-account">
+        {guest ? (
           <button
             type="button"
-            className="screen-badge"
-            aria-label="Your account"
-            aria-expanded={menuOpen}
-            onClick={() => setMenuOpen((open) => !open)}
+            className="screen-sign-in"
+            onClick={guest.onSignIn}
           >
-            {(email[0] ?? "?").toUpperCase()}
+            Sign in
           </button>
-          {menuOpen && (
-            <span className="screen-menu" role="menu">
-              <span className="screen-menu-email">{email}</span>
-              <button type="button" role="menuitem" onClick={askSignOut}>
-                Sign out
-              </button>
-            </span>
-          )}
-        </span>
+        ) : (
+          <span className="screen-account">
+            <button
+              type="button"
+              className="screen-badge"
+              aria-label="Your account"
+              aria-expanded={menuOpen}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              {(email[0] ?? "?").toUpperCase()}
+            </button>
+            {menuOpen && (
+              <span className="screen-menu" role="menu">
+                <span className="screen-menu-email">{email}</span>
+                <button type="button" role="menuitem" onClick={askSignOut}>
+                  Sign out
+                </button>
+              </span>
+            )}
+          </span>
+        )}
       </nav>
       {confirmingSignOut && (
         <SignOutConfirm

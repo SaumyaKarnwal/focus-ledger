@@ -1395,6 +1395,21 @@ button:disabled {
   font-weight: 600;
   color: var(--accent-on);
 }
+/* README "Guest mode": the board's quiet way back to the app. */
+.sign-in-guest {
+  margin: -4px 0 0;
+  font-size: 13.5px;
+  color: var(--ink-muted);
+}
+.sign-in-keep-going {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--rule-strong);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink-strong);
+}
 .google-button {
   min-height: 44px;
 }

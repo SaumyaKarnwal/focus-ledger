@@ -12,14 +12,21 @@ type Props = {
   busy: boolean;
   error: string | undefined;
   onIdToken: (idToken: string) => void;
+  /** Back to the app as a guest (README "Guest mode"). */
+  onKeepGoing: () => void;
 };
 
 /**
- * Sign-in is required and uses Google only (docs/prd.md, FR-1.7 as changed).
- * The playful screen of board A-Signin-OnePoint. A guest mode is a later decision,
- * so the board's "keep going without an account" link is not built.
+ * Sign-in uses Google only, and it is optional: a guest keeps going without
+ * an account (README "Guest mode"). The playful screen of board A-Signin-OnePoint.
  */
-export function SignInScreen({ method, busy, error, onIdToken }: Props) {
+export function SignInScreen({
+  method,
+  busy,
+  error,
+  onIdToken,
+  onKeepGoing,
+}: Props) {
   return (
     <main className="sign-in">
       <h1 className="visually-hidden">Sign in</h1>
@@ -52,6 +59,17 @@ export function SignInScreen({ method, busy, error, onIdToken }: Props) {
         ) : (
           <GoogleButton clientId={method.clientId} onIdToken={onIdToken} />
         )}
+        <p className="sign-in-guest">
+          or{" "}
+          <button
+            type="button"
+            className="sign-in-keep-going"
+            disabled={busy}
+            onClick={onKeepGoing}
+          >
+            keep going without an account
+          </button>
+        </p>
       </section>
     </main>
   );

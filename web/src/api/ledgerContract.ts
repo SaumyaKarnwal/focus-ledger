@@ -50,12 +50,15 @@ export function describeLedgerContract(
       ).cycle!;
 
     describe("account and settings", () => {
-      test.skipIf(options.guest)("getAccount_signedIn_returnsAccount", async () => {
-        const { account } = await client.getAccount({});
+      test.skipIf(options.guest)(
+        "getAccount_signedIn_returnsAccount",
+        async () => {
+          const { account } = await client.getAccount({});
 
-        expect(account?.id).toMatch(UUID);
-        expect(account?.email).not.toBe("");
-      });
+          expect(account?.id).toMatch(UUID);
+          expect(account?.email).not.toBe("");
+        },
+      );
 
       test.runIf(options.guest)("getAccount_guest_hasNoEmail", async () => {
         const { account } = await client.getAccount({});

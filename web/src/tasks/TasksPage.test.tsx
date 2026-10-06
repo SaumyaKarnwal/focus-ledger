@@ -7,6 +7,7 @@ import type { CyclePb } from "../gen/focusledger/v1/model_pb";
 import { exampleNow } from "../ledger/exampleData";
 import {
   exampleNodesWithNothingRunning,
+  guestLedger,
   recordingClient,
 } from "../testing/appHarness";
 import { openTasks } from "../testing/navigation";
@@ -28,7 +29,12 @@ afterEach(() => {
 async function openTasksPage(client: Ledger) {
   render(
     <StrictMode>
-      <App client={client} timeZone="UTC" retryDelaysMs={[0]} />
+      <App
+        client={client}
+        guest={guestLedger()}
+        timeZone="UTC"
+        retryDelaysMs={[0]}
+      />
     </StrictMode>,
   );
   await screen.findByRole("button", { name: "Start" });
@@ -385,7 +391,12 @@ describe("Empty", () => {
     });
     render(
       <StrictMode>
-        <App client={recording.client} timeZone="UTC" retryDelaysMs={[0]} />
+        <App
+          client={recording.client}
+          guest={guestLedger()}
+          timeZone="UTC"
+          retryDelaysMs={[0]}
+        />
       </StrictMode>,
     );
     await screen.findByRole("button", { name: "Start" });
