@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import type { LedgerClient } from "./api/ledgerClient";
+import type { Ledger } from "./api/ledger";
 import { withRetry } from "./api/retry";
 import type { NodePb } from "./gen/focusledger/v1/model_pb";
 
 /** ListNodes for all time. `reload` reads it again after a write. */
 export function useListNodes(
-  client: LedgerClient,
+  client: Ledger,
   includeClosed: boolean,
   retryDelaysMs?: readonly number[],
 ) {

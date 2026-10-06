@@ -1,4 +1,4 @@
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import { withRetry } from "../api/retry";
 import type { EstimatePb, NodePb } from "../gen/focusledger/v1/model_pb";
 import { toEstimates } from "../tree/estimateModel";
@@ -48,7 +48,7 @@ export function taskSave(
 
 /** Creates the new branches in order, then creates or updates the task. Returns the task. */
 export async function writeTask(
-  client: LedgerClient,
+  client: Ledger,
   save: TaskSave,
   retryDelaysMs?: readonly number[],
 ): Promise<NodePb | undefined> {

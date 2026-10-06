@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import { exampleNow } from "../ledger/exampleData";
 import {
   exampleNodesWithNothingRunning,
@@ -23,7 +23,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function renderAt(path: string, client?: LedgerClient) {
+function renderAt(path: string, client?: Ledger) {
   window.history.replaceState(null, "", path);
   render(
     <StrictMode>

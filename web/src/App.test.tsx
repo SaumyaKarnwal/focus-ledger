@@ -10,7 +10,7 @@ import { Code } from "@connectrpc/connect";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "./App";
-import type { LedgerClient } from "./api/ledgerClient";
+import type { Ledger } from "./api/ledger";
 import { FocusMode, type CyclePb } from "./gen/focusledger/v1/model_pb";
 import { exampleNodes, exampleNow } from "./ledger/exampleData";
 import { PRODUCT_NAME } from "./productName";
@@ -38,7 +38,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function renderApp(client: LedgerClient) {
+function renderApp(client: Ledger) {
   return render(
     <StrictMode>
       <App client={client} timeZone="UTC" retryDelaysMs={[0]} />
@@ -52,7 +52,7 @@ async function advance(ms: number) {
   });
 }
 
-async function allCycles(client: LedgerClient): Promise<CyclePb[]> {
+async function allCycles(client: Ledger): Promise<CyclePb[]> {
   const { nodes } = await client.listNodes({ includeClosed: true });
   return nodes.flatMap((node) => node.cycles);
 }
@@ -258,7 +258,7 @@ describe("Stop", () => {
 });
 
 describe("Pause", () => {
-  async function startShallow(client: LedgerClient) {
+  async function startShallow(client: Ledger) {
     renderApp(client);
     await screen.findByRole("button", { name: "Start" });
     await startCycleOn("Book", "Shallow");
@@ -432,7 +432,7 @@ describe("Pause", () => {
 });
 
 describe("Bell and extension", () => {
-  async function ringAfterFullCycle(client: LedgerClient) {
+  async function ringAfterFullCycle(client: Ledger) {
     const rendered = renderApp(client);
     await screen.findByRole("button", { name: "Start" });
     await startCycleOn("Book", "Execution");
@@ -477,7 +477,7 @@ describe("Bell and extension", () => {
     expect(screen.getByText(/^50 min already logged/)).toBeDefined();
   });
 
-  async function loggedMinutesOfNewCycle(client: LedgerClient) {
+  async function loggedMinutesOfNewCycle(client: Ledger) {
     const seeded = new Set(
       exampleNodesWithNothingRunning()
         .flatMap((node) => node.cycles)
@@ -755,7 +755,7 @@ describe("Reload", () => {
 });
 
 describe("Failures", () => {
-  async function startShallowOnBook(client: LedgerClient) {
+  async function startShallowOnBook(client: Ledger) {
     renderApp(client);
     await screen.findByRole("button", { name: "Start" });
     await startCycleOn("Book", "Shallow");

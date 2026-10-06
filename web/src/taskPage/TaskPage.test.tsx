@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import { FocusMode } from "../gen/focusledger/v1/model_pb";
 import { exampleNow } from "../ledger/exampleData";
 import { findRow, taskTree } from "../tasks/tasksModel";
@@ -115,7 +115,7 @@ describe("Task page model", () => {
   });
 });
 
-async function openTaskPage(client: LedgerClient, name: string) {
+async function openTaskPage(client: Ledger, name: string) {
   render(
     <StrictMode>
       <App client={client} timeZone="UTC" retryDelaysMs={[0]} />
@@ -130,7 +130,7 @@ async function openTaskPage(client: LedgerClient, name: string) {
   return nameButton.closest("h1") as HTMLElement;
 }
 
-async function nodeNamed(client: LedgerClient, name: string) {
+async function nodeNamed(client: Ledger, name: string) {
   const { nodes } = await client.listNodes({ includeClosed: true });
   return nodes.find((node) => node.name === name);
 }

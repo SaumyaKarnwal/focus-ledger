@@ -6,15 +6,15 @@ import { overallTotals, runningCycle } from "../ledger/rollup";
 import { createFakeLedgerTransport } from "./fakeLedgerService";
 import { describeLedgerContract } from "./ledgerContract";
 import { newRequestId } from "./requestId";
-import { createLedgerClient } from "./ledgerClient";
+import { createServerLedger } from "./serverLedger";
 
 describeLedgerContract("fake", () =>
-  createLedgerClient(createFakeLedgerTransport()),
+  createServerLedger(createFakeLedgerTransport()),
 );
 
 describe("fake LedgerService", () => {
   const seededClient = () =>
-    createLedgerClient(
+    createServerLedger(
       createFakeLedgerTransport({
         nodes: exampleNodes(),
         now: () => exampleNow,
@@ -53,7 +53,7 @@ describe("fake LedgerService", () => {
   });
 
   test("createCycle_start_usesTheInjectedClock", async () => {
-    const client = createLedgerClient(
+    const client = createServerLedger(
       createFakeLedgerTransport({ now: () => exampleNow }),
     );
 

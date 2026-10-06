@@ -3,7 +3,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import {
   FocusMode,
   NodePbSchema,
@@ -30,7 +30,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-function renderApp(client: LedgerClient) {
+function renderApp(client: Ledger) {
   return render(
     <StrictMode>
       <App client={client} timeZone="UTC" retryDelaysMs={[0]} />
@@ -38,7 +38,7 @@ function renderApp(client: LedgerClient) {
   );
 }
 
-async function openPicker(client: LedgerClient) {
+async function openPicker(client: Ledger) {
   renderApp(client);
   await screen.findByRole("button", { name: "Start" });
   fireEvent.click(screen.getByRole("button", { name: /working on/i }));

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import { withRetry } from "../api/retry";
 import type { NodePb } from "../gen/focusledger/v1/model_pb";
 import {
@@ -48,7 +48,7 @@ const KINDS: readonly [RangeKind, string][] = [
 ];
 
 type Props = {
-  client: LedgerClient;
+  client: Ledger;
   email: string;
   timeZone: string;
   retryDelaysMs?: readonly number[];

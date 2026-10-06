@@ -4,7 +4,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import {
   FocusMode,
   type NodePb,
@@ -47,7 +47,7 @@ function dataOf(nodes: NodePb[]): TodayData {
   } as TodayData;
 }
 
-function renderApp(client: LedgerClient) {
+function renderApp(client: Ledger) {
   return render(
     <StrictMode>
       <App client={client} timeZone="UTC" retryDelaysMs={[0]} />
@@ -55,7 +55,7 @@ function renderApp(client: LedgerClient) {
   );
 }
 
-async function openNewTask(client: LedgerClient) {
+async function openNewTask(client: Ledger) {
   renderApp(client);
   await screen.findByRole("button", { name: "Start" });
   fireEvent.click(screen.getByRole("button", { name: /working on/i }));
@@ -73,7 +73,7 @@ function parentButton() {
   return screen.getByRole("button", { name: /^Parent/ });
 }
 
-async function createdNodes(client: LedgerClient, name: string) {
+async function createdNodes(client: Ledger, name: string) {
   const { nodes } = await client.listNodes({});
   return nodes.filter((node) => node.name === name);
 }
@@ -343,7 +343,7 @@ describe("New branch in the parent tree (README Paused and the parent picker 2)"
       .map((button) => button.querySelector(".parent-name")?.textContent);
   }
 
-  async function addBranchUnderBook(client: LedgerClient) {
+  async function addBranchUnderBook(client: Ledger) {
     await openNewTask(client);
     typeName("Migrations");
     fireEvent.click(parentButton());
@@ -436,7 +436,7 @@ describe("New branch in the parent tree (README Paused and the parent picker 2)"
     expect(parentButton().textContent).toContain("Book");
   });
 
-  function renderDialogOn(client: LedgerClient, nodes: NodePb[]) {
+  function renderDialogOn(client: Ledger, nodes: NodePb[]) {
     const onDone = vi.fn();
     render(
       <TaskDialog
@@ -570,7 +570,7 @@ describe("New branch in the parent tree (README Paused and the parent picker 2)"
     const recording = recordingClient(exampleNodesWithNothingRunning());
     const inner = recording.client;
     const requestIds: (string | undefined)[] = [];
-    const flaky: LedgerClient = {
+    const flaky: Ledger = {
       ...inner,
       createNode: (request, options) => {
         requestIds.push(request.requestId);
@@ -618,7 +618,7 @@ describe("New branch in the parent tree (README Paused and the parent picker 2)"
 });
 
 describe("Edit task", () => {
-  function renderEdit(client: LedgerClient, nodeId: string) {
+  function renderEdit(client: Ledger, nodeId: string) {
     const nodes = exampleNodesWithNothingRunning();
     const editing = nodes.find((node) => node.id === nodeId) as NodePb;
     const onDone = vi.fn();

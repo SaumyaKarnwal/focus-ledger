@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { App } from "../App";
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import type { CyclePb } from "../gen/focusledger/v1/model_pb";
 import { exampleNow } from "../ledger/exampleData";
 import {
@@ -25,7 +25,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-async function openTasksPage(client: LedgerClient) {
+async function openTasksPage(client: Ledger) {
   render(
     <StrictMode>
       <App client={client} timeZone="UTC" retryDelaysMs={[0]} />
@@ -64,13 +64,13 @@ function drag(from: HTMLElement, onto: HTMLElement) {
   return allowed;
 }
 
-async function parentOf(client: LedgerClient, name: string) {
+async function parentOf(client: Ledger, name: string) {
   const { nodes } = await client.listNodes({ includeClosed: true });
   const node = nodes.find((listed) => listed.name === name);
   return nodes.find((listed) => listed.id === node?.parentId)?.name;
 }
 
-async function allCycles(client: LedgerClient): Promise<CyclePb[]> {
+async function allCycles(client: Ledger): Promise<CyclePb[]> {
   const { nodes } = await client.listNodes({ includeClosed: true });
   return nodes.flatMap((node) => node.cycles);
 }

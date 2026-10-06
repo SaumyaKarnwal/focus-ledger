@@ -2,7 +2,7 @@ import { timestampDate, timestampFromDate } from "@bufbuild/protobuf/wkt";
 import { Code, ConnectError } from "@connectrpc/connect";
 import { beforeEach, describe, expect, test } from "vitest";
 import { FocusMode } from "../gen/focusledger/v1/model_pb";
-import type { LedgerClient } from "./ledgerClient";
+import type { Ledger } from "./ledger";
 import { newRequestId } from "./requestId";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -13,10 +13,10 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
  */
 export function describeLedgerContract(
   backendName: string,
-  newClient: () => LedgerClient | Promise<LedgerClient>,
+  newClient: () => Ledger | Promise<Ledger>,
 ) {
   describe(`LedgerService contract (${backendName})`, () => {
-    let client: LedgerClient;
+    let client: Ledger;
 
     beforeEach(async () => {
       client = await newClient();
@@ -855,7 +855,7 @@ export function describeLedgerContract(
   });
 }
 
-async function treeNodeIds(client: LedgerClient, includeClosed = false) {
+async function treeNodeIds(client: Ledger, includeClosed = false) {
   const { nodes } = await client.listNodes({ includeClosed });
   return nodes.filter((node) => node.id !== "").map((node) => node.id);
 }

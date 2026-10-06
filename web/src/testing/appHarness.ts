@@ -1,7 +1,8 @@
 import { create } from "@bufbuild/protobuf";
 import { Code, ConnectError, type Transport } from "@connectrpc/connect";
 import { createFakeLedgerTransport } from "../api/fakeLedgerService";
-import { createLedgerClient, type LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
+import { createServerLedger } from "../api/serverLedger";
 import { NodePbSchema, type NodePb } from "../gen/focusledger/v1/model_pb";
 import { exampleNodes } from "../ledger/exampleData";
 
@@ -16,7 +17,7 @@ export function exampleNodesWithNothingRunning(): NodePb[] {
 }
 
 export type RecordingClient = {
-  client: LedgerClient;
+  client: Ledger;
   /** The request_id of every CreateCycle call that the client sent. */
   createCycleRequestIds: string[];
   /** The minutes of every UpdateCycle call that the client sent. */
@@ -92,7 +93,7 @@ export function recordingClient(
     stream: inner.stream,
   };
   return {
-    client: createLedgerClient(transport),
+    client: createServerLedger(transport),
     createCycleRequestIds,
     updateCycleMinutes,
     createNodeRequestIds,

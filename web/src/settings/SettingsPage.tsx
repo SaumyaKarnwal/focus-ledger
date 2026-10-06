@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import { withRetry } from "../api/retry";
 import { type BellDeps, unlockAudio } from "../bell/bell";
 import type { Playing } from "../bell/sounds";
@@ -68,7 +68,7 @@ const FOCUS_OPTIONS: readonly SoundOption<FocusSound>[] = FOCUS_SOUNDS.map(
 );
 
 type Props = {
-  client: LedgerClient;
+  client: Ledger;
   /** Plays the sound previews and asks for the notification permission. */
   bell: BellDeps;
   data: TodayData;

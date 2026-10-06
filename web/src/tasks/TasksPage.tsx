@@ -1,5 +1,5 @@
 import { type DragEvent, useCallback, useEffect, useState } from "react";
-import type { LedgerClient } from "../api/ledgerClient";
+import type { Ledger } from "../api/ledger";
 import { withRetry } from "../api/retry";
 import type { CyclePb, NodePb } from "../gen/focusledger/v1/model_pb";
 import { type TimeRange, toPeriodPb } from "../ledger/period";
@@ -36,7 +36,7 @@ const BLANK_IMAGE =
   "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 
 type Props = {
-  client: LedgerClient;
+  client: Ledger;
   data: TodayData;
   timeZone: string;
   retryDelaysMs?: readonly number[];
