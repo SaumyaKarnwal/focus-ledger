@@ -44,7 +44,7 @@ Report is designed (`R-Report-*`). The palette tries (`P-Palettes`) are not part
 
 ## Paused and the parent picker (owner, round 3)
 
-1. **Paused shows no label.** The word "Paused" under the timer goes away. The RESUME button is the only sign of the paused state.
+1. **No status labels on the timer screens.** Running, Paused, Bell, and Break show no status words under or near the timer ("Paused", "Running", "Extended", "+5 min added", and the like). The buttons carry the state: RESUME means paused. The screens hold only what the boards show: the timer, the buttons, the chips, and the task line.
 2. **In the parent picker, Enter adds and never selects.** This replaces the earlier rule that showed a new branch "in the tree as picked".
    - Enter in the add field adds the branch to the tree, clears the field, and keeps it open for the next name. A new branch can go under any existing or new branch.
    - Selecting the parent is a separate action: a click on a row, or ↑↓ to a row and Enter on that row (not in the add field).
