@@ -78,7 +78,7 @@ Ekagra works with no account. Signing in is optional, and guest data never moves
 - **No sign-in wall.** The first visit opens Start. Every screen works as a guest: timer, tasks, Log time, Report, Settings.
 - **Guest data lives only in this browser,** in IndexedDB. Nothing reaches the server. The browser applies the same rules as the server: the cycle rules, no delete, complete and reopen.
 - **The header shows a "Sign in" pill** in place of the round initial (the account note on the boards). It opens the playful sign-in screen. The sign-in screen offers "keep going without an account", which returns to the app.
-- **Before sign-in, one warning** (only when the guest has at least one task or cycle): "Your guest history stays out of your account. Signing in removes it from this browser." Choices: Sign in, Cancel. On a successful sign-in, the browser deletes the guest data and the app shows the account's data.
+- **No warning before sign-in** (owner decision). On a successful sign-in, the browser deletes the guest data and the app shows the account's data.
 - **No upload, no merge.** There are no wrong-account uploads, device conflicts, or duplicate tasks to handle.
 - **Signing out** returns to an empty guest session.
 - **An expired session is not guest mode.** At a successful sign-in, the browser stores one flag, "had an account" (no data, no email). A deliberate sign-out clears it. When the server answers `UNAUTHENTICATED` and the flag is set, the app shows the sign-in screen titled "Your session ended" with "Sign in again" first and "Keep going as a guest" second. Choosing guest clears the flag. A cycle that ran on the server continues after the user signs in again.
