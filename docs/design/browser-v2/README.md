@@ -49,7 +49,7 @@ Report is designed (`R-Report-*`). The palette tries (`P-Palettes`) are not part
    - Enter in the add field adds the branch to the tree, clears the field, and keeps it open for the next name. A new branch can go under any existing or new branch.
    - Selecting the parent is a separate action: a click on a row, or ↑↓ to a row and Enter on that row (not in the add field).
    - Esc leaves the add field and keeps the added branches.
-   - **Top-level branches** (owner, round 3): the list always ends with a row "+ New parent", also when the tree is empty. When the search text matches nothing, the first row reads "+ Create "<text>"", and Enter on it adds that branch at the top. "None" stays: it makes the task itself a top-level task.
+   - **Top-level branches** (owner, round 3): typing is the way to create one. While no row has exactly the typed name (ignoring case), the LAST row of the list reads Create "<text>" ("Create" muted, no "+"). Enter in the search picks the highlighted row, which is the first match; when nothing matches, the create row is the only row, so Enter creates. Creating adds the branch at the top level, clears the search, and gives the new row focus without selecting it; a second Enter or a click selects it. Adding inside a row is only the hover + on that row. An empty tree shows "None" and a grey hint, "Type a name to create one". "None" stays: it makes the task itself a top-level task.
    - Nothing is written until Create (or Save): then every new branch is created, parents first, each with its own `request_id`, and the task goes under the selected row. Cancel creates nothing. A retry after a failure reuses the same `request_id`s.
 
 ## Report range arrows stay put (owner, round 3)
