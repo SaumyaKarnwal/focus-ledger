@@ -14,6 +14,8 @@ type Props = {
   onIdToken: (idToken: string) => void;
   /** Back to the app as a guest (README "Guest mode"). */
   onKeepGoing: () => void;
+  /** This browser was signed in and the session ended (#275). */
+  sessionEnded?: boolean;
 };
 
 /**
@@ -26,10 +28,11 @@ export function SignInScreen({
   error,
   onIdToken,
   onKeepGoing,
+  sessionEnded = false,
 }: Props) {
   return (
     <main className="sign-in">
-      <h1 className="visually-hidden">Sign in</h1>
+      {!sessionEnded && <h1 className="visually-hidden">Sign in</h1>}
       <section className="sign-in-card" aria-label={PRODUCT_NAME}>
         <div className="sign-in-name">
           <span className="sign-in-native" lang="sa">
@@ -38,6 +41,7 @@ export function SignInScreen({
           <h2 className="sign-in-brand">{PRODUCT_NAME}</h2>
           <span className="sign-in-meaning">{PRODUCT_NAME_MEANING}</span>
         </div>
+        {sessionEnded && <h1 className="sign-in-ended">Your session ended</h1>}
         <p className="sign-in-lead">
           A clock that asks one thing before it starts: what kind of focus is
           this? Sign in and every cycle you name follows you to any device.
@@ -54,22 +58,36 @@ export function SignInScreen({
             disabled={busy}
             onClick={() => onIdToken(FAKE_ID_TOKEN)}
           >
-            Continue with Google
+            {sessionEnded ? "Sign in again" : "Continue with Google"}
           </button>
         ) : (
           <GoogleButton clientId={method.clientId} onIdToken={onIdToken} />
         )}
-        <p className="sign-in-guest">
-          or{" "}
-          <button
-            type="button"
-            className="sign-in-keep-going"
-            disabled={busy}
-            onClick={onKeepGoing}
-          >
-            keep going without an account
-          </button>
-        </p>
+        {sessionEnded ? (
+          <p className="sign-in-guest">
+            or{" "}
+            <button
+              type="button"
+              className="sign-in-keep-going"
+              disabled={busy}
+              onClick={onKeepGoing}
+            >
+              Keep going as a guest
+            </button>
+          </p>
+        ) : (
+          <p className="sign-in-guest">
+            or{" "}
+            <button
+              type="button"
+              className="sign-in-keep-going"
+              disabled={busy}
+              onClick={onKeepGoing}
+            >
+              keep going without an account
+            </button>
+          </p>
+        )}
       </section>
     </main>
   );

@@ -1,6 +1,6 @@
 import { Code, ConnectError } from "@connectrpc/connect";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Ledger } from "./api/ledger";
+import type { GuestLedger, Ledger } from "./api/ledger";
 import {
   type Address,
   HOME,
@@ -53,8 +53,10 @@ import type { LoggedMode } from "./ledger/rollup";
 import { ReportScreen } from "./report/ReportScreen";
 import { loadLocalSettings } from "./settings/localSettings";
 import { SettingsPage } from "./settings/SettingsPage";
+import { hadAccount, setHadAccount } from "./session/accountFlag";
 import { GuestContext } from "./session/guestSession";
 import { SignInScreen } from "./signIn/SignInScreen";
+import { SignInWarning } from "./signIn/SignInWarning";
 import type { SignInMethod } from "./signIn/signInMethod";
 import { TasksPage } from "./tasks/TasksPage";
 import { PageHeader } from "./ui/PageHeader";
@@ -69,6 +71,7 @@ import {
   cycleContext,
   INBOX_ID,
   knownCycles,
+  knownNodes,
   MODE_NAMES,
   taskAfterCycle,
   type TodayData,
@@ -77,12 +80,17 @@ import {
 
 type Screen =
   | { kind: "loading" }
-  | { kind: "signIn" }
+  | { kind: "signIn"; sessionEnded?: boolean }
   | { kind: "today" }
   | { kind: "running"; cycle: CyclePb }
   | { kind: "bell"; cycle: CyclePb }
   | { kind: "extension"; cycle: CyclePb; extension: PendingExtension }
   | { kind: "break"; comingBackTo: ComingBackTo; timer: BreakTimer };
+
+/** The screen for UNAUTHENTICATED: "Your session ended" if this browser was signed in. */
+function noSession(): Screen {
+  return { kind: "signIn", sessionEnded: hadAccount() };
+}
 
 /** The screens of a cycle or a break. They stay alive while another page shows. */
 function isSession(screen: Screen): boolean {
@@ -129,7 +137,7 @@ type Props = {
   /** The server's ledger: the account's data once signed in. */
   client: Ledger;
   /** This browser's ledger, for a guest (README "Guest mode"). */
-  guest: Ledger;
+  guest: GuestLedger;
   timeZone?: string;
   retryDelaysMs?: readonly number[];
   /** main.tsx passes Google for the real backend. The default suits the fake. */
@@ -152,7 +160,8 @@ export function App({
 }: Props) {
   // No session on the server means a guest, never a sign-in wall.
   const [mode, setMode] = useState<"account" | "guest">("account");
-  const active = mode === "guest" ? guest : client;
+  const active = mode === "guest" ? guest.ledger : client;
+  const [warning, setWarning] = useState(false);
   const [data, setData] = useState<TodayData>();
   const [screen, setScreen] = useState<Screen>({ kind: "loading" });
   const [busy, setBusy] = useState(false);
@@ -171,7 +180,7 @@ export function App({
       await action();
     } catch (reason) {
       // A session can end at any time, for example when the cookie expires.
-      if (isUnauthenticated(reason)) setScreen({ kind: "signIn" });
+      if (isUnauthenticated(reason)) setScreen(noSession());
       else setError(reason instanceof Error ? reason.message : String(reason));
     } finally {
       setBusy(false);
@@ -239,20 +248,23 @@ export function App({
     ).then(
       (loaded) => {
         if (cancelled) return;
+        if (mode === "account") setHadAccount(true);
         setData(loaded);
         setScreen(screenFor(loaded));
       },
       (reason: unknown) => {
         if (cancelled) return;
-        // No session: the app opens as a guest on this browser's ledger.
-        if (isUnauthenticated(reason)) setMode("guest");
-        else setError(String(reason));
+        // No session: a browser that was signed in hears that the session
+        // ended; any other opens as a guest on this browser's ledger.
+        if (!isUnauthenticated(reason)) setError(String(reason));
+        else if (hadAccount()) setScreen(noSession());
+        else setMode("guest");
       },
     );
     return () => {
       cancelled = true;
     };
-  }, [active, timeZone, screenFor, retryDelaysMs, loadAttempt]);
+  }, [active, mode, timeZone, screenFor, retryDelaysMs, loadAttempt]);
 
   const signIn = (idToken: string) =>
     void act(async () => {
@@ -263,6 +275,9 @@ export function App({
           }),
         retryDelaysMs,
       );
+      // Guest data never moves into an account: a sign-in removes it.
+      await guest.clear();
+      setHadAccount(true);
       setMode("account");
       setData(undefined);
       setScreen({ kind: "loading" });
@@ -274,21 +289,37 @@ export function App({
   const signOut = () =>
     void act(async () => {
       await withRetry(() => client.signOut({}), retryDelaysMs);
+      // A sign-out starts an empty guest session.
+      await guest.clear();
+      setHadAccount(false);
       setData(undefined);
       setMode("guest");
       setScreen({ kind: "loading" });
       goHome();
     });
 
-  const openSignIn = () => {
+  const showSignIn = () => {
+    setWarning(false);
     setError(undefined);
     setScreen({ kind: "signIn" });
+  };
+
+  // A guest with a task or a cycle is warned first that sign-in removes them.
+  const openSignIn = () => {
+    const hasHistory =
+      data !== undefined &&
+      // The Inbox node (ID "") is always listed; it is not a task.
+      (knownNodes(data).some((node) => node.id !== INBOX_ID) ||
+        knownCycles(data).length > 0);
+    if (hasHistory) setWarning(true);
+    else showSignIn();
   };
 
   // Back from the sign-in screen as a guest. An account whose session ended
   // becomes a guest; a guest returns to what it was doing.
   const keepGoing = () => {
     setError(undefined);
+    setHadAccount(false);
     if (mode === "guest" && data) {
       setScreen(screenFor(data));
       return;
@@ -628,6 +659,12 @@ export function App({
         onPointerDownCapture={stopRinging}
         onKeyDownCapture={stopRinging}
       >
+        {warning && (
+          <SignInWarning
+            onCancel={() => setWarning(false)}
+            onSignIn={showSignIn}
+          />
+        )}
         {screen.kind === "signIn" && (
           <SignInScreen
             method={signInMethod}
@@ -635,6 +672,7 @@ export function App({
             error={error}
             onIdToken={signIn}
             onKeepGoing={keepGoing}
+            sessionEnded={screen.sessionEnded}
           />
         )}
         {screen.kind === "loading" && (

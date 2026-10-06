@@ -10,7 +10,7 @@ import {
   EstimatePbSchema,
   SettingsPbSchema,
 } from "../gen/focusledger/v1/model_pb";
-import type { Ledger } from "./ledger";
+import type { GuestLedger, Ledger } from "./ledger";
 import {
   createLedgerRules,
   DEFAULT_SETTINGS,
@@ -168,13 +168,21 @@ export function createLocalLedger(
   store: LedgerStore,
   options: { now?: () => Date } = {},
 ): Ledger {
-  const ready = store.load().then((snapshot) => {
-    const state = snapshot ? fromSnapshot(snapshot) : seedState();
-    return {
-      state,
-      rules: createLedgerRules(state, { guest: true, now: options.now }),
-    };
+  return createGuestLedger(store, options).ledger;
+}
+
+/** The local ledger, and `clear`, which removes every row from the store and from memory. */
+export function createGuestLedger(
+  store: LedgerStore,
+  options: { now?: () => Date } = {},
+): GuestLedger {
+  const open = (state: LedgerState) => ({
+    state,
+    rules: createLedgerRules(state, { guest: true, now: options.now }),
   });
+  let ready = store
+    .load()
+    .then((snapshot) => open(snapshot ? fromSnapshot(snapshot) : seedState()));
   type Rules = ServiceImpl<typeof LedgerService>;
   const read =
     <Name extends keyof Rules>(name: Name) =>
@@ -206,10 +214,15 @@ export function createLocalLedger(
     createCycle: write("createCycle"),
     updateCycle: write("updateCycle"),
   } as unknown as Rules;
-  return createClient(
+  const ledger = createClient(
     LedgerService,
     createRouterTransport(({ service: serve }) => {
       serve(LedgerService, service);
     }),
   );
+  const clear = async () => {
+    await store.clear();
+    ready = Promise.resolve(open(seedState()));
+  };
+  return { ledger, clear };
 }
