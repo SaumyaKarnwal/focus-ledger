@@ -60,7 +60,9 @@ import { PageHeader } from "./ui/PageHeader";
 import { loadToday } from "./today/loadToday";
 import { PRODUCT_NAME } from "./productName";
 import { taskStrip } from "./start/startModel";
+import type { LogEntry } from "./task/logTimeModel";
 import { type TaskSave, writeTask } from "./task/saveTask";
+import { writeLog } from "./task/writeLog";
 import { StartScreen } from "./start/StartScreen";
 import {
   cycleContext,
@@ -279,6 +281,12 @@ export function App({
     // The task is saved. A failed reload must not show the save as failed.
     await refreshWithRetry().catch(() => undefined);
     return node;
+  };
+
+  /** Log time: the hand entries, then the data again (README "Log time"). */
+  const logTime = async (entries: LogEntry[]) => {
+    await writeLog(client, entries, retryDelaysMs);
+    await refreshWithRetry().catch(() => undefined);
   };
 
   // The rings still to come. Any click or key press stops them.
@@ -638,6 +646,7 @@ export function App({
             timeZone={timeZone}
             retryDelaysMs={retryDelaysMs}
             onSaveTask={saveTask}
+            onLogTime={logTime}
             openTaskId={address.taskId}
             onOpenTask={(taskId) => navigate({ view: "tree", taskId })}
             onUnknownTask={() => {

@@ -9,7 +9,7 @@ import type { TimerChip } from "../session/sessionTimer";
 import { ScreenHeader } from "../start/ScreenHeader";
 import type { TaskSave } from "../task/saveTask";
 import { LogTimeDialog } from "../task/LogTimeDialog";
-import { defaultLogTask } from "../task/logTimeModel";
+import { defaultLogTask, type LogEntry } from "../task/logTimeModel";
 import { TaskDialog } from "../task/TaskDialog";
 import { TaskPage } from "../taskPage/TaskPage";
 import { formatMinutes, MODE_NAMES, type TodayData } from "../today/todayModel";
@@ -41,6 +41,7 @@ type Props = {
   timeZone: string;
   retryDelaysMs?: readonly number[];
   onSaveTask: (save: TaskSave) => Promise<NodePb | undefined>;
+  onLogTime: (entries: LogEntry[]) => Promise<void>;
   /** The task page to show, from the address, or undefined for the list. */
   openTaskId?: string;
   onOpenTask: (taskId: string | undefined) => void;
@@ -63,6 +64,7 @@ export function TasksPage({
   timeZone,
   retryDelaysMs,
   onSaveTask,
+  onLogTime,
   openTaskId,
   onOpenTask,
   onUnknownTask,
@@ -483,6 +485,10 @@ export function TasksPage({
             const node = await onSaveTask(save);
             reload();
             return node;
+          }}
+          onLog={async (entries) => {
+            await onLogTime(entries);
+            reload();
           }}
           onClose={() => setLogging(undefined)}
         />

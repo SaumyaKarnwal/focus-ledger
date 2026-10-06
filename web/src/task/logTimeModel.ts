@@ -1,6 +1,15 @@
 import type { CyclePb } from "../gen/focusledger/v1/model_pb";
-import { type ByMode, cycleStart, LOGGED_MODES } from "../ledger/rollup";
-import { localDateString } from "../ledger/period";
+import {
+  localDateString,
+  type TimeRange,
+  zonedDateTimeToInstant,
+} from "../ledger/period";
+import {
+  type ByMode,
+  cycleStart,
+  LOGGED_MODES,
+  type LoggedMode,
+} from "../ledger/rollup";
 import type { EstimateRow } from "../tree/estimateModel";
 import {
   INBOX_ID,
@@ -174,4 +183,83 @@ export function cycleDaysOf(
       .filter((cycle) => cycle.startedAt !== undefined)
       .map((cycle) => localDateString(cycleStart(cycle), timeZone)),
   );
+}
+
+/** One hand entry for CreateCycle: one counted cycle. */
+export type LogEntry = {
+  requestId: string;
+  /** Undefined for Not sure yet: the cycle goes to Untagged. */
+  nodeId?: string;
+  mode: LoggedMode;
+  minutes: number;
+  startedAt: Date;
+};
+
+const MINUTE_MS = 60_000;
+
+/** How many cycles Log writes: one entry per counted cycle. */
+export function entryCount(time: ByMode<EstimateRow>): number {
+  return LOGGED_MODES.reduce((sum, mode) => sum + time[mode].cycleCount, 0);
+}
+
+/**
+ * Each counted cycle as one entry, back to back from the start, in the order
+ * Deep Focus, Execution, Shallow. No two entries share a start time.
+ */
+export function logEntries(
+  draft: LogDraft,
+  timeZone: string,
+  requestIds: readonly string[],
+): LogEntry[] {
+  const start = zonedDateTimeToInstant(draft.day, draft.start, timeZone);
+  const cycles = LOGGED_MODES.flatMap((mode) =>
+    Array.from({ length: draft.time[mode].cycleCount }, () => ({
+      mode,
+      minutes: draft.time[mode].cycleMinutes,
+    })),
+  );
+  const offsets = cycles.reduce<number[]>(
+    (sums, cycle, index) => [...sums, sums[index] + cycle.minutes],
+    [0],
+  );
+  return cycles.map((cycle, index) => ({
+    requestId: requestIds[index],
+    nodeId: draft.nodeId === INBOX_ID ? undefined : draft.nodeId,
+    mode: cycle.mode,
+    minutes: cycle.minutes,
+    startedAt: new Date(start.getTime() + offsets[index] * MINUTE_MS),
+  }));
+}
+
+/** The span every entry covers together, from the first start to the last end. */
+export function logSpan(entries: readonly LogEntry[]): TimeRange | undefined {
+  const last = entries.at(-1);
+  if (!last) return undefined;
+  return {
+    start: entries[0].startedAt,
+    end: new Date(last.startedAt.getTime() + last.minutes * MINUTE_MS),
+  };
+}
+
+/** The local days to read for an overlap: the day itself and one on each side. */
+export function overlapRange(day: string, timeZone: string): TimeRange {
+  const start = zonedDateTimeToInstant(day, "00:00", timeZone);
+  return {
+    start: new Date(start.getTime() - 24 * 60 * MINUTE_MS),
+    end: new Date(start.getTime() + 48 * 60 * MINUTE_MS),
+  };
+}
+
+/** The first cycle that runs at the same time as the span, if any. */
+export function overlappingCycle(
+  span: TimeRange,
+  cycles: readonly CyclePb[],
+): CyclePb | undefined {
+  return cycles.find((cycle) => {
+    if (cycle.startedAt === undefined) return false;
+    const start = cycleStart(cycle).getTime();
+    // A running cycle has no minutes yet: it counts for its planned length.
+    const end = start + (cycle.minutes ?? cycle.plannedMinutes) * MINUTE_MS;
+    return start < span.end.getTime() && span.start.getTime() < end;
+  });
 }
