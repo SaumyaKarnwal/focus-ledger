@@ -5,6 +5,7 @@ import {
 } from "../ledger/fixtures";
 import { createFakeLedgerTransport } from "./fakeLedgerService";
 import type { Ledger } from "./ledger";
+import { createLocalLedger, indexedDbStore } from "./localLedger";
 import { createServerLedger, grpcWebTransport } from "./serverLedger";
 
 export type Backend = "real" | "fake";
@@ -30,6 +31,13 @@ function fakeOptions(fixture: FixtureName) {
 }
 
 let shared: Ledger | undefined;
+let sharedGuest: Ledger | undefined;
+
+/** The guest's ledger in this browser's IndexedDB (README "Guest mode"). */
+export function guestLedger(): Ledger {
+  sharedGuest ??= createLocalLedger(indexedDbStore());
+  return sharedGuest;
+}
 
 /** The one ledger that the screens use. */
 export function ledger(): Ledger {

@@ -14,6 +14,8 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export function describeLedgerContract(
   backendName: string,
   newClient: () => Ledger | Promise<Ledger>,
+  /** A guest ledger has no account: no ID and no email (README "Guest mode"). */
+  options: { guest?: boolean } = {},
 ) {
   describe(`LedgerService contract (${backendName})`, () => {
     let client: Ledger;
@@ -48,11 +50,20 @@ export function describeLedgerContract(
       ).cycle!;
 
     describe("account and settings", () => {
-      test("getAccount_signedIn_returnsAccount", async () => {
+      test.skipIf(options.guest)(
+        "getAccount_signedIn_returnsAccount",
+        async () => {
+          const { account } = await client.getAccount({});
+
+          expect(account?.id).toMatch(UUID);
+          expect(account?.email).not.toBe("");
+        },
+      );
+
+      test.runIf(options.guest)("getAccount_guest_hasNoEmail", async () => {
         const { account } = await client.getAccount({});
 
-        expect(account?.id).toMatch(UUID);
-        expect(account?.email).not.toBe("");
+        expect(account?.email).toBe("");
       });
 
       test("getSettings_newUser_returnsDefaults", async () => {

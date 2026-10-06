@@ -7,6 +7,7 @@ import type { Ledger } from "../api/ledger";
 import { exampleNow } from "../ledger/exampleData";
 import {
   exampleNodesWithNothingRunning,
+  guestLedger,
   recordingClient,
 } from "../testing/appHarness";
 import { fakeBell } from "../testing/fakeBell";
@@ -34,6 +35,7 @@ function renderApp(client: Ledger) {
     <StrictMode>
       <App
         client={client}
+        guest={guestLedger()}
         timeZone="UTC"
         retryDelaysMs={[0]}
         bell={fakeBell().deps}

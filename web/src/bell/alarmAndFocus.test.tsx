@@ -12,6 +12,7 @@ import {
 } from "../settings/localSettings";
 import {
   exampleNodesWithNothingRunning,
+  guestLedger,
   recordingClient,
 } from "../testing/appHarness";
 import { fakeBell } from "../testing/fakeBell";
@@ -43,6 +44,7 @@ function renderApp(client: Ledger, bell = fakeBell()) {
     <StrictMode>
       <App
         client={client}
+        guest={guestLedger()}
         timeZone="UTC"
         retryDelaysMs={[0]}
         bell={bell.deps}

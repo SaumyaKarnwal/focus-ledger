@@ -6,6 +6,7 @@ import type { Ledger } from "../api/ledger";
 import { exampleNow } from "../ledger/exampleData";
 import {
   exampleNodesWithNothingRunning,
+  guestLedger,
   recordingClient,
 } from "../testing/appHarness";
 import { openFromTasks } from "../testing/navigation";
@@ -41,6 +42,7 @@ function renderApp(client: Ledger, signInMethod?: SignInMethod) {
     <StrictMode>
       <App
         client={client}
+        guest={guestLedger()}
         timeZone="UTC"
         retryDelaysMs={[0]}
         signInMethod={signInMethod}
@@ -53,45 +55,93 @@ function signedOutClient(nodes = exampleNodesWithNothingRunning()) {
   return recordingClient(nodes, { signedIn: false });
 }
 
+/** As a guest, the header's pill opens the sign-in screen. */
+async function openSignIn() {
+  fireEvent.click(await screen.findByRole("button", { name: "Sign in" }));
+  return screen.findByRole("heading", { name: "Sign in" });
+}
+
+/** Back on Start as a guest: the pill shows and the account initial does not. */
+async function expectGuestStart() {
+  // The pill shows only in guest mode, so it is the first thing to wait for.
+  expect(await screen.findByRole("button", { name: "Sign in" })).toBeDefined();
+  expect(await screen.findByRole("button", { name: "Start" })).toBeDefined();
+  expect(screen.queryByRole("button", { name: "Your account" })).toBeNull();
+}
+
 describe("Sign-in", () => {
-  test("signIn_noSession_showsOnlyTheGoogleAction", async () => {
+  test("guest_noSession_opensStartWithASignInPill", async () => {
     renderApp(signedOutClient().client);
 
-    expect(
-      await screen.findByRole("heading", { name: "Sign in" }),
-    ).toBeDefined();
-    expect(
-      screen.getAllByRole("button").map((button) => button.textContent),
-    ).toEqual(["Continue with Google"]);
-    expect(screen.queryByRole("navigation")).toBeNull();
-    expect(screen.queryByRole("textbox")).toBeNull();
+    await expectGuestStart();
+    expect(screen.queryByRole("heading", { name: "Sign in" })).toBeNull();
+    // The guest starts with an empty ledger, not the server's rows.
+    expect(screen.getByText("What are you working on?")).toBeDefined();
   });
 
-  test("signIn_screen_showsTheBoardsCardAndNoGuestLink", async () => {
-    renderApp(signedOutClient().client);
+  test("guest_cycle_staysInTheBrowserAndReachesNoServer", async () => {
+    const recording = signedOutClient();
+    const guest = guestLedger();
+    render(
+      <StrictMode>
+        <App
+          client={recording.client}
+          guest={guest}
+          timeZone="UTC"
+          retryDelaysMs={[0]}
+        />
+      </StrictMode>,
+    );
 
-    expect(
-      await screen.findByRole("heading", { name: PRODUCT_NAME }),
-    ).toBeDefined();
+    fireEvent.click(await screen.findByRole("button", { name: "Start" }));
+
+    expect(await screen.findByRole("button", { name: "Pause" })).toBeDefined();
+    expect(recording.createCycleRequestIds).toEqual([]);
+    const { nodes } = await guest.listNodes({});
+    expect(nodes.flatMap((node) => node.cycles)).toHaveLength(1);
+  });
+
+  test("signIn_screen_showsTheBoardsCardAndTheGuestLink", async () => {
+    renderApp(signedOutClient().client);
+    await openSignIn();
+
+    expect(screen.getByRole("heading", { name: PRODUCT_NAME })).toBeDefined();
     expect(screen.getByText(PRODUCT_NAME_NATIVE).getAttribute("lang")).toBe(
       "sa",
     );
     expect(screen.getByText(PRODUCT_NAME_MEANING)).toBeDefined();
     expect(screen.getByText(/every cycle you name follows you/)).toBeDefined();
-    expect(screen.queryByText(/without an account/i)).toBeNull();
-    expect(screen.queryByRole("link")).toBeNull();
+    expect(
+      screen.getAllByRole("button").map((button) => button.textContent),
+    ).toEqual(["Continue with Google", "keep going without an account"]);
+    expect(screen.queryByRole("navigation")).toBeNull();
+  });
+
+  test("signIn_keepGoing_returnsToTheAppAsAGuest", async () => {
+    renderApp(signedOutClient().client);
+    await openSignIn();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "keep going without an account" }),
+    );
+
+    await expectGuestStart();
   });
 
   test("signIn_google_sendsTheIdTokenAndOpensToday", async () => {
     const { client } = signedOutClient();
     const signIn = vi.spyOn(client, "signIn");
     renderApp(client);
+    await openSignIn();
 
     fireEvent.click(
-      await screen.findByRole("button", { name: "Continue with Google" }),
+      screen.getByRole("button", { name: "Continue with Google" }),
     );
 
-    expect(await screen.findByRole("button", { name: "Start" })).toBeDefined();
+    expect(
+      await screen.findByRole("button", { name: "Your account" }),
+    ).toBeDefined();
+    expect(screen.getByRole("button", { name: "Start" })).toBeDefined();
     expect(signIn).toHaveBeenCalledTimes(1);
     expect(signIn.mock.calls[0][0].credential).toEqual({
       case: "googleIdToken",
@@ -101,12 +151,16 @@ describe("Sign-in", () => {
 
   test("signIn_newAccountWithNoData_landsOnStartEmpty", async () => {
     renderApp(signedOutClient([]).client);
+    await openSignIn();
 
     fireEvent.click(
-      await screen.findByRole("button", { name: "Continue with Google" }),
+      screen.getByRole("button", { name: "Continue with Google" }),
     );
 
-    expect(await screen.findByRole("button", { name: "Start" })).toBeDefined();
+    expect(
+      await screen.findByRole("button", { name: "Your account" }),
+    ).toBeDefined();
+    expect(screen.getByRole("button", { name: "Start" })).toBeDefined();
     expect(screen.getByText("What are you working on?")).toBeDefined();
     expect(screen.queryByText(/first cycle/i)).toBeNull();
     expect(screen.queryByRole("textbox", { name: /working on/i })).toBeNull();
@@ -117,6 +171,7 @@ describe("Sign-in", () => {
       kind: "google",
       clientId: undefined,
     });
+    await openSignIn();
 
     expect((await screen.findByRole("alert")).textContent).toContain(
       "GOOGLE_CLIENT_ID",
@@ -126,7 +181,7 @@ describe("Sign-in", () => {
     ).toBeNull();
   });
 
-  test("signOut_fromSettings_returnsToSignIn", async () => {
+  test("signOut_fromSettings_leavesAGuest", async () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     renderApp(client);
     await openFromTasks("Settings");
@@ -136,13 +191,11 @@ describe("Sign-in", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
     confirmSignOut();
 
-    expect(
-      await screen.findByRole("heading", { name: "Sign in" }),
-    ).toBeDefined();
+    await expectGuestStart();
     await expect(client.getAccount({})).rejects.toThrow(/no session/);
   });
 
-  test("signOut_fromTheAccountBadge_returnsToSignIn", async () => {
+  test("signOut_fromTheAccountBadge_leavesAGuest", async () => {
     const { client } = recordingClient(exampleNodesWithNothingRunning());
     renderApp(client);
     await screen.findByRole("button", { name: "Start" });
@@ -152,9 +205,7 @@ describe("Sign-in", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: "Sign out" }));
     confirmSignOut();
 
-    expect(
-      await screen.findByRole("heading", { name: "Sign in" }),
-    ).toBeDefined();
+    await expectGuestStart();
   });
 
   test("signOut_cancel_keepsTheSessionAndSendsNothing", async () => {
@@ -203,9 +254,7 @@ describe("Sign-in", () => {
     expect(signOut).not.toHaveBeenCalled();
     confirmSignOut();
 
-    expect(
-      await screen.findByRole("heading", { name: "Sign in" }),
-    ).toBeDefined();
+    await expectGuestStart();
     expect(signOut).toHaveBeenCalledTimes(1);
   });
 
