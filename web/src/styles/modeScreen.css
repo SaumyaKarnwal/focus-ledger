@@ -350,12 +350,6 @@
   height: 100%;
   background: var(--on-screen-strong);
 }
-.screen-note {
-  margin: 0;
-  font-size: 14px;
-  color: var(--on-screen-muted);
-}
-
 /* The bell */
 
 /*
