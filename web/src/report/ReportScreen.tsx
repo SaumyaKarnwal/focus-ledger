@@ -202,43 +202,41 @@ export function ReportScreen({
                   {change}
                 </span>
               )}
-              <span className="report-steps">
-                <button
-                  type="button"
-                  className="report-step"
-                  aria-label="Earlier"
-                  onClick={() =>
-                    setChoice({ ...choice, back: choice.back + 1 })
-                  }
-                >
-                  <Chevron direction="left" />
-                </button>
-                <button
-                  type="button"
-                  className="report-step"
-                  aria-label="Later"
-                  disabled={atNow}
-                  onClick={() =>
-                    setChoice({ ...choice, back: choice.back - 1 })
-                  }
-                >
-                  <Chevron direction="right" />
-                </button>
-              </span>
             </div>
             <span className="report-dates">{title.dates}</span>
           </div>
-          <div className="report-kinds" role="group" aria-label="Range">
-            {KINDS.map(([kind, label]) => (
+          <div className="report-head-end">
+            <div className="report-kinds" role="group" aria-label="Range">
+              {KINDS.map(([kind, label]) => (
+                <button
+                  key={kind}
+                  type="button"
+                  aria-pressed={choice.kind === kind}
+                  onClick={() => pick(kind)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <span className="report-steps">
               <button
-                key={kind}
                 type="button"
-                aria-pressed={choice.kind === kind}
-                onClick={() => pick(kind)}
+                className="report-step"
+                aria-label="Earlier"
+                onClick={() => setChoice({ ...choice, back: choice.back + 1 })}
               >
-                {label}
+                <Chevron direction="left" />
               </button>
-            ))}
+              <button
+                type="button"
+                className="report-step"
+                aria-label="Later"
+                disabled={atNow}
+                onClick={() => setChoice({ ...choice, back: choice.back - 1 })}
+              >
+                <Chevron direction="right" />
+              </button>
+            </span>
           </div>
         </div>
         {choice.kind === "custom" && choice.custom && (
