@@ -1401,12 +1401,6 @@ button:disabled {
   font-size: 13.5px;
   color: var(--ink-muted);
 }
-.sign-in-ended {
-  margin: 0;
-  font-size: 19px;
-  font-weight: 600;
-  color: var(--ink-strong);
-}
 .sign-in-keep-going {
   padding: 0;
   background: none;
