@@ -267,20 +267,6 @@ describe("Sign-in", () => {
     await expectGuestStart();
     expect(signOut).toHaveBeenCalledTimes(1);
   });
-
-  test("session_endsDuringUse_saysTheSessionEnded", async () => {
-    const { client } = recordingClient(exampleNodesWithNothingRunning());
-    renderApp(client);
-    await screen.findByRole("button", { name: "Start" });
-    await client.signOut({});
-
-    fireEvent.click(screen.getByRole("button", { name: "Start" }));
-
-    expect(
-      await screen.findByRole("heading", { name: "Your session ended" }),
-    ).toBeDefined();
-    expect(screen.queryByRole("alert")).toBeNull();
-  });
 });
 
 describe("Sign in from a guest (README Guest mode, issue 275)", () => {
@@ -368,28 +354,6 @@ describe("Sign in from a guest (README Guest mode, issue 275)", () => {
     expect(hadAccount()).toBe(false);
   });
 
-  test("expiredSession_withTheFlag_showsSessionEnded_thenGuestClearsTheFlag", async () => {
-    setHadAccount(true);
-    renderWith(signedOutClient().client, guestLedger());
-
-    expect(
-      await screen.findByRole("heading", { name: "Your session ended" }),
-    ).toBeDefined();
-    const buttons = screen
-      .getAllByRole("button")
-      .map((button) => button.textContent);
-    expect(buttons).toEqual(["Sign in again", "Keep going as a guest"]);
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Keep going as a guest" }),
-    );
-
-    expect(
-      await screen.findByRole("button", { name: "Sign in" }),
-    ).toBeDefined();
-    expect(hadAccount()).toBe(false);
-  });
-
   test("expiredSession_withoutTheFlag_opensGuestMode", async () => {
     renderWith(signedOutClient().client, guestLedger());
 
@@ -399,5 +363,133 @@ describe("Sign in from a guest (README Guest mode, issue 275)", () => {
     expect(
       screen.queryByRole("heading", { name: "Your session ended" }),
     ).toBeNull();
+  });
+});
+
+describe("A session that ends (issue 283)", () => {
+  afterEach(() => {
+    delete window.google;
+  });
+
+  /** Google Identity Services as the app uses it. `shows` false skips the prompt. */
+  function fakeGoogle(shows: boolean) {
+    let callback: ((response: { credential: string }) => void) | undefined;
+    const initialize = vi.fn(
+      (config: {
+        client_id: string;
+        callback: (response: { credential: string }) => void;
+        auto_select?: boolean;
+      }) => {
+        callback = config.callback;
+      },
+    );
+    const prompt = vi.fn(
+      (onMoment?: (moment: { isSkippedMoment: () => boolean }) => void) => {
+        if (!shows) onMoment?.({ isSkippedMoment: () => true });
+      },
+    );
+    window.google = {
+      accounts: { id: { initialize, renderButton: vi.fn(), prompt } },
+    };
+    return {
+      initialize,
+      prompt,
+      chooseAccount: (idToken: string) => callback?.({ credential: idToken }),
+    };
+  }
+
+  const google = { kind: "google", clientId: "test-client" } as const;
+
+  async function expireDuringARunningCycle(client: Ledger) {
+    renderApp(client, google);
+    fireEvent.click(await screen.findByRole("button", { name: "Start" }));
+    await screen.findByRole("button", { name: "Pause" });
+    await client.signOut({});
+    fireEvent.click(screen.getByRole("button", { name: /Stop and log/ }));
+  }
+
+  test("expiry_showsGooglesChooserOverTheCurrentScreen", async () => {
+    const fake = fakeGoogle(true);
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+
+    await expireDuringARunningCycle(client);
+
+    await waitFor(() => expect(fake.prompt).toHaveBeenCalledOnce());
+    expect(fake.initialize).toHaveBeenCalledWith(
+      expect.objectContaining({ client_id: "test-client", auto_select: false }),
+    );
+    expect(screen.getByRole("button", { name: "Pause" })).toBeDefined();
+    expect(screen.queryByRole("heading", { name: "Sign in" })).toBeNull();
+  });
+
+  test("expiry_credential_signsInAndTheCycleGoesOn", async () => {
+    const fake = fakeGoogle(true);
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    const signIn = vi.spyOn(client, "signIn");
+    await expireDuringARunningCycle(client);
+    await waitFor(() => expect(fake.prompt).toHaveBeenCalledOnce());
+
+    fake.chooseAccount("chosen-id-token");
+
+    await waitFor(() => expect(signIn).toHaveBeenCalledOnce());
+    expect(signIn.mock.calls[0][0].credential).toEqual({
+      case: "googleIdToken",
+      value: "chosen-id-token",
+    });
+    expect(await client.getAccount({})).toBeDefined();
+    expect(screen.getByRole("button", { name: "Pause" })).toBeDefined();
+    expect(screen.queryByRole("button", { name: "Sign in again" })).toBeNull();
+  });
+
+  test("expiry_promptCannotShow_leavesASignInAgainPill", async () => {
+    const fake = fakeGoogle(false);
+    const { client } = recordingClient(exampleNodesWithNothingRunning());
+    await expireDuringARunningCycle(client);
+
+    const pill = await screen.findByRole("button", { name: "Sign in again" });
+    expect(screen.getByRole("button", { name: "Pause" })).toBeDefined();
+    fireEvent.click(pill);
+    await waitFor(() => expect(fake.prompt).toHaveBeenCalledTimes(2));
+
+    fireEvent.click(screen.getByRole("button", { name: "Your account" }));
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: "Keep going as a guest" }),
+    );
+    expect(
+      await screen.findByRole("button", { name: "Sign in" }),
+    ).toBeDefined();
+    expect(hadAccount()).toBe(false);
+  });
+
+  test("expiry_atLoad_promptsOnTheLoadingPage_andACredentialLoadsTheAccount", async () => {
+    const fake = fakeGoogle(true);
+    setHadAccount(true);
+    const { client } = signedOutClient();
+    renderApp(client, google);
+
+    await waitFor(() => expect(fake.prompt).toHaveBeenCalledOnce());
+    expect(screen.queryByRole("heading", { name: "Sign in" })).toBeNull();
+    fake.chooseAccount("chosen-id-token");
+
+    expect(
+      await screen.findByRole("button", { name: "Your account" }),
+    ).toBeDefined();
+  });
+  test("expiry_atLoad_promptCannotShow_offersSignInAgainAndGuest", async () => {
+    fakeGoogle(false);
+    setHadAccount(true);
+    renderApp(signedOutClient().client, google);
+
+    expect(
+      await screen.findByRole("button", { name: "Sign in again" }),
+    ).toBeDefined();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Keep going as a guest" }),
+    );
+
+    expect(
+      await screen.findByRole("button", { name: "Sign in" }),
+    ).toBeDefined();
+    expect(hadAccount()).toBe(false);
   });
 });

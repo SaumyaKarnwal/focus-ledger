@@ -8,7 +8,7 @@ afterEach(() => {
 test("renderGoogleButton_drawsThePillContinueButton", async () => {
   const renderButton = vi.fn();
   window.google = {
-    accounts: { id: { initialize: vi.fn(), renderButton } },
+    accounts: { id: { initialize: vi.fn(), renderButton, prompt: vi.fn() } },
   };
   const parent = document.createElement("div");
 

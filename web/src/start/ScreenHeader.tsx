@@ -2,7 +2,7 @@ import { useContext, useState } from "react";
 import { SignOutConfirm } from "./SignOutConfirm";
 import { formatDayLabel } from "../ledger/period";
 import { PRODUCT_NAME } from "../productName";
-import { GuestContext } from "../session/guestSession";
+import { GuestContext, ReauthContext } from "../session/guestSession";
 import type { TimerChip } from "../session/sessionTimer";
 
 type Props = {
@@ -51,6 +51,17 @@ export function ScreenHeader({
     setConfirmingSignOut(true);
   };
   const [linksOpen, setLinksOpen] = useState(false);
+  // A session that ended (#283): sign in again, or carry on as a guest.
+  const reauth = useContext(ReauthContext);
+  const accountItem = reauth ? (
+    <button type="button" role="menuitem" onClick={reauth.onKeepGoing}>
+      Keep going as a guest
+    </button>
+  ) : (
+    <button type="button" role="menuitem" onClick={askSignOut}>
+      Sign out
+    </button>
+  );
   const links = (role?: "menuitem") => (
     <>
       <NavItem
@@ -126,10 +137,17 @@ export function ScreenHeader({
                 </button>
               ) : (
                 <>
+                  {reauth && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      onClick={reauth.onSignInAgain}
+                    >
+                      Sign in again
+                    </button>
+                  )}
                   <span className="screen-menu-email">{email}</span>
-                  <button type="button" role="menuitem" onClick={askSignOut}>
-                    Sign out
-                  </button>
+                  {accountItem}
                 </>
               )}
             </span>
@@ -145,6 +163,15 @@ export function ScreenHeader({
           </button>
         ) : (
           <span className="screen-account">
+            {reauth && (
+              <button
+                type="button"
+                className="screen-sign-in"
+                onClick={reauth.onSignInAgain}
+              >
+                Sign in again
+              </button>
+            )}
             <button
               type="button"
               className="screen-badge"
@@ -157,9 +184,7 @@ export function ScreenHeader({
             {menuOpen && (
               <span className="screen-menu" role="menu">
                 <span className="screen-menu-email">{email}</span>
-                <button type="button" role="menuitem" onClick={askSignOut}>
-                  Sign out
-                </button>
+                {accountItem}
               </span>
             )}
           </span>
